@@ -198,6 +198,31 @@
             justify-content: center;
         }
     }
+
+    // --- Concept Card ---
+    .concept-card {
+        padding: 24px 20px;
+
+        &__grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        &__item-preview {
+            height: 90px;
+        }
+
+        &__footer {
+            flex-direction: column-reverse;
+            gap: 12px;
+        }
+
+        &__back-btn,
+        &__submit {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 }
 
 // Extra small screens
@@ -281,6 +306,24 @@
         &__upload-icon {
             width: 40px;
             height: 40px;
+        }
+    }
+
+    .concept-card {
+        padding: 16px;
+
+        &__title {
+            font-size: 18px;
+        }
+
+        &__grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        &__filter {
+            padding: 6px 14px;
+            font-size: 12px;
         }
     }
 }
