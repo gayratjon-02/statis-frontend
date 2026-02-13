@@ -160,6 +160,44 @@
             padding: 14px 24px;
         }
     }
+
+    // --- Product Card ---
+    .product-card {
+        padding: 24px 20px;
+
+        &__row {
+            flex-direction: column;
+            gap: 0;
+
+            &--thirds {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+
+        &__toggle-row {
+            padding: 12px 14px;
+        }
+
+        &__toggle-label {
+            font-size: 13px;
+        }
+
+        &__upload {
+            padding: 24px 16px;
+        }
+
+        &__footer {
+            flex-direction: column-reverse;
+            gap: 12px;
+        }
+
+        &__back-btn,
+        &__submit {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 }
 
 // Extra small screens
@@ -220,6 +258,29 @@
 
         &__footer {
             padding: 14px 16px;
+        }
+    }
+
+    .product-card {
+        padding: 16px;
+
+        &__title {
+            font-size: 18px;
+        }
+
+        &__field {
+            margin-bottom: 14px;
+        }
+
+        &__usp-num {
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+        }
+
+        &__upload-icon {
+            width: 40px;
+            height: 40px;
         }
     }
 }
