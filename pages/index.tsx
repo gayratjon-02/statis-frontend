@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 const STEPS = [
   { number: 1, label: "Brand" },
@@ -45,6 +45,21 @@ export default function Home() {
   const [activeStep, setActiveStep] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("theme");
+    const prefersDark = saved ? saved === "dark" : true;
+    setIsDark(prefersDark);
+    document.documentElement.setAttribute("data-theme", prefersDark ? "dark" : "light");
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.setAttribute("data-theme", next ? "dark" : "light");
+    localStorage.setItem("theme", next ? "dark" : "light");
+  };
 
   // Form state
   const [brandName, setBrandName] = useState("");
@@ -90,7 +105,6 @@ export default function Home() {
       <nav className="navbar">
         <div className="navbar__left">
           <span className="navbar__logo">Static Engine</span>
-          <span className="navbar__badge"></span>
         </div>
         <div className="navbar__right">
           <div className="navbar__credits">
@@ -105,6 +119,29 @@ export default function Home() {
               {credits} <span>/ {maxCredits}</span>
             </span>
           </div>
+          <button
+            className="navbar__theme-toggle"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+          >
+            {isDark ? (
+              <svg className="navbar__theme-icon navbar__theme-icon--sun" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="5" fill="#FBBF24" />
+                <line x1="12" y1="1" x2="12" y2="4" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" />
+                <line x1="12" y1="20" x2="12" y2="23" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" />
+                <line x1="4.22" y1="4.22" x2="6.34" y2="6.34" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" />
+                <line x1="17.66" y1="17.66" x2="19.78" y2="19.78" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" />
+                <line x1="1" y1="12" x2="4" y2="12" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" />
+                <line x1="20" y1="12" x2="23" y2="12" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" />
+                <line x1="4.22" y1="19.78" x2="6.34" y2="17.66" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" />
+                <line x1="17.66" y1="6.34" x2="19.78" y2="4.22" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg className="navbar__theme-icon navbar__theme-icon--moon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" fill="#F59E0B" />
+              </svg>
+            )}
+          </button>
           <div className="navbar__avatar">B</div>
         </div>
       </nav>
