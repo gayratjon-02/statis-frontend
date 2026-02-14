@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { createBrand } from "../../../../server/user/brand";
+import { createBrand, uploadBrandLogo } from "../../../../server/user/brand";
 import { BrandIndustry, BrandVoice } from "../../../types/brand.type";
 import type { Brand, CreateBrandInput } from "../../../types/brand.type";
 
@@ -52,7 +52,11 @@ export default function CreateBrandModal({ isOpen, onClose, onBrandCreated }: Cr
     const [selectedTags, setSelectedTags] = useState<BrandVoice[]>([]);
     const [targetAudience, setTargetAudience] = useState("");
     const [competitors, setCompetitors] = useState("");
-    const [logoFile, setLogoFile] = useState<string | null>(null);
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [logoUploading, setLogoUploading] = useState(false);
+    const [logoError, setLogoError] = useState<string | null>(null);
 
     // ── UI state ──
     const [dragOver, setDragOver] = useState(false);
@@ -70,16 +74,46 @@ export default function CreateBrandModal({ isOpen, onClose, onBrandCreated }: Cr
         );
     };
 
+    const processFile = async (file: File) => {
+        // Validate file type
+        const allowed = /\.(png|jpg|jpeg|webp)$/i;
+        if (!allowed.test(file.name)) {
+            setLogoError("Only PNG, JPG, JPEG, WEBP files are allowed");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            setLogoError("File size must be under 5MB");
+            return;
+        }
+
+        setLogoFile(file);
+        setLogoPreview(URL.createObjectURL(file));
+        setLogoError(null);
+        setLogoUploading(true);
+
+        try {
+            const result = await uploadBrandLogo(file);
+            setLogoUrl(result.logo_url);
+        } catch (err: any) {
+            setLogoError(err.message || "Failed to upload logo");
+            setLogoFile(null);
+            setLogoPreview(null);
+            setLogoUrl(null);
+        } finally {
+            setLogoUploading(false);
+        }
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) setLogoFile(file.name);
+        if (file) processFile(file);
     };
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         setDragOver(false);
         const file = e.dataTransfer.files?.[0];
-        if (file) setLogoFile(file.name);
+        if (file) processFile(file);
     };
 
     const getIndustryLabel = (value: BrandIndustry | ""): string => {
@@ -133,6 +167,7 @@ export default function CreateBrandModal({ isOpen, onClose, onBrandCreated }: Cr
                 voice_tags: selectedTags,
                 target_audience: targetAudience.trim(),
                 competitors: competitors.trim() || undefined,
+                logo_url: logoUrl || undefined,
             };
 
             const newBrand = await createBrand(input);
@@ -150,6 +185,9 @@ export default function CreateBrandModal({ isOpen, onClose, onBrandCreated }: Cr
             setTargetAudience("");
             setCompetitors("");
             setLogoFile(null);
+            setLogoPreview(null);
+            setLogoUrl(null);
+            setLogoError(null);
             setFieldErrors({});
 
             onBrandCreated?.(newBrand);
@@ -308,7 +346,7 @@ export default function CreateBrandModal({ isOpen, onClose, onBrandCreated }: Cr
                                 Logo (PNG) <span className="modal__optional-tag">optional</span>
                             </label>
                             <div
-                                className={`modal__upload${dragOver ? " modal__upload--drag" : ""}${logoFile ? " modal__upload--has-file" : ""}`}
+                                className={`modal__upload${dragOver ? " modal__upload--drag" : ""}${logoPreview ? " modal__upload--has-file" : ""}`}
                                 onClick={() => fileInputRef.current?.click()}
                                 onDragOver={(e) => {
                                     e.preventDefault();
@@ -320,18 +358,23 @@ export default function CreateBrandModal({ isOpen, onClose, onBrandCreated }: Cr
                                 <input
                                     ref={fileInputRef}
                                     type="file"
-                                    accept=".png"
+                                    accept=".png,.jpg,.jpeg,.webp"
                                     style={{ display: "none" }}
                                     onChange={handleFileChange}
                                 />
-                                {logoFile ? (
+                                {logoUploading ? (
                                     <>
-                                        <div className="modal__upload-icon modal__upload-icon--success">
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                            </svg>
-                                        </div>
-                                        <span className="modal__upload-filename">{logoFile}</span>
+                                        <div className="modal__upload-spinner" />
+                                        <span className="modal__upload-text">Uploading...</span>
+                                    </>
+                                ) : logoPreview ? (
+                                    <>
+                                        <img
+                                            src={logoPreview}
+                                            alt="Brand logo preview"
+                                            className="modal__upload-preview"
+                                        />
+                                        <span className="modal__upload-filename">{logoFile?.name}</span>
                                         <span className="modal__upload-change">Click to change</span>
                                     </>
                                 ) : (
@@ -343,14 +386,15 @@ export default function CreateBrandModal({ isOpen, onClose, onBrandCreated }: Cr
                                             </svg>
                                         </div>
                                         <span className="modal__upload-text">
-                                            Click to upload PNG logo
+                                            Drag & drop or click to upload logo
                                         </span>
                                         <span className="modal__upload-hint">
-                                            Transparent background preferred · Max 5MB
+                                            PNG, JPG, WEBP · Transparent bg preferred · Max 5MB
                                         </span>
                                     </>
                                 )}
                             </div>
+                            {logoError && <span className="modal__field-error">{logoError}</span>}
                         </div>
 
                         <div className="modal__colors">

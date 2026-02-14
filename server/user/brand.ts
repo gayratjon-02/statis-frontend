@@ -16,6 +16,34 @@ function authHeaders(): Record<string, string> {
     };
 }
 
+// ---- UPLOAD ----
+
+/**
+ * POST /brand/uploadLogo
+ * Upload a brand logo image (PNG, JPG, JPEG, WEBP). Max 5MB.
+ * Returns { logo_url: string } — the relative path to the uploaded file.
+ */
+export async function uploadBrandLogo(file: File): Promise<{ logo_url: string }> {
+    const token = localStorage.getItem("se_access_token");
+    const formData = new FormData();
+    formData.append("logo", file);
+
+    const res = await fetch(`${BRAND_API}/uploadLogo`, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Failed to upload logo" }));
+        throw new Error(error.message || `Upload failed (${res.status})`);
+    }
+
+    return res.json();
+}
+
 // ---- CREATE ----
 
 /**
