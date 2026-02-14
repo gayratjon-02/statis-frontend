@@ -44,9 +44,8 @@ export default function Home() {
   // Credits Calculation
   const creditsLimit = (member?.credits_limit || 0) + (member?.addon_credits_remaining || 0);
   const creditsUsed = member?.credits_used || 0;
-  // If "47/50" means remaining/total:
   const credits = Math.max(0, creditsLimit - creditsUsed);
-  const maxCredits = creditsLimit > 0 ? creditsLimit : 50; // Fallback to 50 if 0 to avoid /0
+  const maxCredits = creditsLimit > 0 ? creditsLimit : 50;
 
   // User Initial
   const userInitial = member?.full_name ? member.full_name.charAt(0).toUpperCase() : "U";
