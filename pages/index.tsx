@@ -27,6 +27,18 @@ export default function Home() {
   // Name lookups for summary
   const conceptName = selectedConcept?.name || "";
 
+  // Determine highest completed step
+  // Step 1 complete = brand selected
+  // Step 2 complete = product created
+  // Step 3 complete = concept selected
+  // Step 4 complete = notes passed (auto-complete on reaching step 4)
+  const completedSteps = (() => {
+    if (selectedConcept) return 3;
+    if (selectedProduct) return 2;
+    if (selectedBrand) return 1;
+    return 0;
+  })();
+
   // Credits Calculation
   const creditsLimit = (member?.credits_limit || 0) + (member?.addon_credits_remaining || 0);
   const creditsUsed = member?.credits_used || 0;
@@ -63,11 +75,10 @@ export default function Home() {
     setActiveStep(2);
   };
 
-  // Stepper navigation guard — brand must be selected for step 2+
+  // Stepper navigation guard — strict step-by-step
   const handleStepClick = (stepNumber: number) => {
-    if (stepNumber === 1) {
-      setActiveStep(1);
-    } else if (selectedBrand) {
+    // Can only navigate to completed steps or the next unlocked step
+    if (stepNumber <= completedSteps + 1) {
       setActiveStep(stepNumber);
     }
   };
@@ -83,7 +94,7 @@ export default function Home() {
         onLogout={logout}
       />
 
-      <Stepper activeStep={activeStep} onStepClick={handleStepClick} />
+      <Stepper activeStep={activeStep} completedSteps={completedSteps} onStepClick={handleStepClick} />
 
       <div className="content">
         {activeStep === 1 && (
