@@ -1,0 +1,165 @@
+// =============================================
+// BRAND STEP — Self-contained styles
+// =============================================
+
+// --- Dark mode (default) ---
+.brand-card {
+    width: 100%;
+    max-width: 580px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 32px;
+
+    &__title {
+        font-size: 16px;
+        font-weight: 500;
+        color: #cbd5e1;
+        margin-bottom: 24px;
+    }
+
+    &__list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 28px;
+    }
+
+    &__item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border-radius: 10px;
+        background-color: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.07);
+            border-color: rgba(56, 217, 245, 0.3);
+        }
+    }
+
+    &__item-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background-color: rgba(56, 217, 245, 0.12);
+        color: #38d9f5;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    &__item-name {
+        font-size: 14px;
+        font-weight: 500;
+        color: #e2e8f0;
+    }
+
+    &__divider {
+        width: 100%;
+        height: 1px;
+        background-color: rgba(255, 255, 255, 0.06);
+        margin-bottom: 20px;
+    }
+
+    &__create {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    }
+
+    &__create-btn {
+        background: none;
+        border: none;
+        color: #64748b;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+
+        &:hover {
+            color: #38d9f5;
+            background-color: rgba(56, 217, 245, 0.06);
+        }
+    }
+}
+
+// --- Light mode ---
+[data-theme='light'] {
+    .brand-card {
+        background-color: #ffffff;
+        border-color: #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+        &__title {
+            color: #334155;
+        }
+
+        &__item {
+            background-color: #f8fafc;
+            border-color: #e2e8f0;
+
+            &:hover {
+                background-color: #f1f5f9;
+                border-color: #0891b2;
+            }
+        }
+
+        &__item-icon {
+            background-color: rgba(8, 145, 178, 0.1);
+            color: #0891b2;
+        }
+
+        &__item-name {
+            color: #1e293b;
+        }
+
+        &__divider {
+            background-color: #e2e8f0;
+        }
+
+        &__create-btn {
+            color: #94a3b8;
+
+            &:hover {
+                color: #0891b2;
+                background-color: rgba(8, 145, 178, 0.06);
+            }
+        }
+    }
+}
+
+// --- Mobile responsive ---
+@media (max-width: 768px) {
+    .brand-card {
+        padding: 20px;
+        border-radius: 12px;
+
+        &__title {
+            font-size: 15px;
+            margin-bottom: 18px;
+        }
+
+        &__list {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        &__item {
+            padding: 10px 14px;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .brand-card {
+        padding: 16px;
+    }
+}

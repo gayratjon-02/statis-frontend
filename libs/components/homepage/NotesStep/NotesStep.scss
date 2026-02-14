@@ -1,0 +1,290 @@
+// =============================================
+// NOTES STEP — Self-contained styles
+// =============================================
+
+.notes-card {
+    width: 100%;
+    max-width: 580px;
+    background-color: #0d1526;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 8px 40px rgba(0, 0, 0, 0.35);
+
+    &__header {
+        margin-bottom: 24px;
+    }
+
+    &__title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #f1f5f9;
+        margin-bottom: 6px;
+        font-style: italic;
+    }
+
+    &__subtitle {
+        font-size: 14px;
+        color: #64748b;
+        line-height: 1.5;
+    }
+
+    &__field {
+        margin-bottom: 28px;
+    }
+
+    &__textarea {
+        width: 100%;
+        padding: 16px;
+        background-color: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        color: #f1f5f9;
+        font-size: 14px;
+        font-family: inherit;
+        outline: none;
+        resize: vertical;
+        min-height: 140px;
+        line-height: 1.6;
+        transition: all 0.2s ease;
+
+        &::placeholder {
+            color: #475569;
+            line-height: 1.6;
+        }
+
+        &:focus {
+            border-color: rgba(56, 217, 245, 0.4);
+            background-color: rgba(56, 217, 245, 0.03);
+            box-shadow: 0 0 0 3px rgba(56, 217, 245, 0.06);
+        }
+    }
+
+    &__char-count {
+        display: block;
+        text-align: right;
+        font-size: 12px;
+        color: #475569;
+        margin-top: 6px;
+    }
+
+    // Summary
+    &__summary {
+        padding: 20px 24px;
+        background-color: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 14px;
+        margin-bottom: 28px;
+    }
+
+    &__summary-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: #38d9f5;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+    }
+
+    &__summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px 32px;
+    }
+
+    &__summary-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    &__summary-label {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    &__summary-value {
+        font-size: 14px;
+        color: #e2e8f0;
+        font-weight: 600;
+    }
+
+    // Footer
+    &__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    &__back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 20px;
+        background: none;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        color: #94a3b8;
+        font-size: 14px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.2s ease;
+
+        &:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #f1f5f9;
+            background-color: rgba(255, 255, 255, 0.04);
+        }
+    }
+
+    &__generate-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 36px;
+        background: linear-gradient(135deg, #06b6d4, #3b82f6);
+        border: none;
+        border-radius: 14px;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 6px 24px rgba(6, 182, 212, 0.3);
+        letter-spacing: 0.02em;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(6, 182, 212, 0.45);
+            background: linear-gradient(135deg, #0891b2, #2563eb);
+        }
+
+        &:active {
+            transform: translateY(0);
+        }
+    }
+}
+
+// --- Light mode ---
+[data-theme='light'] {
+    .notes-card {
+        background-color: #ffffff;
+        border-color: #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+        &__title {
+            color: #0f172a;
+        }
+
+        &__subtitle {
+            color: #64748b;
+        }
+
+        &__textarea {
+            background-color: #f8fafc;
+            border-color: #e2e8f0;
+            color: #1e293b;
+
+            &::placeholder {
+                color: #94a3b8;
+            }
+
+            &:focus {
+                border-color: #0891b2;
+                background-color: #f0fdfa;
+                box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.08);
+            }
+        }
+
+        &__char-count {
+            color: #94a3b8;
+        }
+
+        &__summary {
+            background-color: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        &__summary-title {
+            color: #0891b2;
+        }
+
+        &__summary-label {
+            color: #64748b;
+        }
+
+        &__summary-value {
+            color: #1e293b;
+        }
+
+        &__back-btn {
+            border-color: #e2e8f0;
+            color: #64748b;
+
+            &:hover {
+                border-color: #cbd5e1;
+                color: #1e293b;
+                background-color: #f8fafc;
+            }
+        }
+
+        &__footer {
+            border-top-color: #e2e8f0;
+        }
+
+        &__generate-btn {
+            background: linear-gradient(135deg, #0891b2, #2563eb);
+            box-shadow: 0 6px 24px rgba(6, 182, 212, 0.35);
+        }
+    }
+}
+
+// --- Mobile responsive ---
+@media (max-width: 768px) {
+    .notes-card {
+        padding: 24px 20px;
+
+        &__textarea {
+            min-height: 120px;
+        }
+
+        &__summary-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 20px;
+        }
+
+        &__footer {
+            flex-direction: column-reverse;
+            gap: 12px;
+        }
+
+        &__back-btn,
+        &__generate-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .notes-card {
+        padding: 16px;
+
+        &__title {
+            font-size: 18px;
+        }
+
+        &__summary {
+            padding: 16px;
+        }
+
+        &__summary-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+    }
+}
