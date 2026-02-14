@@ -4,9 +4,9 @@ FROM node:20-alpine AS builder
 WORKDIR /usr/src/app
 
 # Copy package files first for better caching
-COPY package.json package-lock.json* yarn.lock* ./
+COPY package.json yarn.lock* ./
 
-RUN yarn install --frozen-lockfile
+RUN yarn install
 
 # Copy source code
 COPY . .
@@ -30,7 +30,7 @@ WORKDIR /usr/src/app
 COPY package.json yarn.lock* ./
 
 # Install only production dependencies
-RUN yarn install --production --frozen-lockfile
+RUN yarn install --production
 
 # Copy built app from builder
 COPY --from=builder /usr/src/app/.next ./.next
