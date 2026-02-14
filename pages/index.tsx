@@ -9,11 +9,6 @@ import GenerateStep from "../libs/components/homepage/GenerateStep/GenerateStep"
 import CreateBrandModal from "../libs/components/homepage/CreateBrandModal/CreateBrandModal";
 import { useAuth } from "../libs/hooks/useAuth";
 
-const BRANDS = [
-  { id: 1, name: "Bron" },
-  { id: 2, name: "Fairway Fuel" },
-];
-
 const CONCEPTS = [
   { id: 1, name: "Feature Pointers" },
   { id: 2, name: "Testimonial" },
@@ -33,12 +28,12 @@ export default function Home() {
   const [activeStep, setActiveStep] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [isDark, setIsDark] = useState(true);
-  const [selectedBrand, setSelectedBrand] = useState<number | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [selectedBrandName, setSelectedBrandName] = useState("");
   const [selectedConcept, setSelectedConcept] = useState<number | null>(null);
   const [productName, setProductName] = useState("");
 
   // Name lookups for summary
-  const brandName = BRANDS.find((b) => b.id === selectedBrand)?.name || "";
   const conceptName = CONCEPTS.find((c) => c.id === selectedConcept)?.name || "";
 
   // Credits Calculation
@@ -64,7 +59,7 @@ export default function Home() {
   }, []);
 
   // Brand selection
-  const handleBrandSelect = (brandId: number) => {
+  const handleBrandSelect = (brandId: string) => {
     setSelectedBrand(brandId);
     setActiveStep(2);
   };
@@ -118,7 +113,7 @@ export default function Home() {
           <NotesStep
             onBack={() => setActiveStep(3)}
             onGenerate={() => setActiveStep(5)}
-            brandName={brandName}
+            brandName={selectedBrandName}
             productName={productName || "Not set"}
             conceptName={conceptName}
           />
