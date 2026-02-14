@@ -246,10 +246,12 @@ export default function ProductStep({ brandId, onBack, onNext }: ProductStepProp
                 )}
             </div>
 
-            {/* Product Photo */}
+            {/* Product Photo / Hero Image */}
             <div className="product-card__field">
                 <label className="product-card__label">
-                    PRODUCT PHOTO <span className="product-card__required">*</span>
+                    {noPhysicalProduct ? "HERO IMAGE" : "PRODUCT PHOTO"}{" "}
+                    {!noPhysicalProduct && <span className="product-card__required">*</span>}
+                    {noPhysicalProduct && <span className="product-card__optional">(optional)</span>}
                 </label>
                 <div
                     className={`product-card__upload${productDragOver ? " product-card__upload--drag" : ""}${photoPreview ? " product-card__upload--has-file" : ""}`}
@@ -274,7 +276,7 @@ export default function ProductStep({ brandId, onBack, onNext }: ProductStepProp
                         <>
                             <img
                                 src={photoPreview}
-                                alt="Product photo preview"
+                                alt={noPhysicalProduct ? "Hero image preview" : "Product photo preview"}
                                 className="product-card__upload-preview"
                             />
                             <span className="product-card__upload-filename">{photoFile?.name}</span>
@@ -289,8 +291,15 @@ export default function ProductStep({ brandId, onBack, onNext }: ProductStepProp
                                     <path d="M21 15l-5-5L5 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </div>
-                            <span className="product-card__upload-text">Upload product photo with clean/white background</span>
-                            <span className="product-card__upload-hint">PNG, JPG, WEBP · Max 10MB</span>
+                            <span className="product-card__upload-text">
+                                {noPhysicalProduct
+                                    ? "Upload a screenshot, mockup, or lifestyle image"
+                                    : "Upload product photo with clean/white background"}
+                            </span>
+                            <span className="product-card__upload-hint">
+                                PNG, JPG, WEBP · Max 10MB
+                                {noPhysicalProduct && " · Optional"}
+                            </span>
                         </>
                     )}
                 </div>
