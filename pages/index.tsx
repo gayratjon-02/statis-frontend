@@ -10,20 +10,7 @@ import CreateBrandModal from "../libs/components/homepage/CreateBrandModal/Creat
 import { useAuth } from "../libs/hooks/useAuth";
 import type { Brand } from "../libs/types/brand.type";
 import type { Product } from "../libs/types/product.type";
-
-const CONCEPTS = [
-  { id: 1, name: "Feature Pointers" },
-  { id: 2, name: "Testimonial" },
-  { id: 3, name: "Before & After" },
-  { id: 4, name: "Us vs Them" },
-  { id: 5, name: "Lifestyle" },
-  { id: 6, name: "Stat Callout" },
-  { id: 7, name: "Social Proof" },
-  { id: 8, name: "Offer / Promo" },
-  { id: 9, name: "Problem → Solution" },
-  { id: 10, name: "Comparison Chart" },
-  { id: 11, name: "Ingredient Spotlight" },
-];
+import type { AdConcept } from "../libs/types/concept.type";
 
 export default function Home() {
   const { member, logout } = useAuth();
@@ -33,12 +20,12 @@ export default function Home() {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedBrandName, setSelectedBrandName] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedConcept, setSelectedConcept] = useState<number | null>(null);
+  const [selectedConcept, setSelectedConcept] = useState<AdConcept | null>(null);
   const [productName, setProductName] = useState("");
   const [refreshBrands, setRefreshBrands] = useState(0);
 
   // Name lookups for summary
-  const conceptName = CONCEPTS.find((c) => c.id === selectedConcept)?.name || "";
+  const conceptName = selectedConcept?.name || "";
 
   // Credits Calculation
   const creditsLimit = (member?.credits_limit || 0) + (member?.addon_credits_remaining || 0);
@@ -125,7 +112,7 @@ export default function Home() {
             onBack={() => setActiveStep(2)}
             onNext={() => setActiveStep(4)}
             selectedConcept={selectedConcept}
-            onSelectConcept={(id) => setSelectedConcept(id)}
+            onSelectConcept={(concept: AdConcept) => setSelectedConcept(concept)}
           />
         )}
 
