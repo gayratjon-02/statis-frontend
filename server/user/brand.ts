@@ -43,7 +43,7 @@ export async function createBrand(input: CreateBrandInput): Promise<Brand> {
  * GET /brand/getBrands?page=1&limit=10
  * Get all brands for the authenticated user (paginated).
  */
-export async function getBrands(page: number = 1, limit: number = 10): Promise<Brand[]> {
+export async function getBrands(page: number = 1, limit: number = 10): Promise<{ list: Brand[]; total: number }> {
     const res = await fetch(`${BRAND_API}/getBrands?page=${page}&limit=${limit}`, {
         method: "GET",
         headers: authHeaders(),

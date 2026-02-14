@@ -8,6 +8,7 @@ import NotesStep from "../libs/components/homepage/NotesStep/NotesStep";
 import GenerateStep from "../libs/components/homepage/GenerateStep/GenerateStep";
 import CreateBrandModal from "../libs/components/homepage/CreateBrandModal/CreateBrandModal";
 import { useAuth } from "../libs/hooks/useAuth";
+import type { Brand } from "../libs/types/brand.type";
 
 const CONCEPTS = [
   { id: 1, name: "Feature Pointers" },
@@ -32,6 +33,7 @@ export default function Home() {
   const [selectedBrandName, setSelectedBrandName] = useState("");
   const [selectedConcept, setSelectedConcept] = useState<number | null>(null);
   const [productName, setProductName] = useState("");
+  const [refreshBrands, setRefreshBrands] = useState(0);
 
   // Name lookups for summary
   const conceptName = CONCEPTS.find((c) => c.id === selectedConcept)?.name || "";
@@ -64,6 +66,14 @@ export default function Home() {
     setActiveStep(2);
   };
 
+  // Brand created via modal — auto-select and advance
+  const handleBrandCreated = (brand: Brand) => {
+    setSelectedBrand(brand._id);
+    setSelectedBrandName(brand.name);
+    setRefreshBrands((prev) => prev + 1);
+    setActiveStep(2);
+  };
+
   // Stepper navigation guard
   const handleStepClick = (stepNumber: number) => {
     if (stepNumber <= 3 || selectedBrand) {
@@ -90,6 +100,7 @@ export default function Home() {
             selectedBrand={selectedBrand}
             onBrandSelect={handleBrandSelect}
             onCreateNew={() => setShowModal(true)}
+            refreshTrigger={refreshBrands}
           />
         )}
 
@@ -133,6 +144,7 @@ export default function Home() {
       <CreateBrandModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
+        onBrandCreated={handleBrandCreated}
       />
     </div>
   );

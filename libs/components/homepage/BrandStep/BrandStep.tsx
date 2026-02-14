@@ -6,23 +6,24 @@ interface BrandStepProps {
     selectedBrand: string | null;
     onBrandSelect: (brandId: string) => void;
     onCreateNew: () => void;
+    refreshTrigger?: number;
 }
 
-export default function BrandStep({ selectedBrand, onBrandSelect, onCreateNew }: BrandStepProps) {
+export default function BrandStep({ selectedBrand, onBrandSelect, onCreateNew, refreshTrigger }: BrandStepProps) {
     const [brands, setBrands] = useState<Brand[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         loadBrands();
-    }, []);
+    }, [refreshTrigger]);
 
     const loadBrands = async () => {
         try {
             setLoading(true);
             setError(null);
             const data = await getBrands(1, 50);
-            setBrands(Array.isArray(data) ? data : []);
+            setBrands(Array.isArray(data) ? data : (data?.list || []));
         } catch (err: any) {
             setError(err.message || "Failed to load brands");
         } finally {
