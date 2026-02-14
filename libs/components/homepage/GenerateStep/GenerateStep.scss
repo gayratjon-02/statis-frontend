@@ -246,6 +246,74 @@
             text-decoration: underline;
         }
     }
+
+    // Job ID tag
+    &__job-id {
+        font-size: 11px;
+        color: #475569;
+        margin-top: 4px;
+        font-family: monospace;
+    }
+
+    // Error state
+    &__error-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 48px 24px;
+        gap: 12px;
+    }
+
+    &__error-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #f1f5f9;
+    }
+
+    &__error-message {
+        font-size: 14px;
+        color: #94a3b8;
+        max-width: 400px;
+    }
+
+    &__error-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 12px;
+    }
+
+    &__retry-btn {
+        padding: 10px 24px;
+        background: linear-gradient(135deg, #06b6d4, #3b82f6);
+        border: none;
+        border-radius: 10px;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3);
+        }
+    }
+
+    &__back-link {
+        background: none;
+        border: none;
+        color: #64748b;
+        font-size: 14px;
+        font-family: inherit;
+        cursor: pointer;
+
+        &:hover {
+            color: #94a3b8;
+        }
+    }
 }
 
 // --- Light mode ---

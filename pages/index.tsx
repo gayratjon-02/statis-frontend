@@ -22,6 +22,7 @@ export default function Home() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedConcept, setSelectedConcept] = useState<AdConcept | null>(null);
   const [productName, setProductName] = useState("");
+  const [importantNotes, setImportantNotes] = useState<string | null>(null);
   const [refreshBrands, setRefreshBrands] = useState(0);
 
   // Name lookups for summary
@@ -33,6 +34,7 @@ export default function Home() {
   // Step 3 complete = concept selected
   // Step 4 complete = notes passed (auto-complete on reaching step 4)
   const completedSteps = (() => {
+    if (importantNotes !== null) return 4;
     if (selectedConcept) return 3;
     if (selectedProduct) return 2;
     if (selectedBrand) return 1;
@@ -130,17 +132,24 @@ export default function Home() {
         {activeStep === 4 && (
           <NotesStep
             onBack={() => setActiveStep(3)}
-            onGenerate={() => setActiveStep(5)}
+            onGenerate={(notes: string) => {
+              setImportantNotes(notes);
+              setActiveStep(5);
+            }}
             brandName={selectedBrandName}
             productName={productName || "Not set"}
             conceptName={conceptName}
           />
         )}
 
-        {activeStep === 5 && (
+        {activeStep === 5 && selectedBrand && selectedProduct && selectedConcept && (
           <GenerateStep
             onEditNotes={() => setActiveStep(4)}
             onTryConcept={() => setActiveStep(3)}
+            brandId={selectedBrand}
+            productId={selectedProduct._id}
+            conceptId={selectedConcept._id}
+            importantNotes={importantNotes || ""}
           />
         )}
       </div>

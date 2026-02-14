@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 interface NotesStepProps {
     onBack: () => void;
-    onGenerate: () => void;
+    onGenerate: (notes: string) => void;
     brandName: string;
     productName: string;
     conceptName: string;
@@ -16,6 +16,10 @@ export default function NotesStep({
     conceptName,
 }: NotesStepProps) {
     const [notes, setNotes] = useState("");
+
+    const handleGenerate = () => {
+        onGenerate(notes.trim());
+    };
 
     return (
         <div className="notes-card">
@@ -68,7 +72,7 @@ export default function NotesStep({
                 <button className="notes-card__back-btn" onClick={onBack} type="button">
                     ← Back
                 </button>
-                <button className="notes-card__generate-btn" onClick={onGenerate} type="button">
+                <button className="notes-card__generate-btn" onClick={handleGenerate} type="button">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor" />
                     </svg>

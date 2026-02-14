@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { createGeneration } from "../../../../server/user/generation";
 
 interface GenerateStepProps {
     onEditNotes: () => void;
     onTryConcept: () => void;
+    brandId: string;
+    productId: string;
+    conceptId: string;
+    importantNotes: string;
 }
 
 const GRADIENTS = [
@@ -14,28 +19,103 @@ const GRADIENTS = [
     "linear-gradient(135deg, #06b6d4, #155e75)",
 ];
 
-export default function GenerateStep({ onEditNotes, onTryConcept }: GenerateStepProps) {
+export default function GenerateStep({
+    onEditNotes,
+    onTryConcept,
+    brandId,
+    productId,
+    conceptId,
+    importantNotes,
+}: GenerateStepProps) {
     const [completedCount, setCompletedCount] = useState(0);
+    const [jobId, setJobId] = useState<string | null>(null);
+    const [apiError, setApiError] = useState<string | null>(null);
+    const [apiLoading, setApiLoading] = useState(true);
     const totalVariations = 6;
     const isGenerating = completedCount < totalVariations;
+    const hasStarted = useRef(false);
 
-    // Simulate generation progress
+    // Call createGeneration API on mount
     useEffect(() => {
-        if (completedCount < totalVariations) {
-            const timer = setTimeout(() => {
-                setCompletedCount((prev) => prev + 1);
-            }, 1200 + Math.random() * 800);
-            return () => clearTimeout(timer);
+        if (hasStarted.current) return;
+        hasStarted.current = true;
+        startGeneration();
+    }, []);
+
+    const startGeneration = async () => {
+        try {
+            setApiLoading(true);
+            setApiError(null);
+            setCompletedCount(0);
+
+            const result = await createGeneration({
+                brand_id: brandId,
+                product_id: productId,
+                concept_id: conceptId,
+                important_notes: importantNotes || undefined,
+            });
+
+            setJobId(result.job_id);
+            setApiLoading(false);
+
+            // Simulate progress (real polling will replace this)
+            simulateProgress();
+        } catch (err: any) {
+            setApiError(err.message || "Generation failed");
+            setApiLoading(false);
         }
-    }, [completedCount]);
+    };
+
+    const simulateProgress = () => {
+        let count = 0;
+        const tick = () => {
+            count++;
+            setCompletedCount(count);
+            if (count < totalVariations) {
+                setTimeout(tick, 1200 + Math.random() * 800);
+            }
+        };
+        setTimeout(tick, 1500);
+    };
 
     const handleRegenerateAll = () => {
-        setCompletedCount(0);
+        hasStarted.current = false;
+        setJobId(null);
+        startGeneration();
+    };
+
+    const handleRetry = () => {
+        hasStarted.current = false;
+        startGeneration();
     };
 
     const handleRedo = (index: number) => {
         // Placeholder for single redo
     };
+
+    // API error state
+    if (apiError) {
+        return (
+            <div className="generate-card">
+                <div className="generate-card__error-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="1.5" />
+                        <path d="M12 8v5M12 16h.01" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                    <h3 className="generate-card__error-title">Generation Failed</h3>
+                    <p className="generate-card__error-message">{apiError}</p>
+                    <div className="generate-card__error-actions">
+                        <button className="generate-card__retry-btn" onClick={handleRetry} type="button">
+                            Try Again
+                        </button>
+                        <button className="generate-card__back-link" onClick={onEditNotes} type="button">
+                            ← Edit Notes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="generate-card">
@@ -43,15 +123,20 @@ export default function GenerateStep({ onEditNotes, onTryConcept }: GenerateStep
             <div className="generate-card__header">
                 <div className="generate-card__header-left">
                     <h2 className="generate-card__title">
-                        {isGenerating ? "Generating Your Ads" : "Your Ad Variations"}
+                        {apiLoading ? "Starting Generation..." : isGenerating ? "Generating Your Ads" : "Your Ad Variations"}
                     </h2>
                     <p className="generate-card__subtitle">
-                        {isGenerating
-                            ? `${completedCount} of ${totalVariations} variations complete`
-                            : `${totalVariations} variations generated · 5 credits used`}
+                        {apiLoading
+                            ? "Sending request to AI pipeline..."
+                            : isGenerating
+                                ? `${completedCount} of ${totalVariations} variations complete`
+                                : `${totalVariations} variations generated · 5 credits used`}
                     </p>
+                    {jobId && (
+                        <span className="generate-card__job-id">Job: {jobId.slice(0, 8)}...</span>
+                    )}
                 </div>
-                {!isGenerating && (
+                {!isGenerating && !apiLoading && (
                     <button className="generate-card__regenerate-all" onClick={handleRegenerateAll}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                             <path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -63,11 +148,11 @@ export default function GenerateStep({ onEditNotes, onTryConcept }: GenerateStep
             </div>
 
             {/* Progress bar (generating only) */}
-            {isGenerating && (
+            {(isGenerating || apiLoading) && (
                 <div className="generate-card__progress">
                     <div
                         className="generate-card__progress-fill"
-                        style={{ width: `${(completedCount / totalVariations) * 100}%` }}
+                        style={{ width: apiLoading ? "5%" : `${(completedCount / totalVariations) * 100}%` }}
                     />
                 </div>
             )}
@@ -75,7 +160,7 @@ export default function GenerateStep({ onEditNotes, onTryConcept }: GenerateStep
             {/* Grid */}
             <div className="generate-card__grid">
                 {Array.from({ length: totalVariations }).map((_, i) => {
-                    const done = i < completedCount;
+                    const done = i < completedCount && !apiLoading;
                     return (
                         <div key={i} className={`generate-card__item${done ? " generate-card__item--done" : ""}`}>
                             <div
@@ -90,7 +175,7 @@ export default function GenerateStep({ onEditNotes, onTryConcept }: GenerateStep
                                 ) : (
                                     <span className="generate-card__item-loading">
                                         <span className="generate-card__item-spinner" />
-                                        Generating...
+                                        {apiLoading ? "Waiting..." : "Generating..."}
                                     </span>
                                 )}
                             </div>
@@ -125,7 +210,7 @@ export default function GenerateStep({ onEditNotes, onTryConcept }: GenerateStep
             </div>
 
             {/* Footer (complete only) */}
-            {!isGenerating && (
+            {!isGenerating && !apiLoading && (
                 <div className="generate-card__footer">
                     <span className="generate-card__footer-text">Not what you're looking for?</span>
                     <button className="generate-card__footer-link" onClick={onEditNotes} type="button">
@@ -140,3 +225,4 @@ export default function GenerateStep({ onEditNotes, onTryConcept }: GenerateStep
         </div>
     );
 }
+
