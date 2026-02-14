@@ -9,6 +9,7 @@ import GenerateStep from "../libs/components/homepage/GenerateStep/GenerateStep"
 import CreateBrandModal from "../libs/components/homepage/CreateBrandModal/CreateBrandModal";
 import { useAuth } from "../libs/hooks/useAuth";
 import type { Brand } from "../libs/types/brand.type";
+import type { Product } from "../libs/types/product.type";
 
 const CONCEPTS = [
   { id: 1, name: "Feature Pointers" },
@@ -31,6 +32,7 @@ export default function Home() {
   const [isDark, setIsDark] = useState(true);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedBrandName, setSelectedBrandName] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedConcept, setSelectedConcept] = useState<number | null>(null);
   const [productName, setProductName] = useState("");
   const [refreshBrands, setRefreshBrands] = useState(0);
@@ -74,9 +76,11 @@ export default function Home() {
     setActiveStep(2);
   };
 
-  // Stepper navigation guard
+  // Stepper navigation guard — brand must be selected for step 2+
   const handleStepClick = (stepNumber: number) => {
-    if (stepNumber <= 3 || selectedBrand) {
+    if (stepNumber === 1) {
+      setActiveStep(1);
+    } else if (selectedBrand) {
       setActiveStep(stepNumber);
     }
   };
@@ -104,10 +108,15 @@ export default function Home() {
           />
         )}
 
-        {activeStep === 2 && (
+        {activeStep === 2 && selectedBrand && (
           <ProductStep
+            brandId={selectedBrand}
             onBack={() => setActiveStep(1)}
-            onNext={() => setActiveStep(3)}
+            onNext={(product: Product) => {
+              setSelectedProduct(product);
+              setProductName(product.name);
+              setActiveStep(3);
+            }}
           />
         )}
 
