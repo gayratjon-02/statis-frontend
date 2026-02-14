@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import type { Brand } from "../../../types/brand.type";
 import { getBrands } from "../../../../server/user/brand";
+import API_BASE_URL from "../../../config/api.config";
 
 interface BrandStepProps {
     selectedBrand: string | null;
@@ -106,7 +107,7 @@ export default function BrandStep({ selectedBrand, onBrandSelect, onCreateNew, r
                                 }}
                             >
                                 {brand.logo_url ? (
-                                    <img src={brand.logo_url} alt={brand.name} className="brand-card__item-logo" />
+                                    <img src={brand.logo_url.startsWith('http') ? brand.logo_url : `${API_BASE_URL}${brand.logo_url}`} alt={brand.name} className="brand-card__item-logo" />
                                 ) : (
                                     brand.name.charAt(0).toUpperCase()
                                 )}
