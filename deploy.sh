@@ -1,12 +1,19 @@
 #!/bin/bash
-set -e
 
+
+
+# PRODUCTION
 git reset --hard
+git checkout master  # If branch is master
 git pull origin master
 
-echo "🚀 STATIC-ENGINE Frontend Docker deployment started..."
+# Update and rebuild container
+# This command stops and removes the old container, then builds a new one
+docker stop static-frontend
+docker remove static-frontend
+docker compose up -d --build
 
-cd "$(dirname "$0")"
+echo "🚀 STATIC-ENGINE Frontend Docker deployment started..."
 
 if [ ! -f ".env" ]; then
     echo "❌ .env file not found!"
@@ -14,27 +21,7 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
-echo "🧹 Stopping old containers..."
-docker compose down
-
-echo "🔨 Building Docker image..."
-docker compose build --no-cache
-
-echo "▶️  Starting container..."
-docker compose up -d
-
-echo "⏳ Waiting for frontend..."
-sleep 10
-
-echo "📊 Container status:"
-docker compose ps
-
-echo "✅ Frontend deployment finished!"
-echo "🌐 Frontend is running at http://localhost:4010"
-echo ""
-echo "📝 Useful commands:"
-echo "   docker compose logs -f static-engine-frontend  - View frontend logs"
-echo "   docker compose ps                              - Container status"
-echo "   docker compose down                            - Stop container"
+# Clean up unused old images
+docker image prune -f
 
 docker compose logs --tail 200 -f
