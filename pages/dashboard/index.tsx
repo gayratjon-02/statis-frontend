@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import AuthGuard from "../../libs/auth/AuthGuard";
+import { getMemberRequest, getUsageRequest, getBrandsRequest } from "../../server/user/login";
+import type { Member } from "../../libs/types/member.type";
 
 const ROUTES: Record<string, string> = {
     dashboard: "/dashboard",
@@ -40,11 +42,75 @@ const BOTTOM_NAV = [
     { id: "billing", label: "Billing", letter: "$" },
 ];
 
+interface UsageData {
+    subscription_tier: string;
+    subscription_status: string;
+    credits_used: number;
+    credits_limit: number;
+    addon_credits_remaining: number;
+    billing_cycle_start: string | null;
+    billing_cycle_end: string | null;
+}
+
+interface BrandItem {
+    _id: string;
+    brand_name: string;
+}
+
+function tierLabel(tier: string): string {
+    const map: Record<string, string> = { FREE: "Free", STARTER: "Starter", PRO: "Pro", GROWTH_ENGINE: "Growth Engine" };
+    return map[tier] || tier;
+}
+
+function daysUntil(dateStr: string | null): number {
+    if (!dateStr) return 0;
+    const diff = new Date(dateStr).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
 function DashboardPage() {
     const router = useRouter();
-    const [brand, setBrand] = useState("all");
+    const [brandFilter, setBrandFilter] = useState("all");
     const [collapsed, setCollapsed] = useState(false);
     const [page, setPage] = useState("dashboard");
+
+    // API state
+    const [member, setMember] = useState<Member | null>(null);
+    const [usage, setUsage] = useState<UsageData | null>(null);
+    const [brands, setBrands] = useState<BrandItem[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                // Try localStorage first for instant display
+                const stored = localStorage.getItem("se_member");
+                if (stored) setMember(JSON.parse(stored));
+
+                // Fetch fresh data in parallel
+                const [memberData, usageData, brandsData] = await Promise.allSettled([
+                    getMemberRequest(),
+                    getUsageRequest(),
+                    getBrandsRequest(),
+                ]);
+
+                if (memberData.status === "fulfilled") {
+                    setMember(memberData.value as Member);
+                    localStorage.setItem("se_member", JSON.stringify(memberData.value));
+                }
+                if (usageData.status === "fulfilled") setUsage(usageData.value as UsageData);
+                if (brandsData.status === "fulfilled") {
+                    const list = Array.isArray(brandsData.value) ? brandsData.value : brandsData.value?.list || [];
+                    setBrands(list);
+                }
+            } catch (err) {
+                console.error("Dashboard fetch error:", err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, []);
 
     const handleNav = (id: string) => {
         if (ROUTES[id]) {
@@ -54,10 +120,21 @@ function DashboardPage() {
         }
     };
 
-    const remaining = 565;
-    const limit = 750;
-    const pct = (remaining / limit) * 100;
-    const filtered = brand === "all" ? ADS : ADS.filter((a) => a.brand.toLowerCase().includes(brand));
+    const handleLogout = () => {
+        localStorage.removeItem("se_access_token");
+        localStorage.removeItem("se_member");
+        router.push("/login");
+    };
+
+    // Derived values
+    const userName = member?.full_name || "User";
+    const userInitial = userName.charAt(0).toUpperCase();
+    const tier = usage?.subscription_tier || "FREE";
+    const remaining = usage ? usage.credits_limit - usage.credits_used : 0;
+    const limit = usage?.credits_limit || 0;
+    const pct = limit > 0 ? (remaining / limit) * 100 : 0;
+    const renewDays = usage ? daysUntil(usage.billing_cycle_end) : 0;
+    const filtered = brandFilter === "all" ? ADS : ADS.filter((a) => a.brand.toLowerCase().includes(brandFilter));
     const sw = collapsed ? 72 : 240;
 
     return (
@@ -123,7 +200,7 @@ function DashboardPage() {
                         <div className="credits-card">
                             <div className="credits-card__header">
                                 <span className="credits-card__label">Credits</span>
-                                <span className="credits-card__plan">Pro</span>
+                                <span className="credits-card__plan">{tierLabel(tier)}</span>
                             </div>
                             <div className="credits-card__amount">
                                 <span className="credits-card__value">{remaining}</span>
@@ -132,7 +209,7 @@ function DashboardPage() {
                             <div className="credits-card__bar">
                                 <div className="credits-card__bar-fill" style={{ width: `${pct}%` }} />
                             </div>
-                            <div className="credits-card__renew">Renews in 18 days</div>
+                            <div className="credits-card__renew">Renews in {renewDays} days</div>
                         </div>
                     )}
 
@@ -161,13 +238,16 @@ function DashboardPage() {
                     style={{
                         justifyContent: collapsed ? "center" : "flex-start",
                         padding: collapsed ? "16px 0" : "16px",
+                        cursor: "pointer",
                     }}
+                    title="Click to logout"
+                    onClick={handleLogout}
                 >
-                    <div className="sidebar-user__avatar">B</div>
+                    <div className="sidebar-user__avatar">{userInitial}</div>
                     {!collapsed && (
                         <div>
-                            <div className="sidebar-user__name">Ben</div>
-                            <div className="sidebar-user__plan">Pro Plan</div>
+                            <div className="sidebar-user__name">{userName}</div>
+                            <div className="sidebar-user__plan">{tierLabel(tier)} Plan</div>
                         </div>
                     )}
                 </div>
@@ -181,9 +261,9 @@ function DashboardPage() {
                         <div className="dash-header__date">
                             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                         </div>
-                        <div className="dash-header__title">Welcome back, Ben</div>
+                        <div className="dash-header__title">Welcome back, {userName.split(" ")[0]}</div>
                     </div>
-                    <button className="btn-generate" onClick={() => router.push("/generate")}>+ Generate New Ad</button>
+                    <button className="btn-generate" onClick={() => router.push("/generateAds")}>+ Generate New Ad</button>
                 </div>
 
                 {/* Stats */}
@@ -219,16 +299,19 @@ function DashboardPage() {
                             <div className="recent-ads__filters">
                                 {[
                                     { id: "all", label: "All", color: "var(--accent)" },
-                                    { id: "bron", label: "Bron", color: "#3ECFCF" },
-                                    { id: "fairway", label: "Fairway Fuel", color: "#22C55E" },
+                                    ...brands.map((b, i) => ({
+                                        id: b.brand_name.toLowerCase(),
+                                        label: b.brand_name,
+                                        color: ["#3ECFCF", "#22C55E", "#F59E0B", "#8B5CF6", "#EC4899"][i % 5],
+                                    })),
                                 ].map((b) => (
                                     <button
                                         key={b.id}
-                                        className={`brand-filter-btn ${brand === b.id ? "brand-filter-btn--active" : ""}`}
-                                        onClick={() => setBrand(b.id)}
+                                        className={`brand-filter-btn ${brandFilter === b.id ? "brand-filter-btn--active" : ""}`}
+                                        onClick={() => setBrandFilter(b.id)}
                                         style={{
-                                            background: brand === b.id ? `${b.color}22` : undefined,
-                                            color: brand === b.id ? b.color : undefined,
+                                            background: brandFilter === b.id ? `${b.color}22` : undefined,
+                                            color: brandFilter === b.id ? b.color : undefined,
                                         }}
                                     >
                                         {b.label}

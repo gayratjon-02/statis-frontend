@@ -66,3 +66,49 @@ export async function getMemberRequest(): Promise<AuthResponse["member"]> {
 
     return res.json();
 }
+
+/**
+ * GET /member/getUsage
+ * Fetch the authenticated user's credit & subscription usage.
+ */
+export async function getUsageRequest() {
+    const token = localStorage.getItem("se_access_token");
+
+    const res = await fetch(`${MEMBER_API}/getUsage`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!res.ok) {
+        throw new Error("Failed to fetch usage");
+    }
+
+    return res.json();
+}
+
+const BRAND_API = `${API_BASE_URL}/brand`;
+
+/**
+ * GET /brand/getBrands
+ * Fetch the authenticated user's brands.
+ */
+export async function getBrandsRequest(page = 1, limit = 50) {
+    const token = localStorage.getItem("se_access_token");
+
+    const res = await fetch(`${BRAND_API}/getBrands?page=${page}&limit=${limit}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!res.ok) {
+        throw new Error("Failed to fetch brands");
+    }
+
+    return res.json();
+}
