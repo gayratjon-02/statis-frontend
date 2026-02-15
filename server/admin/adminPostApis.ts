@@ -8,65 +8,24 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
-import type { AdConcept, ConceptCategory } from "../../libs/types/concept.type";
+import type { AdConcept } from "../../libs/types/concept.type";
+import type {
+    AdminAuthResponse,
+    AdminSignupInput,
+    AdminLoginInput,
+    CreateConceptInput,
+    UpdateConceptInput,
+} from "../../libs/types/admin.type";
 
-// ── Types ───────────────────────────────────────────────────
+// ── Re-export types for consumer convenience ────────────────
 
-/** Admin roles matching backend AdminRole enum */
-export type AdminRole = "SUPER_ADMIN" | "CONTENT_ADMIN";
-
-/** Admin user returned from API (no password_hash) */
-export interface AdminUser {
-    _id: string;
-    email: string;
-    name: string;
-    role: AdminRole;
-    created_at: string;
-}
-
-/** Admin auth response */
-export interface AdminAuthResponse {
-    accessToken: string;
-    admin: AdminUser;
-}
-
-/** Input for admin signup */
-export interface AdminSignupInput {
-    email: string;
-    password: string;
-    name: string;
-    role: AdminRole;
-}
-
-/** Input for admin login */
-export interface AdminLoginInput {
-    email: string;
-    password: string;
-}
-
-/** Input for creating a concept */
-export interface CreateConceptInput {
-    category: ConceptCategory;
-    name: string;
-    image_url: string;
-    tags: string[];
-    description: string;
-    source_url?: string;
-    is_active?: boolean;
-    display_order?: number;
-}
-
-/** Input for updating a concept (all fields optional) */
-export interface UpdateConceptInput {
-    category?: ConceptCategory;
-    name?: string;
-    image_url?: string;
-    tags?: string[];
-    description?: string;
-    source_url?: string;
-    is_active?: boolean;
-    display_order?: number;
-}
+export type {
+    AdminAuthResponse,
+    AdminSignupInput,
+    AdminLoginInput,
+    CreateConceptInput,
+    UpdateConceptInput,
+};
 
 // ── Shared Helpers ──────────────────────────────────────────
 

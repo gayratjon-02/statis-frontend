@@ -8,6 +8,11 @@
 
 import API_BASE_URL from "../../libs/config/api.config";
 import type { AdConcept } from "../../libs/types/concept.type";
+import type { ConceptsResponse, GetConceptsParams } from "../../libs/types/admin.type";
+
+// ── Re-export types for consumer convenience ────────────────
+
+export type { ConceptsResponse, GetConceptsParams };
 
 // ── Shared Helpers ──────────────────────────────────────────
 
@@ -45,18 +50,6 @@ const CONCEPT_API = `${API_BASE_URL}/concept`;
  * GET /concept/getConcepts?category=...&search=...&page=1&limit=20
  * Returns filtered, paginated concept library for admin management.
  */
-export interface ConceptsResponse {
-    list: AdConcept[];
-    total: number;
-}
-
-export interface GetConceptsParams {
-    category?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-}
-
 export async function getConcepts(
     params: GetConceptsParams = {},
 ): Promise<ConceptsResponse> {
