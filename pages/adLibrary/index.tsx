@@ -148,15 +148,7 @@ function LibraryPage() {
                         {/* <button className="panel-section__action">+</button> */}
                     </div>
                     {counts.products
-                        .filter(p => !selectedBrand || p._id /* Need brand_id in product count too, skipping for now */)
-                        // Actually I can filter products if I include brand_id in counts response, which I did NOT yet.
-                        // Wait, I did verify backend: `getLibraryCounts` uses `products` table but didn't return brand_id in the `products` array explicitly?
-                        // Let's check backend service again...
-                        // Backend: `productsWithCount = products?.map`. `products` query select `_id, product_name, brand_id`.
-                        // Yes, I selected brand_id, but I didn't map it to `productsWithCount`.
-                        // I should've mapped it. For now, show all products or just check if it matches selectedBrand.
-                        // I'll map `brand_id: p.brand_id` in frontend if I can, but I can't change backend now without another step.
-                        // I will show all products for now.
+                        .filter(p => !selectedBrand || p.brand_id === selectedBrand)
                         .map((f) => (
                             <div
                                 key={f._id}

@@ -82,6 +82,7 @@ export interface LibraryCounts {
     products: {
         _id: string;
         name: string;
+        brand_id: string;
         count: number;
     }[];
     total_ads: number;

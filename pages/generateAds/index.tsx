@@ -62,7 +62,7 @@ function GeneratePageContent() {
     const [generatingAds, setGeneratingAds] = useState([false, false, false, false, false, false]);
     const [completedAds, setCompletedAds] = useState([false, false, false, false, false, false]);
     const [savedAds, setSavedAds] = useState([false, false, false, false, false, false]);
-    const [showBrandSelector, setShowBrandSelector] = useState(true);
+    const [showCreateBrandModal, setShowCreateBrandModal] = useState(false);
     const [credits] = useState({ used: 185, limit: 750 });
     const fileInputRef = useRef<HTMLInputElement>(null);
     const productFileRef = useRef<HTMLInputElement>(null);
@@ -176,6 +176,7 @@ function GeneratePageContent() {
             // Refresh brands list
             getBrands(1, 100).then((res) => setBrands(res.list));
             setStep(1);
+            setShowCreateBrandModal(false);
         } catch (e) {
             console.error(e);
             alert("Failed to create brand");
@@ -216,11 +217,11 @@ function GeneratePageContent() {
                 usps: product.usps.filter(u => u.trim() !== ""),
                 photo_url: photoUrl,
                 has_physical_product: !product.noPhysicalProduct,
-                price_text: product.price,
-                product_url: product.productUrl,
+                price_text: product.price || undefined,
+                product_url: product.productUrl || undefined,
                 star_rating: product.starRating ? parseFloat(product.starRating) : undefined,
                 review_count: product.reviewCount ? parseInt(product.reviewCount) : undefined,
-                offer_text: product.offer,
+                offer_text: product.offer || undefined,
             });
 
             setProduct((prev) => ({ ...prev, _id: newProduct._id }));
@@ -298,164 +299,164 @@ function GeneratePageContent() {
                 {/* ══════ STEP 0: BRAND ══════ */}
                 {step === 0 && (
                     <div style={{ animation: "fadeIn 0.4s ease" }}>
-                        {showBrandSelector && (
-                            <div className="gen-brand-selector">
-                                <div className="gen-brand-selector__title">Select an existing brand</div>
-                                <div className="gen-brand-list">
-                                    {brands.map((b) => (
-                                        <div key={b._id} className="gen-brand-item"
-                                            onClick={() => {
-                                                setBrand({
-                                                    _id: b._id,
-                                                    name: b.name,
-                                                    description: b.description,
-                                                    url: b.website_url,
-                                                    industry: b.industry,
-                                                    logo: null,
-                                                    logoPreview: b.logo_url,
-                                                    primaryColor: b.primary_color,
-                                                    secondaryColor: b.secondary_color,
-                                                    accentColor: b.accent_color,
-                                                    voiceTags: b.voice_tags, // Assuming strings match enum values
-                                                    targetAudience: b.target_audience,
-                                                    competitors: b.competitors,
-                                                });
-                                                setStep(1);
-                                            }}
-                                        >
-                                            <div className="gen-brand-item__icon" style={{ background: `${b.primary_color}33`, color: b.primary_color }}>
-                                                {b.name[0]}
-                                            </div>
-                                            <span style={{ fontWeight: 500 }}>{b.name}</span>
+                        <div className="gen-brand-selector">
+                            <div className="gen-brand-selector__title">Select an existing brand</div>
+                            <div className="gen-brand-list">
+                                {brands.map((b) => (
+                                    <div key={b._id} className="gen-brand-item"
+                                        onClick={() => {
+                                            setBrand({
+                                                _id: b._id,
+                                                name: b.name,
+                                                description: b.description,
+                                                url: b.website_url,
+                                                industry: b.industry,
+                                                logo: null,
+                                                logoPreview: b.logo_url,
+                                                primaryColor: b.primary_color,
+                                                secondaryColor: b.secondary_color,
+                                                accentColor: b.accent_color,
+                                                voiceTags: b.voice_tags, // Assuming strings match enum values
+                                                targetAudience: b.target_audience,
+                                                competitors: b.competitors,
+                                            });
+                                            setStep(1);
+                                        }}
+                                    >
+                                        <div className="gen-brand-item__icon" style={{ background: `${b.primary_color}33`, color: b.primary_color }}>
+                                            {b.name[0]}
                                         </div>
-                                    ))}
-                                </div>
-                                <div className="gen-or-divider" onClick={() => setShowBrandSelector(false)}>
-                                    <div className="gen-or-divider__line" />
-                                    <span className="gen-or-divider__text">or create new +</span>
-                                    <div className="gen-or-divider__line" />
-                                </div>
+                                        <span style={{ fontWeight: 500 }}>{b.name}</span>
+                                    </div>
+                                ))}
                             </div>
-                        )}
+                            <div className="gen-or-divider" onClick={() => setShowCreateBrandModal(true)}>
+                                <div className="gen-or-divider__line" />
+                                <span className="gen-or-divider__text">or create new +</span>
+                                <div className="gen-or-divider__line" />
+                            </div>
+                        </div>
 
-                        {!showBrandSelector && (
-                            <>
-                                <div className="gen-card">
-                                    <div className="gen-card__title">Create Brand Profile</div>
-                                    <div className="gen-card__desc">Your brand details power the AI to create on-brand ads.</div>
+                        {showCreateBrandModal && (
+                            <div className="gen-modal-overlay" onClick={() => setShowCreateBrandModal(false)}>
+                                <div className="gen-modal" onClick={(e) => e.stopPropagation()}>
+                                    <div className="gen-card" style={{ border: 'none', boxShadow: 'none', background: 'transparent' }}>
+                                        <div className="gen-card__title">Create Brand Profile</div>
+                                        <div className="gen-card__desc">Your brand details power the AI to create on-brand ads.</div>
 
-                                    <div className="gen-section"><span className="gen-section__num">01</span> Brand Identity</div>
+                                        <div className="gen-section"><span className="gen-section__num">01</span> Brand Identity</div>
 
-                                    <div className="gen-grid-2">
-                                        <div>
-                                            <label className="gen-label">Brand Name *</label>
-                                            <input className="gen-input" placeholder="e.g., Bron" value={brand.name}
-                                                onChange={(e) => setBrand((p) => ({ ...p, name: e.target.value }))} />
-                                        </div>
-                                        <div>
-                                            <label className="gen-label">Industry *</label>
-                                            <select className="gen-select" value={brand.industry}
-                                                onChange={(e) => setBrand((p) => ({ ...p, industry: e.target.value }))}>
-                                                <option value="">Select industry</option>
-                                                {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="gen-mb-20">
-                                        <label className="gen-label">Brand Description *</label>
-                                        <textarea className="gen-textarea" style={{ height: 80 }}
-                                            placeholder="What does your brand do? Who does it serve?"
-                                            value={brand.description}
-                                            onChange={(e) => setBrand((p) => ({ ...p, description: e.target.value }))} />
-                                        <div className="gen-char-count">{brand.description.length}/500</div>
-                                    </div>
-
-                                    <div className="gen-mb-28">
-                                        <label className="gen-label">Website URL *</label>
-                                        <input className="gen-input" placeholder="https://yourbrand.com" value={brand.url}
-                                            onChange={(e) => setBrand((p) => ({ ...p, url: e.target.value }))} />
-                                    </div>
-
-                                    <div className="gen-section"><span className="gen-section__num">02</span> Brand Visuals</div>
-
-                                    <div className="gen-mb-20">
-                                        <label className="gen-label">Logo (PNG) *</label>
-                                        <div className="gen-upload" onClick={() => fileInputRef.current?.click()}
-                                            style={brand.logoPreview ? { backgroundImage: `url(${brand.logoPreview})`, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat", minHeight: 120 } : {}}>
-                                            {!brand.logoPreview && (
-                                                <>
-                                                    <div className="gen-upload__icon">⬆</div>
-                                                    <div className="gen-upload__label">Click to upload PNG logo</div>
-                                                    <div className="gen-upload__hint">Transparent background preferred · Max 5MB</div>
-                                                </>
-                                            )}
-                                        </div>
-                                        <input ref={fileInputRef} type="file" accept=".png" style={{ display: "none" }}
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    const url = URL.createObjectURL(file);
-                                                    setBrand((p) => ({ ...p, logo: file, logoPreview: url }));
-                                                }
-                                            }} />
-                                    </div>
-
-                                    <div className="gen-grid-3">
-                                        {([
-                                            { label: "Primary Color *", key: "primaryColor" as const },
-                                            { label: "Secondary Color *", key: "secondaryColor" as const },
-                                            { label: "Accent Color", key: "accentColor" as const },
-                                        ]).map(({ label, key }) => (
-                                            <div key={key}>
-                                                <label className="gen-label">{label}</label>
-                                                <div className="gen-color-row">
-                                                    <input type="color" value={brand[key]} className="gen-color-picker"
-                                                        onChange={(e) => setBrand((p) => ({ ...p, [key]: e.target.value }))} />
-                                                    <input className="gen-input" style={{ flex: 1, fontFamily: "monospace", fontSize: 13 }}
-                                                        value={brand[key]}
-                                                        onChange={(e) => setBrand((p) => ({ ...p, [key]: e.target.value }))} />
-                                                </div>
+                                        <div className="gen-grid-2">
+                                            <div>
+                                                <label className="gen-label">Brand Name *</label>
+                                                <input className="gen-input" placeholder="e.g., Bron" value={brand.name}
+                                                    onChange={(e) => setBrand((p) => ({ ...p, name: e.target.value }))} />
                                             </div>
-                                        ))}
-                                    </div>
+                                            <div>
+                                                <label className="gen-label">Industry *</label>
+                                                <select className="gen-select" value={brand.industry}
+                                                    onChange={(e) => setBrand((p) => ({ ...p, industry: e.target.value }))}>
+                                                    <option value="">Select industry</option>
+                                                    {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
 
-                                    <div className="gen-section"><span className="gen-section__num">03</span> Brand Voice</div>
+                                        <div className="gen-mb-20">
+                                            <label className="gen-label">Brand Description *</label>
+                                            <textarea className="gen-textarea" style={{ height: 80 }}
+                                                placeholder="What does your brand do? Who does it serve?"
+                                                value={brand.description}
+                                                onChange={(e) => setBrand((p) => ({ ...p, description: e.target.value }))} />
+                                            <div className="gen-char-count">{brand.description.length}/500</div>
+                                        </div>
 
-                                    <div className="gen-mb-20">
-                                        <label className="gen-label">Voice & Tone *</label>
-                                        <div className="gen-tags">
-                                            {VOICE_TAGS.map((tag) => (
-                                                <div key={tag} className={`gen-tag ${brand.voiceTags.includes(tag) ? "gen-tag--active" : ""}`}
-                                                    onClick={() => toggleVoiceTag(tag)}>
-                                                    {tag}
+                                        <div className="gen-mb-28">
+                                            <label className="gen-label">Website URL *</label>
+                                            <input className="gen-input" placeholder="https://yourbrand.com" value={brand.url}
+                                                onChange={(e) => setBrand((p) => ({ ...p, url: e.target.value }))} />
+                                        </div>
+
+                                        <div className="gen-section"><span className="gen-section__num">02</span> Brand Visuals</div>
+
+                                        <div className="gen-mb-20">
+                                            <label className="gen-label">Logo (PNG) *</label>
+                                            <div className="gen-upload" onClick={() => fileInputRef.current?.click()}
+                                                style={brand.logoPreview ? { backgroundImage: `url(${brand.logoPreview})`, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat", minHeight: 120 } : {}}>
+                                                {!brand.logoPreview && (
+                                                    <>
+                                                        <div className="gen-upload__icon">⬆</div>
+                                                        <div className="gen-upload__label">Click to upload PNG logo</div>
+                                                        <div className="gen-upload__hint">Transparent background preferred · Max 5MB</div>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <input ref={fileInputRef} type="file" accept=".png" style={{ display: "none" }}
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const url = URL.createObjectURL(file);
+                                                        setBrand((p) => ({ ...p, logo: file, logoPreview: url }));
+                                                    }
+                                                }} />
+                                        </div>
+
+                                        <div className="gen-grid-3">
+                                            {([
+                                                { label: "Primary Color *", key: "primaryColor" as const },
+                                                { label: "Secondary Color *", key: "secondaryColor" as const },
+                                                { label: "Accent Color", key: "accentColor" as const },
+                                            ]).map(({ label, key }) => (
+                                                <div key={key}>
+                                                    <label className="gen-label">{label}</label>
+                                                    <div className="gen-color-row">
+                                                        <input type="color" value={brand[key]} className="gen-color-picker"
+                                                            onChange={(e) => setBrand((p) => ({ ...p, [key]: e.target.value }))} />
+                                                        <input className="gen-input" style={{ flex: 1, fontFamily: "monospace", fontSize: 13 }}
+                                                            value={brand[key]}
+                                                            onChange={(e) => setBrand((p) => ({ ...p, [key]: e.target.value }))} />
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
+
+                                        <div className="gen-section"><span className="gen-section__num">03</span> Brand Voice</div>
+
+                                        <div className="gen-mb-20">
+                                            <label className="gen-label">Voice & Tone *</label>
+                                            <div className="gen-tags">
+                                                {VOICE_TAGS.map((tag) => (
+                                                    <div key={tag} className={`gen-tag ${brand.voiceTags.includes(tag) ? "gen-tag--active" : ""}`}
+                                                        onClick={() => toggleVoiceTag(tag)}>
+                                                        {tag}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="gen-mb-20">
+                                            <label className="gen-label">Target Audience *</label>
+                                            <textarea className="gen-textarea" style={{ height: 60 }}
+                                                placeholder='e.g., "Men 25-40 interested in grooming who want simple, no-fuss products"'
+                                                value={brand.targetAudience}
+                                                onChange={(e) => setBrand((p) => ({ ...p, targetAudience: e.target.value }))} />
+                                        </div>
+
+                                        <div className="gen-mb-20">
+                                            <label className="gen-label">Competitor Brands (Optional)</label>
+                                            <input className="gen-input" placeholder="e.g., Harry's, Dollar Shave Club, Manscaped"
+                                                value={brand.competitors}
+                                                onChange={(e) => setBrand((p) => ({ ...p, competitors: e.target.value }))} />
+                                        </div>
                                     </div>
 
-                                    <div className="gen-mb-20">
-                                        <label className="gen-label">Target Audience *</label>
-                                        <textarea className="gen-textarea" style={{ height: 60 }}
-                                            placeholder='e.g., "Men 25-40 interested in grooming who want simple, no-fuss products"'
-                                            value={brand.targetAudience}
-                                            onChange={(e) => setBrand((p) => ({ ...p, targetAudience: e.target.value }))} />
-                                    </div>
-
-                                    <div className="gen-mb-20">
-                                        <label className="gen-label">Competitor Brands (Optional)</label>
-                                        <input className="gen-input" placeholder="e.g., Harry's, Dollar Shave Club, Manscaped"
-                                            value={brand.competitors}
-                                            onChange={(e) => setBrand((p) => ({ ...p, competitors: e.target.value }))} />
+                                    <div className="gen-nav gen-nav--right" style={{ padding: '0 32px 32px' }}>
+                                        <button className="gen-btn-next" onClick={handleBrandNext} disabled={isLoading}>
+                                            {isLoading ? "Creating..." : "Create Brand →"}
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div className="gen-nav gen-nav--right">
-                                    <button className="gen-btn-next" onClick={handleBrandNext} disabled={isLoading}>
-                                        {isLoading ? "Creating..." : "Next: Add Product →"}
-                                    </button>
-                                </div>
-                            </>
+                            </div>
                         )}
                     </div>
                 )}
