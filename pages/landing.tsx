@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 
 export default function LandingPage() {
+    const router = useRouter();
     const [annual, setAnnual] = useState(true);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
     const [email, setEmail] = useState("");
@@ -82,7 +84,7 @@ export default function LandingPage() {
                             {item}
                         </a>
                     ))}
-                    <button className="landing-nav__cta">Get Started</button>
+                    <button className="landing-nav__cta" onClick={() => router.push("/dashboard")}>Get Started</button>
                 </div>
             </nav>
 
@@ -99,7 +101,7 @@ export default function LandingPage() {
                     High-quality static ads in seconds, not days. Upload your brand, pick a concept, and let AI do the rest.
                 </p>
                 <div className="hero__buttons">
-                    <button className="btn-hero-primary">Start Free Trial</button>
+                    <button className="btn-hero-primary" onClick={() => router.push("/dashboard")}>Start Free Trial</button>
                     <button className="btn-hero-secondary">See Examples</button>
                 </div>
                 <div className="hero__metrics">
@@ -238,7 +240,7 @@ export default function LandingPage() {
                                 <span className="plan-card__price">${plan.price}</span>
                                 <span className="plan-card__period">{plan.period}</span>
                             </div>
-                            <button className={`plan-card__cta ${plan.popular ? "plan-card__cta--primary" : "plan-card__cta--secondary"}`}>
+                            <button className={`plan-card__cta ${plan.popular ? "plan-card__cta--primary" : "plan-card__cta--secondary"}`} onClick={() => router.push("/dashboard")}>
                                 {plan.cta}
                             </button>
                             <div className="plan-card__features">
@@ -294,7 +296,7 @@ export default function LandingPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                     />
-                    <button className="cta-section__submit">Get Early Access</button>
+                    <button className="cta-section__submit" onClick={() => router.push("/dashboard")}>Get Early Access</button>
                 </div>
                 <div className="cta-section__note">Free trial included. No credit card required.</div>
             </section>
