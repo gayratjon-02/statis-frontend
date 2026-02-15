@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import AdminGuard from "../../../libs/auth/AdminGuard";
 import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
 import { getConcepts, getRecommendedConcepts } from "../../../server/admin/admnGetApis";
-import { deleteConcept, createConcept, uploadConceptImage } from "../../../server/admin/adminPostApis";
+import { deleteConcept, createConcept, uploadConceptImage, updateConcept } from "../../../server/admin/adminPostApis";
 import type { AdConcept } from "../../../libs/types/concept.type";
 import { ConceptCategory } from "../../../libs/types/concept.type";
 
@@ -94,6 +94,17 @@ function AdminDashboard() {
         }
     };
 
+    // ── Toggle visibility (active/inactive) ──
+    const handleToggleVisibility = async (concept: AdConcept) => {
+        try {
+            await updateConcept(concept._id, { is_active: !concept.is_active });
+            fetchConcepts();
+            fetchRecommended();
+        } catch (err: any) {
+            alert(err.message || "Failed to toggle visibility");
+        }
+    };
+
     // ── Create concept ──
     const resetModal = () => {
         setNewName("");
@@ -129,7 +140,6 @@ function AdminDashboard() {
     const handleCreateConcept = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newName.trim()) { setModalError("Name is required"); return; }
-        if (!newDescription.trim()) { setModalError("Description is required"); return; }
         if (!newImageFile) { setModalError("Image is required"); return; }
 
         const tags = newTags.split(",").map((t) => t.trim()).filter(Boolean);
@@ -147,7 +157,7 @@ function AdminDashboard() {
             await createConcept({
                 name: newName.trim(),
                 category: newCategory,
-                description: newDescription.trim(),
+                description: newDescription.trim() || undefined,
                 image_url: uploadRes.image_url,
                 tags,
                 source_url: newSourceUrl.trim() || undefined,
@@ -526,7 +536,7 @@ function AdminDashboard() {
 
                             {/* Description */}
                             <div className="admin-modal__field">
-                                <label className="admin-modal__label">Description *</label>
+                                <label className="admin-modal__label">Description</label>
                                 <textarea
                                     className="admin-modal__input admin-modal__textarea"
                                     placeholder="Describe the concept style and when to use it..."
@@ -641,6 +651,16 @@ function AdminDashboard() {
                                 </div>
                             )}
                             <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
+                                <button
+                                    className={`admin-dash__btn ${c.is_active ? "admin-dash__btn--ghost" : "admin-dash__btn--primary"}`}
+                                    style={{ flex: 1, padding: "5px 8px", fontSize: 11 }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleVisibility(c);
+                                    }}
+                                >
+                                    {c.is_active ? "👁 Hide" : "👁‍🗨 Show"}
+                                </button>
                                 <button
                                     className="admin-dash__btn admin-dash__btn--ghost"
                                     style={{ flex: 1, padding: "5px 8px", fontSize: 11 }}
