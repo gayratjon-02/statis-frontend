@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
+import { adminLogin, adminSignup } from "../../../server/admin/adminPostApis";
+import { AdminRole } from "../../../libs/enums/admin.enum";
 
 export default function AdminAuth() {
     const router = useRouter();
@@ -23,55 +25,51 @@ export default function AdminAuth() {
     const [signupEmail, setSignupEmail] = useState("");
     const [signupPassword, setSignupPassword] = useState("");
     const [signupConfirm, setSignupConfirm] = useState("");
-    const [signupRole, setSignupRole] = useState<"SUPER_ADMIN" | "CONTENT_ADMIN">("CONTENT_ADMIN");
+    const [signupRole, setSignupRole] = useState<AdminRole>(AdminRole.CONTENT_ADMIN);
 
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError("");
         setLoading(true);
-        // TODO: connect to adminLogin API
-        // Hardcoded: simulate successful login
-        setTimeout(() => {
-            localStorage.setItem("se_admin_token", "admin_hardcoded_token_123");
-            localStorage.setItem(
-                "se_admin_user",
-                JSON.stringify({
-                    _id: "admin_001",
-                    email: loginEmail,
-                    name: "Admin",
-                    role: "SUPER_ADMIN",
-                }),
-            );
-            setLoading(false);
+        try {
+            const res = await adminLogin({ email: loginEmail, password: loginPassword });
+            localStorage.setItem("se_admin_token", res.accessToken);
+            localStorage.setItem("se_admin_user", JSON.stringify(res.admin));
             router.push("/_admin/homepage");
-        }, 800);
+        } catch (err: any) {
+            setError(err.message || "Login failed");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleSignup = (e: React.FormEvent) => {
+    const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         if (signupPassword !== signupConfirm) {
-            alert("Passwords do not match");
+            setError("Passwords do not match");
             return;
         }
+        setError("");
         setLoading(true);
-        // TODO: connect to adminSignup API
-        // Hardcoded: simulate successful signup
-        setTimeout(() => {
-            localStorage.setItem("se_admin_token", "admin_hardcoded_token_123");
-            localStorage.setItem(
-                "se_admin_user",
-                JSON.stringify({
-                    _id: "admin_002",
-                    email: signupEmail,
-                    name: signupName,
-                    role: signupRole,
-                }),
-            );
-            setLoading(false);
+        try {
+            const res = await adminSignup({
+                email: signupEmail,
+                password: signupPassword,
+                name: signupName,
+                role: signupRole,
+            });
+            localStorage.setItem("se_admin_token", res.accessToken);
+            localStorage.setItem("se_admin_user", JSON.stringify(res.admin));
             router.push("/_admin/homepage");
-        }, 800);
+        } catch (err: any) {
+            setError(err.message || "Signup failed");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -142,6 +140,22 @@ export default function AdminAuth() {
                                 ? "Sign in to your admin account to continue"
                                 : "Register a new administrator for the platform"}
                         </p>
+
+                        {error && (
+                            <div
+                                style={{
+                                    padding: "10px 14px",
+                                    borderRadius: 8,
+                                    background: "rgba(239,68,68,0.1)",
+                                    border: "1px solid rgba(239,68,68,0.3)",
+                                    color: "#EF4444",
+                                    fontSize: 13,
+                                    marginBottom: 8,
+                                }}
+                            >
+                                {error}
+                            </div>
+                        )}
 
                         {/* ─── LOGIN FORM ─── */}
                         {mode === "login" && (
@@ -225,16 +239,16 @@ export default function AdminAuth() {
                                     <div className="admin-auth__role-group">
                                         <button
                                             type="button"
-                                            className={`admin-auth__role-btn ${signupRole === "SUPER_ADMIN" ? "admin-auth__role-btn--active" : ""}`}
-                                            onClick={() => setSignupRole("SUPER_ADMIN")}
+                                            className={`admin-auth__role-btn ${signupRole === AdminRole.SUPER_ADMIN ? "admin-auth__role-btn--active" : ""}`}
+                                            onClick={() => setSignupRole(AdminRole.SUPER_ADMIN)}
                                         >
                                             <span className="admin-auth__role-icon">🛡️</span>
                                             Super Admin
                                         </button>
                                         <button
                                             type="button"
-                                            className={`admin-auth__role-btn ${signupRole === "CONTENT_ADMIN" ? "admin-auth__role-btn--active" : ""}`}
-                                            onClick={() => setSignupRole("CONTENT_ADMIN")}
+                                            className={`admin-auth__role-btn ${signupRole === AdminRole.CONTENT_ADMIN ? "admin-auth__role-btn--active" : ""}`}
+                                            onClick={() => setSignupRole(AdminRole.CONTENT_ADMIN)}
                                         >
                                             <span className="admin-auth__role-icon">✏️</span>
                                             Content Admin
