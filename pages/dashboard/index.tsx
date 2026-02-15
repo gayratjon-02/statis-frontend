@@ -166,7 +166,7 @@ function DashboardPage() {
     const limit = usage?.credits_limit || 0;
     const pct = limit > 0 ? (remaining / limit) * 100 : 0;
     const renewDays = usage ? daysUntil(usage.billing_cycle_end) : 0;
-    const filtered = brandFilter === "all" ? ADS : ADS.filter((a) => a.brand.toLowerCase().includes(brandFilter));
+    const filtered = brandFilter === "all" ? recentAds : recentAds.filter((a) => a.brand_name.toLowerCase().includes(brandFilter));
     const sw = collapsed ? 72 : 240;
 
     return (
