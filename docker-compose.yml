@@ -1,6 +1,6 @@
 services:
   static-engine-frontend:
-    container_name: static-engine-frontend
+    container_name: static-frontend
     build:
       context: .
       args:
