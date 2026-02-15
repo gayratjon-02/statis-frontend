@@ -6,6 +6,14 @@ import { getConcepts, getRecommendedConcepts } from "../../../server/admin/admnG
 import { deleteConcept, createConcept, uploadConceptImage, updateConcept } from "../../../server/admin/adminPostApis";
 import type { AdConcept } from "../../../libs/types/concept.type";
 import { ConceptCategory } from "../../../libs/types/concept.type";
+import API_BASE_URL from "../../../libs/config/api.config";
+
+/** Prepend API base URL to relative image paths */
+function resolveImageUrl(url?: string): string {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    return `${API_BASE_URL}${url}`;
+}
 
 // ── Nav items ──
 const NAV_ITEMS = [
@@ -308,7 +316,7 @@ function AdminDashboard() {
                                     {recommended.map((c) => (
                                         <div key={c._id} className="admin-dash__rec-card">
                                             <img
-                                                src={c.image_url}
+                                                src={resolveImageUrl(c.image_url)}
                                                 alt={c.name}
                                                 className="admin-dash__rec-img"
                                                 onError={(e) => {
@@ -436,7 +444,7 @@ function AdminDashboard() {
                                 {recommended.map((c) => (
                                     <div key={c._id} className="admin-dash__concept-card">
                                         <img
-                                            src={c.image_url}
+                                            src={resolveImageUrl(c.image_url)}
                                             alt={c.name}
                                             className="admin-dash__concept-img"
                                             onError={(e) => {
@@ -621,7 +629,7 @@ function AdminDashboard() {
                 {concepts.map((c) => (
                     <div key={c._id} className={`admin-dash__concept-card ${!c.is_active ? "admin-dash__concept-card--inactive" : ""}`}>
                         <img
-                            src={c.image_url}
+                            src={resolveImageUrl(c.image_url)}
                             alt={c.name}
                             className="admin-dash__concept-img"
                             onError={(e) => {
