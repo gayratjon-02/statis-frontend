@@ -121,9 +121,11 @@ function DashboardPage() {
     };
 
     const handleLogout = () => {
+        // Clear all auth data
         localStorage.removeItem("se_access_token");
         localStorage.removeItem("se_member");
-        router.push("/login");
+        // Prevent back button from returning to protected page
+        router.replace("/login");
     };
 
     // Derived values
@@ -230,6 +232,23 @@ function DashboardPage() {
                             {!collapsed && <span style={{ fontSize: 13, color: "var(--dim)" }}>{item.label}</span>}
                         </div>
                     ))}
+
+                    {/* Logout */}
+                    <div
+                        className="nav-item"
+                        onClick={handleLogout}
+                        style={{
+                            padding: collapsed ? "10px 0" : "10px 14px",
+                            justifyContent: collapsed ? "center" : "flex-start",
+                            cursor: "pointer",
+                            marginTop: 4,
+                        }}
+                    >
+                        <span style={{ fontSize: 13, width: 28, textAlign: "center", color: "#EF4444", fontWeight: 600 }}>
+                            ⏻
+                        </span>
+                        {!collapsed && <span style={{ fontSize: 13, color: "#EF4444", fontWeight: 500 }}>Logout</span>}
+                    </div>
                 </div>
 
                 {/* User */}
@@ -238,10 +257,7 @@ function DashboardPage() {
                     style={{
                         justifyContent: collapsed ? "center" : "flex-start",
                         padding: collapsed ? "16px 0" : "16px",
-                        cursor: "pointer",
                     }}
-                    title="Click to logout"
-                    onClick={handleLogout}
                 >
                     <div className="sidebar-user__avatar">{userInitial}</div>
                     {!collapsed && (
