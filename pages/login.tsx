@@ -68,6 +68,7 @@ export default function UserAuth() {
                 email: signupEmail,
                 password: signupPassword,
                 full_name: signupName,
+                subscription_tier: selectedPlan || undefined,
             });
             localStorage.setItem("se_access_token", res.accessToken);
             localStorage.setItem("se_member", JSON.stringify(res.member));

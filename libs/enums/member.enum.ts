@@ -19,9 +19,9 @@ export enum MemberAuthType {
 /** Subscription tiers */
 export enum SubscriptionTier {
     FREE = "free",
-    BASIC = "basic",
+    STARTER = "starter",
     PRO = "pro",
-    AGENCY = "agency",
+    GROWTH_ENGINE = "growth_engine",
 }
 
 /** Subscription status */

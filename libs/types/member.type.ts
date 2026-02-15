@@ -64,4 +64,5 @@ export interface SignupInput {
     password: string;
     full_name: string;
     avatar_url?: string;
+    subscription_tier?: string;
 }

@@ -50,6 +50,11 @@ interface UsageData {
     addon_credits_remaining: number;
     billing_cycle_start: string | null;
     billing_cycle_end: string | null;
+    stats: {
+        ads_generated: number;
+        ads_saved: number;
+        canva_templates: number;
+    };
 }
 
 interface BrandItem {
@@ -58,7 +63,7 @@ interface BrandItem {
 }
 
 function tierLabel(tier: string): string {
-    const map: Record<string, string> = { FREE: "Free", STARTER: "Starter", PRO: "Pro", GROWTH_ENGINE: "Growth Engine" };
+    const map: Record<string, string> = { free: "Free", starter: "Starter", pro: "Pro", growth_engine: "Growth Engine" };
     return map[tier] || tier;
 }
 
@@ -286,10 +291,10 @@ function DashboardPage() {
                 <div className="stats-grid">
                     {[
                         { label: "CREDITS LEFT", val: String(remaining), sub: `of ${limit}`, color: "var(--accent)", bar: pct },
-                        { label: "ADS GENERATED", val: "37", sub: "this cycle", color: "var(--g1)", trend: "+12 vs last month" },
-                        { label: "ADS SAVED", val: "24", sub: "across 2 brands", color: "var(--green)", trend: null },
-                        { label: "CANVA TEMPLATES", val: "3", sub: "1 pending", color: "var(--yellow)", trend: null },
-                    ].map((s, i) => (
+                        { label: "ADS GENERATED", val: String(usage?.stats?.ads_generated || 0), sub: "lifetime", color: "var(--g1)", trend: null },
+                        { label: "ADS SAVED", val: String(usage?.stats?.ads_saved || 0), sub: "across brands", color: "var(--green)", trend: null },
+                        { label: "CANVA TEMPLATES", val: String(usage?.stats?.canva_templates || 0), sub: "ready to use", color: "var(--yellow)", trend: null },
+                    ].map((s: any, i) => (
                         <div key={i} className="stat-card">
                             <div className="stat-card__label">{s.label}</div>
                             <div className="stat-card__row">
