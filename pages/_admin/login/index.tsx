@@ -1,7 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
 
 export default function AdminAuth() {
+    const router = useRouter();
+    const { isLoading, isAuthenticated } = useAdminAuth();
     const [mode, setMode] = useState<"login" | "signup">("login");
+
+    // If already logged in, redirect to admin homepage
+    useEffect(() => {
+        if (!isLoading && isAuthenticated) {
+            router.replace("/_admin/homepage");
+        }
+    }, [isLoading, isAuthenticated, router]);
 
     // ── Login state ──
     const [loginEmail, setLoginEmail] = useState("");
@@ -21,10 +32,21 @@ export default function AdminAuth() {
         e.preventDefault();
         setLoading(true);
         // TODO: connect to adminLogin API
+        // Hardcoded: simulate successful login
         setTimeout(() => {
+            localStorage.setItem("se_admin_token", "admin_hardcoded_token_123");
+            localStorage.setItem(
+                "se_admin_user",
+                JSON.stringify({
+                    _id: "admin_001",
+                    email: loginEmail,
+                    name: "Admin",
+                    role: "SUPER_ADMIN",
+                }),
+            );
             setLoading(false);
-            alert(`Login: ${loginEmail}`);
-        }, 1200);
+            router.push("/_admin/homepage");
+        }, 800);
     };
 
     const handleSignup = (e: React.FormEvent) => {
@@ -35,10 +57,21 @@ export default function AdminAuth() {
         }
         setLoading(true);
         // TODO: connect to adminSignup API
+        // Hardcoded: simulate successful signup
         setTimeout(() => {
+            localStorage.setItem("se_admin_token", "admin_hardcoded_token_123");
+            localStorage.setItem(
+                "se_admin_user",
+                JSON.stringify({
+                    _id: "admin_002",
+                    email: signupEmail,
+                    name: signupName,
+                    role: signupRole,
+                }),
+            );
             setLoading(false);
-            alert(`Signup: ${signupEmail} — ${signupRole}`);
-        }, 1200);
+            router.push("/_admin/homepage");
+        }, 800);
     };
 
     return (
