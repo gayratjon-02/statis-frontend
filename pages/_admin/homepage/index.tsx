@@ -59,6 +59,20 @@ function AdminDashboard() {
     const [newImagePreview, setNewImagePreview] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // ── Edit Concept Modal ──
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    const [editError, setEditError] = useState("");
+    const [editId, setEditId] = useState("");
+    const [editName, setEditName] = useState("");
+    const [editCategory, setEditCategory] = useState<ConceptCategory>(ConceptCategory.SOCIAL_PROOF);
+    const [editDescription, setEditDescription] = useState("");
+    const [editTags, setEditTags] = useState("");
+    const [editSourceUrl, setEditSourceUrl] = useState("");
+    const [editImageFile, setEditImageFile] = useState<File | null>(null);
+    const [editImagePreview, setEditImagePreview] = useState("");
+    const editFileInputRef = useRef<HTMLInputElement>(null);
+
     // ── Fetch concepts ──
     const fetchConcepts = useCallback(async () => {
         setLoading(true);
@@ -99,6 +113,70 @@ function AdminDashboard() {
             fetchRecommended();
         } catch (err: any) {
             alert(err.message || "Failed to delete concept");
+        }
+    };
+
+    // ── Open edit modal ──
+    const openEditModal = (concept: AdConcept) => {
+        setEditId(concept._id);
+        setEditName(concept.name);
+        setEditCategory(concept.category as ConceptCategory);
+        setEditDescription(concept.description || "");
+        setEditTags(concept.tags?.join(", ") || "");
+        setEditSourceUrl(concept.source_url || "");
+        setEditImageFile(null);
+        setEditImagePreview(concept.image_url ? resolveImageUrl(concept.image_url) : "");
+        setEditError("");
+        setEditLoading(false);
+        setShowEditModal(true);
+    };
+
+    const closeEditModal = () => {
+        setShowEditModal(false);
+        setEditId("");
+        setEditError("");
+    };
+
+    const handleEditImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setEditImageFile(file);
+        const reader = new FileReader();
+        reader.onload = () => setEditImagePreview(reader.result as string);
+        reader.readAsDataURL(file);
+    };
+
+    const handleUpdateConcept = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editName.trim()) { setEditError("Name is required"); return; }
+
+        setEditLoading(true);
+        setEditError("");
+
+        try {
+            const updates: any = {};
+
+            updates.name = editName.trim();
+            updates.category = editCategory;
+            updates.description = editDescription.trim();
+            const tags = editTags.split(",").map((t) => t.trim()).filter(Boolean);
+            if (tags.length > 0) updates.tags = tags;
+            if (editSourceUrl.trim()) updates.source_url = editSourceUrl.trim();
+
+            // If new image uploaded, upload first
+            if (editImageFile) {
+                const uploadRes = await uploadConceptImage(editImageFile);
+                updates.image_url = uploadRes.image_url;
+            }
+
+            await updateConcept(editId, updates);
+            closeEditModal();
+            fetchConcepts();
+            fetchRecommended();
+        } catch (err: any) {
+            setEditError(err.message || "Failed to update concept");
+        } finally {
+            setEditLoading(false);
         }
     };
 
@@ -594,6 +672,120 @@ function AdminDashboard() {
                     </div>
                 </div>
             )}
+
+            {/* ── Edit Concept Modal ── */}
+            {showEditModal && (
+                <div className="admin-modal__overlay" onClick={closeEditModal}>
+                    <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="admin-modal__header">
+                            <h2 className="admin-modal__title">✏️ Edit Concept</h2>
+                            <button className="admin-modal__close" onClick={closeEditModal}>✕</button>
+                        </div>
+
+                        {editError && (
+                            <div className="admin-modal__error">⚠️ {editError}</div>
+                        )}
+
+                        <form className="admin-modal__form" onSubmit={handleUpdateConcept}>
+                            {/* Image Upload */}
+                            <div className="admin-modal__upload" onClick={() => editFileInputRef.current?.click()}>
+                                {editImagePreview ? (
+                                    <img src={editImagePreview} alt="Preview" className="admin-modal__upload-preview" />
+                                ) : (
+                                    <div className="admin-modal__upload-placeholder">
+                                        <span className="admin-modal__upload-icon">📷</span>
+                                        <span className="admin-modal__upload-text">Click to change image</span>
+                                        <span className="admin-modal__upload-hint">PNG, JPG, WEBP — max 10MB</span>
+                                    </div>
+                                )}
+                                <input
+                                    ref={editFileInputRef}
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    onChange={handleEditImageSelect}
+                                    style={{ display: "none" }}
+                                />
+                            </div>
+
+                            {/* Name */}
+                            <div className="admin-modal__field">
+                                <label className="admin-modal__label">Name *</label>
+                                <input
+                                    className="admin-modal__input"
+                                    placeholder="e.g. Bold Social Proof Banner"
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Category */}
+                            <div className="admin-modal__field">
+                                <label className="admin-modal__label">Category *</label>
+                                <select
+                                    className="admin-modal__input admin-modal__select"
+                                    value={editCategory}
+                                    onChange={(e) => setEditCategory(e.target.value as ConceptCategory)}
+                                >
+                                    {Object.values(ConceptCategory).map((cat) => (
+                                        <option key={cat} value={cat}>
+                                            {cat.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Description */}
+                            <div className="admin-modal__field">
+                                <label className="admin-modal__label">Description</label>
+                                <textarea
+                                    className="admin-modal__input admin-modal__textarea"
+                                    placeholder="Describe the concept style and when to use it..."
+                                    value={editDescription}
+                                    onChange={(e) => setEditDescription(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+
+                            {/* Tags */}
+                            <div className="admin-modal__field">
+                                <label className="admin-modal__label">Tags</label>
+                                <input
+                                    className="admin-modal__input"
+                                    placeholder="tag1, tag2, tag3 (comma-separated)"
+                                    value={editTags}
+                                    onChange={(e) => setEditTags(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Source URL */}
+                            <div className="admin-modal__field">
+                                <label className="admin-modal__label">Source URL</label>
+                                <input
+                                    className="admin-modal__input"
+                                    placeholder="https://example.com/inspiration"
+                                    value={editSourceUrl}
+                                    onChange={(e) => setEditSourceUrl(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Submit */}
+                            <button
+                                type="submit"
+                                className="admin-modal__submit"
+                                disabled={editLoading}
+                            >
+                                {editLoading ? (
+                                    <>
+                                        <span className="admin-dash__spinner" /> Saving...
+                                    </>
+                                ) : (
+                                    "Save Changes"
+                                )}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 
@@ -668,6 +860,16 @@ function AdminDashboard() {
                                     }}
                                 >
                                     {c.is_active ? "👁 Hide" : "👁‍🗨 Show"}
+                                </button>
+                                <button
+                                    className="admin-dash__btn admin-dash__btn--primary"
+                                    style={{ flex: 1, padding: "5px 8px", fontSize: 11 }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        openEditModal(c);
+                                    }}
+                                >
+                                    ✏️ Edit
                                 </button>
                                 <button
                                     className="admin-dash__btn admin-dash__btn--ghost"
