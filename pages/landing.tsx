@@ -84,7 +84,7 @@ export default function LandingPage() {
                             {item}
                         </a>
                     ))}
-                    <button className="landing-nav__cta" onClick={() => router.push("/dashboard")}>Get Started</button>
+                    <button className="landing-nav__cta" onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}>Get Started</button>
                 </div>
             </nav>
 
