@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
-import AuthGuard from "../libs/auth/AuthGuard";
+import AuthGuard from "../../libs/auth/AuthGuard";
 
 const ROUTES: Record<string, string> = {
     dashboard: "/dashboard",
     generate: "/generate",
-    library: "/library",
+    library: "/adLibrary",
 };
 
 const BG = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
@@ -276,7 +276,7 @@ function DashboardPage() {
                             ))}
                         </div>
 
-                        <div className="view-all-link" onClick={() => router.push("/library")} style={{ cursor: "pointer" }}>View all ads in library</div>
+                        <div className="view-all-link" onClick={() => router.push("/adLibrary")} style={{ cursor: "pointer" }}>View all ads in library</div>
                     </div>
 
                     {/* Right sidebar */}
