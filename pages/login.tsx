@@ -30,6 +30,15 @@ export default function UserAuth() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    // Read selected plan from query param
+    const selectedPlan = (router.query.plan as string) || null;
+    const planInfo: Record<string, { label: string; price: string; credits: string }> = {
+        starter: { label: "Starter", price: "$39/mo", credits: "250 credits" },
+        pro: { label: "Pro", price: "$99/mo", credits: "750 credits" },
+        growth_engine: { label: "Growth Engine", price: "$199/mo", credits: "2,000 credits" },
+    };
+    const plan = selectedPlan ? planInfo[selectedPlan] : null;
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
@@ -128,6 +137,30 @@ export default function UserAuth() {
                                 Create Account
                             </button>
                         </div>
+
+                        {/* Selected plan banner */}
+                        {plan && (
+                            <div style={{
+                                background: "linear-gradient(135deg, rgba(62,207,207,0.12), rgba(120,80,255,0.12))",
+                                border: "1px solid rgba(62,207,207,0.25)",
+                                borderRadius: 12,
+                                padding: "14px 18px",
+                                marginBottom: 20,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
+                            }}>
+                                <span style={{ fontSize: 22 }}>🎯</span>
+                                <div>
+                                    <div style={{ color: "#3ECFCF", fontWeight: 700, fontSize: 14 }}>
+                                        {plan.label} Plan Selected
+                                    </div>
+                                    <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 2 }}>
+                                        {plan.price} · {plan.credits}/month
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <h1 className="admin-auth__title">
                             {mode === "login" ? "Welcome back" : "Start your free trial"}
