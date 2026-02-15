@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { loginRequest, signupRequest } from "../server/user/login";
+import { useAuth } from "../libs/hooks/useAuth";
 
 export default function UserAuth() {
     const router = useRouter();
     const [mode, setMode] = useState<"login" | "signup">("login");
 
+    const { isAuthenticated } = useAuth();
+
     // If already logged in, redirect to dashboard
     useEffect(() => {
-        const token = localStorage.getItem("se_access_token");
-        if (token) {
+        if (isAuthenticated === true) {
             router.replace("/dashboard");
         }
-    }, [router]);
+    }, [isAuthenticated, router]);
 
     // ── Login state ──
     const [loginEmail, setLoginEmail] = useState("");
@@ -35,7 +37,7 @@ export default function UserAuth() {
         try {
             const res = await loginRequest({ email: loginEmail, password: loginPassword });
             localStorage.setItem("se_access_token", res.accessToken);
-            localStorage.setItem("se_user", JSON.stringify(res.member));
+            localStorage.setItem("se_member", JSON.stringify(res.member));
             router.push("/dashboard");
         } catch (err: any) {
             setError(err.message || "Login failed");
@@ -59,7 +61,7 @@ export default function UserAuth() {
                 full_name: signupName,
             });
             localStorage.setItem("se_access_token", res.accessToken);
-            localStorage.setItem("se_user", JSON.stringify(res.member));
+            localStorage.setItem("se_member", JSON.stringify(res.member));
             router.push("/dashboard");
         } catch (err: any) {
             setError(err.message || "Signup failed");

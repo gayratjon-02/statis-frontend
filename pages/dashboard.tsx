@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
+import AuthGuard from "../libs/auth/AuthGuard";
 
 const ROUTES: Record<string, string> = {
     dashboard: "/dashboard",
@@ -39,7 +40,7 @@ const BOTTOM_NAV = [
     { id: "billing", label: "Billing", letter: "$" },
 ];
 
-export default function Dashboard() {
+function DashboardPage() {
     const router = useRouter();
     const [brand, setBrand] = useState("all");
     const [collapsed, setCollapsed] = useState(false);
@@ -334,5 +335,13 @@ export default function Dashboard() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function Dashboard() {
+    return (
+        <AuthGuard>
+            <DashboardPage />
+        </AuthGuard>
     );
 }

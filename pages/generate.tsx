@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import AuthGuard from "../libs/auth/AuthGuard";
 
 const AD_COLORS = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
 
@@ -40,7 +41,7 @@ interface ProductState {
     starRating: string; reviewCount: string; offer: string;
 }
 
-export default function GeneratePage() {
+function GeneratePageContent() {
     const [step, setStep] = useState(0);
     const [brand, setBrand] = useState<BrandState>({
         name: "", description: "", url: "", industry: "",
@@ -609,5 +610,13 @@ export default function GeneratePage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function GeneratePage() {
+    return (
+        <AuthGuard>
+            <GeneratePageContent />
+        </AuthGuard>
     );
 }

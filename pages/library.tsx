@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import AuthGuard from "../libs/auth/AuthGuard";
 
 const BG = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
 
@@ -28,7 +29,7 @@ const MOCK_ADS = Array.from({ length: 16 }, (_, i) => ({
     ratios: i % 2 === 0 ? ["1:1", "9:16", "16:9"] : ["1:1"],
 }));
 
-export default function Library() {
+function LibraryPage() {
     const [selectedBrand, setSelectedBrand] = useState<number | null>(null);
     const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
     const [conceptFilter, setConceptFilter] = useState("All");
@@ -370,5 +371,13 @@ export default function Library() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function Library() {
+    return (
+        <AuthGuard>
+            <LibraryPage />
+        </AuthGuard>
     );
 }

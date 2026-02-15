@@ -8,7 +8,7 @@ import type { Member } from "../types/member.type";
 
 const TOKEN_KEY = "se_access_token";
 const MEMBER_KEY = "se_member";
-const PUBLIC_ROUTES = ["/login"];
+const PUBLIC_ROUTES = ["/login", "/landing", "/"];
 
 export function useAuth() {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -24,7 +24,7 @@ export function useAuth() {
             setMember(JSON.parse(stored));
         } else {
             setIsAuthenticated(false);
-            if (!PUBLIC_ROUTES.includes(router.pathname)) {
+            if (!PUBLIC_ROUTES.includes(router.pathname) && !router.pathname.startsWith("/_admin")) {
                 router.replace("/login");
             }
         }
