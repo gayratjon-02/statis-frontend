@@ -4,7 +4,7 @@ import AuthGuard from "../../libs/auth/AuthGuard";
 
 const ROUTES: Record<string, string> = {
     dashboard: "/dashboard",
-    generate: "/generate",
+    generate: "/generateAds",
     library: "/adLibrary",
 };
 
