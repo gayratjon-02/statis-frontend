@@ -140,7 +140,7 @@ export default function UserAuth() {
                         </div>
 
                         {/* Selected plan banner */}
-                        {plan && (
+                        {plan && mode === "signup" && (
                             <div style={{
                                 background: "linear-gradient(135deg, rgba(62,207,207,0.12), rgba(120,80,255,0.12))",
                                 border: "1px solid rgba(62,207,207,0.25)",
