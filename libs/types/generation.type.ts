@@ -58,3 +58,41 @@ export interface GeneratedAd {
 
     created_at: string;
 }
+
+export interface AdLibraryItem {
+    _id: string;
+    name: string;
+    image: string;
+    created_at: string;
+    brand_name: string;
+    brand_color: string;
+    product_name: string;
+    concept_name: string;
+    ratios: string[];
+    canva_status: string;
+}
+
+export interface LibraryCounts {
+    brands: {
+        _id: string;
+        name: string;
+        color: string;
+        count: number;
+    }[];
+    products: {
+        _id: string;
+        name: string;
+        count: number;
+    }[];
+    total_ads: number;
+}
+
+export interface GetGenerationsQuery {
+    page?: number;
+    limit?: number;
+    search?: string;
+    brand_id?: string;
+    product_id?: string;
+    concept_id?: string;
+    sort_by?: string;
+}

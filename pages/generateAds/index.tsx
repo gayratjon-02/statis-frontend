@@ -1,33 +1,26 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import AuthGuard from "../../libs/auth/AuthGuard";
+import { getBrands, createBrand, uploadBrandLogo } from "../../server/user/brand";
+import { getProducts, createProduct, uploadProductPhoto } from "../../server/user/product";
+import { getConcepts } from "../../server/user/concept";
+import { createGeneration } from "../../server/user/generation";
+import type { Brand, CreateBrandInput } from "../../libs/types/brand.type";
+import { BrandIndustry, BrandVoice } from "../../libs/types/brand.type";
+import type { Product, CreateProductInput } from "../../libs/types/product.type";
+import type { AdConcept } from "../../libs/types/concept.type";
+import { ConceptCategory } from "../../libs/types/concept.type";
 
 const AD_COLORS = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
 
-const CATEGORIES = [
-    "All", "Feature Pointers", "Testimonial", "Before & After", "Us vs Them",
-    "Lifestyle", "Stat Callout", "Social Proof", "Offer / Promo",
-    "Problem → Solution", "Comparison Chart", "Ingredient Spotlight",
-];
 
-const INDUSTRIES = [
-    "E-commerce", "Supplements", "Apparel", "Beauty", "Food & Beverage",
-    "SaaS", "Fitness", "Home Goods", "Pets", "Financial Services", "Education", "Other",
-];
+const CATEGORIES = Object.values(ConceptCategory);
 
-const VOICE_TAGS = [
-    "Professional", "Playful", "Bold", "Minimalist", "Luxurious",
-    "Friendly", "Edgy", "Trustworthy", "Youthful", "Authoritative",
-];
+const INDUSTRIES = Object.values(BrandIndustry);
 
-const MOCK_CONCEPTS = Array.from({ length: 24 }, (_, i) => ({
-    id: i + 1,
-    category: CATEGORIES[1 + (i % (CATEGORIES.length - 1))],
-    name: `Concept ${i + 1}`,
-    usageCount: Math.floor(Math.random() * 500) + 50,
-    popular: i < 4,
-}));
+const VOICE_TAGS = Object.values(BrandVoice);
 
 interface BrandState {
+    _id?: string; // If set, it's an existing brand
     name: string; description: string; url: string; industry: string;
     logo: File | null; logoPreview: string | null;
     primaryColor: string; secondaryColor: string; accentColor: string;
@@ -35,6 +28,7 @@ interface BrandState {
 }
 
 interface ProductState {
+    _id?: string; // If set, it's an existing product
     name: string; description: string; usps: string[];
     photo: File | null; photoPreview: string | null;
     noPhysicalProduct: boolean; price: string; productUrl: string;
@@ -43,6 +37,13 @@ interface ProductState {
 
 function GeneratePageContent() {
     const [step, setStep] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Data from API
+    const [brands, setBrands] = useState<Brand[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [concepts, setConcepts] = useState<AdConcept[]>([]);
+
     const [brand, setBrand] = useState<BrandState>({
         name: "", description: "", url: "", industry: "",
         logo: null, logoPreview: null,
@@ -55,16 +56,12 @@ function GeneratePageContent() {
         noPhysicalProduct: false, price: "", productUrl: "",
         starRating: "", reviewCount: "", offer: "",
     });
-    const [selectedConcept, setSelectedConcept] = useState<number | null>(null);
+    const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
     const [conceptFilter, setConceptFilter] = useState("All");
     const [notes, setNotes] = useState("");
     const [generatingAds, setGeneratingAds] = useState([false, false, false, false, false, false]);
     const [completedAds, setCompletedAds] = useState([false, false, false, false, false, false]);
     const [savedAds, setSavedAds] = useState([false, false, false, false, false, false]);
-    const [existingBrands] = useState([
-        { id: 1, name: "Bron", color: "#3ECFCF" },
-        { id: 2, name: "Fairway Fuel", color: "#22C55E" },
-    ]);
     const [showBrandSelector, setShowBrandSelector] = useState(true);
     const [credits] = useState({ used: 185, limit: 750 });
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,18 +75,50 @@ function GeneratePageContent() {
         { label: "Generate" },
     ];
 
-    const startGeneration = () => {
+    useEffect(() => {
+        // Fetch Brands & Concepts on mount
+        getBrands(1, 100).then((res) => setBrands(res.list)).catch(console.error);
+        getConcepts().then((res) => setConcepts(res.list)).catch(console.error);
+    }, []);
+
+    useEffect(() => {
+        if (brand._id) {
+            getProducts(brand._id).then((res) => setProducts(res.list)).catch(console.error);
+        } else {
+            setProducts([]);
+        }
+    }, [brand._id]);
+
+    const startGeneration = async () => {
+        if (!brand._id || !product._id || !selectedConcept) return;
+
         setStep(4);
         setGeneratingAds([true, true, true, true, true, true]);
         setCompletedAds([false, false, false, false, false, false]);
         setSavedAds([false, false, false, false, false, false]);
-        [1200, 2800, 4200, 5800, 7500, 9000].forEach((delay, i) => {
-            setTimeout(() => {
-                setGeneratingAds((prev) => { const n = [...prev]; n[i] = false; return n; });
-                setCompletedAds((prev) => { const n = [...prev]; n[i] = true; return n; });
-                if (i === 5) setTimeout(() => setStep(5), 300);
-            }, delay);
-        });
+
+        try {
+            await createGeneration({
+                brand_id: brand._id,
+                product_id: product._id,
+                concept_id: selectedConcept,
+                important_notes: notes,
+            });
+            // Mocking the progress for now as the API currently processes in background
+            // ideally we would poll for status, but for this step we keeping the animation
+            [1200, 2800, 4200, 5800, 7500, 9000].forEach((delay, i) => {
+                setTimeout(() => {
+                    setGeneratingAds((prev) => { const n = [...prev]; n[i] = false; return n; });
+                    setCompletedAds((prev) => { const n = [...prev]; n[i] = true; return n; });
+                    if (i === 5) setTimeout(() => setStep(5), 300);
+                }, delay);
+            });
+        } catch (error) {
+            console.error("Failed to start generation", error);
+            // Revert state or show error
+            setStep(3); // Go back to notes
+            alert("Failed to start generation. Please try again.");
+        }
     };
 
     const toggleVoiceTag = (tag: string) => {
@@ -109,11 +138,108 @@ function GeneratePageContent() {
         if (product.usps.length > 1) setProduct((p) => ({ ...p, usps: p.usps.filter((_, i) => i !== index) }));
     };
 
+    const handleBrandNext = async () => {
+        if (brand._id) {
+            setStep(1);
+            return;
+        }
+
+        // Basic Validation
+        if (!brand.name || !brand.description || !brand.url || !brand.logo) {
+            alert("Please fill all required fields");
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            let logoUrl = "";
+            if (brand.logo) {
+                const { logo_url } = await uploadBrandLogo(brand.logo);
+                logoUrl = logo_url;
+            }
+
+            const newBrand = await createBrand({
+                name: brand.name,
+                description: brand.description,
+                website_url: brand.url,
+                industry: brand.industry as BrandIndustry,
+                logo_url: logoUrl,
+                primary_color: brand.primaryColor,
+                secondary_color: brand.secondaryColor,
+                accent_color: brand.accentColor,
+                voice_tags: brand.voiceTags as BrandVoice[],
+                target_audience: brand.targetAudience,
+                competitors: brand.competitors,
+            });
+
+            setBrand((prev) => ({ ...prev, _id: newBrand._id }));
+            // Refresh brands list
+            getBrands(1, 100).then((res) => setBrands(res.list));
+            setStep(1);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to create brand");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleProductNext = async () => {
+        if (product._id) {
+            setStep(2);
+            return;
+        }
+
+        // Basic Validation
+        if (!product.name || !product.description) {
+            alert("Please fill all required fields");
+            return;
+        }
+
+        if (!product.noPhysicalProduct && !product.photo) {
+            alert("Product photo is required for physical products");
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            let photoUrl = "";
+            if (product.photo) {
+                const { photo_url } = await uploadProductPhoto(product.photo);
+                photoUrl = photo_url;
+            }
+
+            const newProduct = await createProduct({
+                brand_id: brand._id!,
+                name: product.name,
+                description: product.description,
+                usps: product.usps.filter(u => u.trim() !== ""),
+                photo_url: photoUrl,
+                has_physical_product: !product.noPhysicalProduct,
+                price_text: product.price,
+                product_url: product.productUrl,
+                star_rating: product.starRating ? parseFloat(product.starRating) : undefined,
+                review_count: product.reviewCount ? parseInt(product.reviewCount) : undefined,
+                offer_text: product.offer,
+            });
+
+            setProduct((prev) => ({ ...prev, _id: newProduct._id }));
+            // Refresh products list
+            if (brand._id) getProducts(brand._id).then((res) => setProducts(res.list));
+            setStep(2);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to create product");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const updateUsp = (index: number, value: string) => {
         setProduct((p) => ({ ...p, usps: p.usps.map((u, i) => (i === index ? value : u)) }));
     };
 
-    const filteredConcepts = conceptFilter === "All" ? MOCK_CONCEPTS : MOCK_CONCEPTS.filter((c) => c.category === conceptFilter);
+    const filteredConcepts = conceptFilter === "All" ? concepts : concepts.filter((c) => c.category === conceptFilter);
     const remaining = credits.limit - credits.used;
 
     return (
@@ -176,11 +302,28 @@ function GeneratePageContent() {
                             <div className="gen-brand-selector">
                                 <div className="gen-brand-selector__title">Select an existing brand</div>
                                 <div className="gen-brand-list">
-                                    {existingBrands.map((b) => (
-                                        <div key={b.id} className="gen-brand-item"
-                                            onClick={() => { setBrand((prev) => ({ ...prev, name: b.name })); setStep(1); }}
+                                    {brands.map((b) => (
+                                        <div key={b._id} className="gen-brand-item"
+                                            onClick={() => {
+                                                setBrand({
+                                                    _id: b._id,
+                                                    name: b.name,
+                                                    description: b.description,
+                                                    url: b.website_url,
+                                                    industry: b.industry,
+                                                    logo: null,
+                                                    logoPreview: b.logo_url,
+                                                    primaryColor: b.primary_color,
+                                                    secondaryColor: b.secondary_color,
+                                                    accentColor: b.accent_color,
+                                                    voiceTags: b.voice_tags, // Assuming strings match enum values
+                                                    targetAudience: b.target_audience,
+                                                    competitors: b.competitors,
+                                                });
+                                                setStep(1);
+                                            }}
                                         >
-                                            <div className="gen-brand-item__icon" style={{ background: `${b.color}33`, color: b.color }}>
+                                            <div className="gen-brand-item__icon" style={{ background: `${b.primary_color}33`, color: b.primary_color }}>
                                                 {b.name[0]}
                                             </div>
                                             <span style={{ fontWeight: 500 }}>{b.name}</span>
@@ -308,7 +451,9 @@ function GeneratePageContent() {
                                 </div>
 
                                 <div className="gen-nav gen-nav--right">
-                                    <button className="gen-btn-next" onClick={() => setStep(1)}>Next: Add Product →</button>
+                                    <button className="gen-btn-next" onClick={handleBrandNext} disabled={isLoading}>
+                                        {isLoading ? "Creating..." : "Next: Add Product →"}
+                                    </button>
                                 </div>
                             </>
                         )}
@@ -319,8 +464,47 @@ function GeneratePageContent() {
                 {step === 1 && (
                     <div style={{ animation: "fadeIn 0.4s ease" }}>
                         <div className="gen-card">
-                            <div className="gen-card__title">Add Your Product</div>
-                            <div className="gen-card__desc">Tell us about the product you&apos;re advertising.</div>
+                            <div className="gen-card__title">Choose a Product</div>
+                            <div className="gen-card__desc">Select an existing product or add a new one.</div>
+
+                            {products.length > 0 && (
+                                <div className="gen-brand-list" style={{ marginBottom: 20 }}>
+                                    {products.map((p) => (
+                                        <div key={p._id} className="gen-brand-item"
+                                            onClick={() => {
+                                                setProduct({
+                                                    _id: p._id,
+                                                    name: p.name,
+                                                    description: p.description,
+                                                    usps: p.usps,
+                                                    photo: null,
+                                                    photoPreview: p.photo_url,
+                                                    noPhysicalProduct: !p.has_physical_product,
+                                                    price: p.price_text,
+                                                    productUrl: p.product_url,
+                                                    starRating: p.star_rating?.toString() || "",
+                                                    reviewCount: p.review_count?.toString() || "",
+                                                    offer: p.offer_text,
+                                                });
+                                                setStep(2);
+                                            }}
+                                        >
+                                            <div className="gen-brand-item__icon" style={{ backgroundImage: `url(${p.photo_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <span style={{ fontWeight: 500 }}>{p.name}</span>
+                                                <span style={{ fontSize: 12, color: 'var(--muted)' }}>{p.has_physical_product ? 'Physical' : 'Digital'}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="gen-or-divider">
+                                <div className="gen-or-divider__line" />
+                                <span className="gen-or-divider__text">or add new product +</span>
+                                <div className="gen-or-divider__line" />
+                            </div>
 
                             <div className="gen-toggle-row">
                                 <div className="gen-toggle"
@@ -427,7 +611,9 @@ function GeneratePageContent() {
 
                         <div className="gen-nav">
                             <button className="gen-btn-back" onClick={() => setStep(0)}>← Back</button>
-                            <button className="gen-btn-next" onClick={() => setStep(2)}>Next: Choose Concept →</button>
+                            <button className="gen-btn-next" onClick={handleProductNext} disabled={isLoading}>
+                                {isLoading ? "Creating..." : "Next: Choose Concept →"}
+                            </button>
                         </div>
                     </div>
                 )}
@@ -450,18 +636,18 @@ function GeneratePageContent() {
 
                         <div className="gen-concepts-grid">
                             {filteredConcepts.map((concept) => (
-                                <div key={concept.id}
-                                    className={`gen-concept-card ${selectedConcept === concept.id ? "gen-concept-card--selected" : ""}`}
-                                    onClick={() => setSelectedConcept(concept.id)}>
+                                <div key={concept._id}
+                                    className={`gen-concept-card ${selectedConcept === concept._id ? "gen-concept-card--selected" : ""}`}
+                                    onClick={() => setSelectedConcept(concept._id)}>
                                     <div className="gen-concept-card__preview"
-                                        style={{ background: `linear-gradient(135deg, ${AD_COLORS[concept.id % 6]}ee, ${AD_COLORS[(concept.id + 2) % 6]}aa)` }}>
+                                        style={{ backgroundImage: `url(${concept.image_url})`, backgroundSize: 'cover' }}>
                                         <div className="gen-concept-card__placeholder">▣</div>
-                                        {concept.popular && <div className="gen-concept-card__popular">POPULAR</div>}
-                                        {selectedConcept === concept.id && <div className="gen-concept-card__check">✓</div>}
+                                        {concept.usage_count > 100 && <div className="gen-concept-card__popular">POPULAR</div>}
+                                        {selectedConcept === concept._id && <div className="gen-concept-card__check">✓</div>}
                                     </div>
                                     <div className="gen-concept-card__info">
                                         <div className="gen-concept-card__name">{concept.category}</div>
-                                        <div className="gen-concept-card__uses">{concept.usageCount} uses</div>
+                                        <div className="gen-concept-card__uses">{concept.usage_count} uses</div>
                                     </div>
                                 </div>
                             ))}
@@ -495,7 +681,7 @@ function GeneratePageContent() {
                                     {[
                                         { label: "Brand", value: brand.name || "Not set" },
                                         { label: "Product", value: product.name || "Not set" },
-                                        { label: "Concept", value: selectedConcept ? MOCK_CONCEPTS.find((c) => c.id === selectedConcept)?.category : "Not selected" },
+                                        { label: "Concept", value: selectedConcept ? concepts.find((c) => c._id === selectedConcept)?.category : "Not selected" },
                                         { label: "Credit Cost", value: "5 credits (6 variations)" },
                                     ].map(({ label, value }) => (
                                         <div key={label} className="gen-summary__row">

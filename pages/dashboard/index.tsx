@@ -46,7 +46,7 @@ interface UsageData {
 
 interface BrandItem {
     _id: string;
-    brand_name: string;
+    name: string;
 }
 
 interface RecentAd {
@@ -346,8 +346,8 @@ function DashboardPage() {
                                 {[
                                     { id: "all", label: "All", color: "var(--accent)" },
                                     ...brands.map((b, i) => ({
-                                        id: b.brand_name.toLowerCase(),
-                                        label: b.brand_name,
+                                        id: b.name.toLowerCase(),
+                                        label: b.name,
                                         color: ["#3ECFCF", "#22C55E", "#F59E0B", "#8B5CF6", "#EC4899"][i % 5],
                                     })),
                                 ].map((b) => (

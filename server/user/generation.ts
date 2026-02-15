@@ -3,7 +3,13 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
-import type { CreateGenerationInput, GenerationResponse } from "../../libs/types/generation.type";
+import type {
+    CreateGenerationInput,
+    GenerationResponse,
+    GetGenerationsQuery,
+    LibraryCounts,
+    AdLibraryItem
+} from "../../libs/types/generation.type";
 
 const GENERATION_API = `${API_BASE_URL}/generation`;
 
@@ -50,5 +56,40 @@ export async function getRecentGenerationsRequest(limit = 6): Promise<any[]> {
         throw new Error("Failed to fetch recent generations");
     }
 
+    return res.json();
+}
+
+/**
+ * GET /generation/list
+ * Fetch filtered ads for the library.
+ */
+export async function getLibraryAdsRequest(query: GetGenerationsQuery): Promise<{ list: AdLibraryItem[], total: number }> {
+    const params = new URLSearchParams();
+    if (query.page) params.append("page", query.page.toString());
+    if (query.limit) params.append("limit", query.limit.toString());
+    if (query.search) params.append("search", query.search);
+    if (query.brand_id) params.append("brand_id", query.brand_id);
+    if (query.product_id) params.append("product_id", query.product_id);
+    if (query.concept_id) params.append("concept_id", query.concept_id);
+    if (query.sort_by) params.append("sort_by", query.sort_by);
+
+    const res = await fetch(`${GENERATION_API}/list?${params.toString()}`, {
+        headers: authHeaders(),
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch library ads");
+    return res.json();
+}
+
+/**
+ * GET /generation/counts
+ * Fetch counts for sidebar (brands, products).
+ */
+export async function getLibraryCountsRequest(): Promise<LibraryCounts> {
+    const res = await fetch(`${GENERATION_API}/counts`, {
+        headers: authHeaders(),
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch library counts");
     return res.json();
 }
