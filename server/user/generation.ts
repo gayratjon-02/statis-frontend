@@ -35,3 +35,20 @@ export async function createGeneration(input: CreateGenerationInput): Promise<Ge
 
     return res.json();
 }
+
+/**
+ * GET /generation/getRecent
+ * Fetch the authenticated user's recent generations.
+ */
+export async function getRecentGenerationsRequest(limit = 6): Promise<any[]> {
+    const res = await fetch(`${GENERATION_API}/getRecent?limit=${limit}`, {
+        method: "GET",
+        headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+        throw new Error("Failed to fetch recent generations");
+    }
+
+    return res.json();
+}

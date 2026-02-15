@@ -112,3 +112,25 @@ export async function getBrandsRequest(page = 1, limit = 50) {
 
     return res.json();
 }
+
+/**
+ * GET /member/getActivity
+ * Fetch the authenticated user's recent activity.
+ */
+export async function getActivityRequest(limit = 5): Promise<any[]> {
+    const token = localStorage.getItem("se_access_token");
+
+    const res = await fetch(`${MEMBER_API}/getActivity?limit=${limit}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!res.ok) {
+        throw new Error("Failed to fetch activity");
+    }
+
+    return res.json();
+}

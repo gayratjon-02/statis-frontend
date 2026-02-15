@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import AuthGuard from "../../libs/auth/AuthGuard";
-import { getMemberRequest, getUsageRequest, getBrandsRequest } from "../../server/user/login";
+import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest } from "../../server/user/login";
+import { getRecentGenerationsRequest } from "../../server/user/generation";
 import type { Member } from "../../libs/types/member.type";
 
 const ROUTES: Record<string, string> = {
@@ -12,22 +13,8 @@ const ROUTES: Record<string, string> = {
 
 const BG = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
 
-const ADS = [
-    { id: 1, name: "Bron Deodorant - Feature Pointers", brand: "Bron", date: "2 hours ago", ratios: ["1:1"] },
-    { id: 2, name: "Bron Deodorant - Testimonial", brand: "Bron", date: "Yesterday", ratios: ["1:1", "9:16", "16:9"] },
-    { id: 3, name: "Fairway Fuel - Social Proof", brand: "Fairway Fuel", date: "2 days ago", ratios: ["1:1", "9:16"] },
-    { id: 4, name: "Bron Makeup - Before & After", brand: "Bron", date: "3 days ago", ratios: ["1:1"] },
-    { id: 5, name: "Fairway Fuel - Stat Callout", brand: "Fairway Fuel", date: "4 days ago", ratios: ["1:1", "16:9"] },
-    { id: 6, name: "Bron Deodorant - Us vs Them", brand: "Bron", date: "5 days ago", ratios: ["1:1"] },
-];
-
-const ACTIVITY = [
-    { action: "Generated 6 ads", detail: "Bron Deodorant - Feature Pointers", time: "2h ago", letter: "G" },
-    { action: "Saved variation #3", detail: "Bron Deodorant - Testimonial", time: "1d ago", letter: "S" },
-    { action: "Exported all ratios", detail: "Fairway Fuel - Social Proof", time: "2d ago", letter: "E" },
-    { action: "Bought Canva template", detail: "Bron Makeup - Before & After", time: "3d ago", letter: "C" },
-    { action: "Created new product", detail: "Fairway Fuel Pre-Round Chews", time: "4d ago", letter: "P" },
-];
+const DEFAULT_ADS: RecentAd[] = [];
+const DEFAULT_ACTIVITY: ActivityItem[] = [];
 
 const NAV_ITEMS = [
     { id: "dashboard", label: "Dashboard", letter: "D" },
@@ -62,6 +49,24 @@ interface BrandItem {
     brand_name: string;
 }
 
+interface RecentAd {
+    _id: string;
+    ad_name: string;
+    image_url: string;
+    created_at: string;
+    brand_name: string;
+    concept_name?: string;
+}
+
+interface ActivityItem {
+    _id: string;
+    label: string;
+    sub: string;
+    icon: string;
+    created_at: string;
+    amount?: number;
+}
+
 function tierLabel(tier: string): string {
     const map: Record<string, string> = { free: "Free", starter: "Starter", pro: "Pro", growth_engine: "Growth Engine" };
     return map[tier] || tier;
@@ -71,6 +76,19 @@ function daysUntil(dateStr: string | null): number {
     if (!dateStr) return 0;
     const diff = new Date(dateStr).getTime() - Date.now();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+function timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return new Date(dateStr).toLocaleDateString();
 }
 
 function DashboardPage() {
@@ -83,6 +101,8 @@ function DashboardPage() {
     const [member, setMember] = useState<Member | null>(null);
     const [usage, setUsage] = useState<UsageData | null>(null);
     const [brands, setBrands] = useState<BrandItem[]>([]);
+    const [recentAds, setRecentAds] = useState<RecentAd[]>([]);
+    const [activity, setActivity] = useState<ActivityItem[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -93,10 +113,13 @@ function DashboardPage() {
                 if (stored) setMember(JSON.parse(stored));
 
                 // Fetch fresh data in parallel
-                const [memberData, usageData, brandsData] = await Promise.allSettled([
+                // Fetch fresh data in parallel
+                const [memberData, usageData, brandsData, adsData, activityData] = await Promise.allSettled([
                     getMemberRequest(),
                     getUsageRequest(),
                     getBrandsRequest(),
+                    getRecentGenerationsRequest(),
+                    getActivityRequest(),
                 ]);
 
                 if (memberData.status === "fulfilled") {
@@ -105,9 +128,11 @@ function DashboardPage() {
                 }
                 if (usageData.status === "fulfilled") setUsage(usageData.value as UsageData);
                 if (brandsData.status === "fulfilled") {
-                    const list = Array.isArray(brandsData.value) ? brandsData.value : brandsData.value?.list || [];
+                    const list = Array.isArray(brandsData.value) ? brandsData.value : (brandsData.value as any)?.list || [];
                     setBrands(list);
                 }
+                if (adsData.status === "fulfilled") setRecentAds(adsData.value);
+                if (activityData.status === "fulfilled") setActivity(activityData.value);
             } catch (err) {
                 console.error("Dashboard fetch error:", err);
             } finally {
@@ -342,42 +367,44 @@ function DashboardPage() {
                         </div>
 
                         <div className="ads-grid">
-                            {filtered.slice(0, 6).map((ad, i) => (
-                                <div key={ad.id} className="ad-card">
-                                    <div
-                                        className="ad-card__image"
-                                        style={{
-                                            background: `linear-gradient(135deg, ${BG[i % 6]}dd, ${BG[(i + 3) % 6]}aa)`,
-                                        }}
-                                    >
-                                        <span className="ad-card__placeholder">AD</span>
-                                        <div className="ad-card__overlay">
-                                            <button className="btn-view-ad">View</button>
-                                            <button className="btn-dl">DL</button>
-                                        </div>
-                                        <div className="ad-card__ratios">
-                                            {ad.ratios.map((r) => (
-                                                <span key={r} className="ad-card__ratio">{r}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="ad-card__info">
-                                        <div className="ad-card__name">{ad.name}</div>
-                                        <div className="ad-card__meta">
-                                            <span className="ad-card__date">{ad.date}</span>
-                                            <span
-                                                className="ad-card__brand"
+                            {recentAds.length > 0 ? (
+                                recentAds
+                                    .filter(ad => brandFilter === "all" || ad.brand_name.toLowerCase() === brandFilter)
+                                    .slice(0, 6)
+                                    .map((ad, i) => (
+                                        <div key={ad._id} className="ad-card">
+                                            <div
+                                                className="ad-card__image"
                                                 style={{
-                                                    background: ad.brand === "Bron" ? "#3ECFCF18" : "#22C55E18",
-                                                    color: ad.brand === "Bron" ? "#3ECFCF" : "#22C55E",
+                                                    background: ad.image_url ? `url(${ad.image_url}) center/cover` : `linear-gradient(135deg, ${BG[i % 6]}dd, ${BG[(i + 3) % 6]}aa)`,
                                                 }}
                                             >
-                                                {ad.brand}
-                                            </span>
+                                                {!ad.image_url && <span className="ad-card__placeholder">AD</span>}
+                                                <div className="ad-card__overlay">
+                                                    <button className="btn-view-ad">View</button>
+                                                    <button className="btn-dl">DL</button>
+                                                </div>
+                                            </div>
+                                            <div className="ad-card__info">
+                                                <div className="ad-card__name">{ad.ad_name}</div>
+                                                <div className="ad-card__meta">
+                                                    <span className="ad-card__date">{timeAgo(ad.created_at)}</span>
+                                                    <span
+                                                        className="ad-card__brand"
+                                                        style={{
+                                                            background: "#3ECFCF18",
+                                                            color: "#3ECFCF",
+                                                        }}
+                                                    >
+                                                        {ad.brand_name}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            ))}
+                                    ))
+                            ) : (
+                                <div style={{ color: "var(--muted)", fontStyle: "italic", padding: 20 }}>No ads generated yet.</div>
+                            )}
                         </div>
 
                         <div className="view-all-link" onClick={() => router.push("/adLibrary")} style={{ cursor: "pointer" }}>View all ads in library</div>
@@ -414,16 +441,20 @@ function DashboardPage() {
                         {/* Activity */}
                         <div className="activity-card">
                             <div className="activity-card__title">Recent Activity</div>
-                            {ACTIVITY.map((item, i) => (
-                                <div key={i} className="activity-item">
-                                    <div className="activity-item__icon">{item.letter}</div>
-                                    <div className="activity-item__body">
-                                        <div className="activity-item__action">{item.action}</div>
-                                        <div className="activity-item__detail">{item.detail}</div>
+                            {activity.length > 0 ? (
+                                activity.map((item, i) => (
+                                    <div key={item._id} className="activity-item">
+                                        <div className="activity-item__icon">{item.icon}</div>
+                                        <div className="activity-item__body">
+                                            <div className="activity-item__action">{item.label}</div>
+                                            <div className="activity-item__detail">{item.sub}</div>
+                                        </div>
+                                        <span className="activity-item__time">{timeAgo(item.created_at)}</span>
                                     </div>
-                                    <span className="activity-item__time">{item.time}</span>
-                                </div>
-                            ))}
+                                ))
+                            ) : (
+                                <div style={{ padding: 16, color: "var(--muted)", fontSize: 13 }}>No recent activity.</div>
+                            )}
                         </div>
 
                         {/* Tip */}
