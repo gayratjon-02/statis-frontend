@@ -1,0 +1,322 @@
+import React, { useState } from "react";
+
+const BG = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
+
+const ADS = [
+    { id: 1, name: "Bron Deodorant - Feature Pointers", brand: "Bron", date: "2 hours ago", ratios: ["1:1"] },
+    { id: 2, name: "Bron Deodorant - Testimonial", brand: "Bron", date: "Yesterday", ratios: ["1:1", "9:16", "16:9"] },
+    { id: 3, name: "Fairway Fuel - Social Proof", brand: "Fairway Fuel", date: "2 days ago", ratios: ["1:1", "9:16"] },
+    { id: 4, name: "Bron Makeup - Before & After", brand: "Bron", date: "3 days ago", ratios: ["1:1"] },
+    { id: 5, name: "Fairway Fuel - Stat Callout", brand: "Fairway Fuel", date: "4 days ago", ratios: ["1:1", "16:9"] },
+    { id: 6, name: "Bron Deodorant - Us vs Them", brand: "Bron", date: "5 days ago", ratios: ["1:1"] },
+];
+
+const ACTIVITY = [
+    { action: "Generated 6 ads", detail: "Bron Deodorant - Feature Pointers", time: "2h ago", letter: "G" },
+    { action: "Saved variation #3", detail: "Bron Deodorant - Testimonial", time: "1d ago", letter: "S" },
+    { action: "Exported all ratios", detail: "Fairway Fuel - Social Proof", time: "2d ago", letter: "E" },
+    { action: "Bought Canva template", detail: "Bron Makeup - Before & After", time: "3d ago", letter: "C" },
+    { action: "Created new product", detail: "Fairway Fuel Pre-Round Chews", time: "4d ago", letter: "P" },
+];
+
+const NAV_ITEMS = [
+    { id: "dashboard", label: "Dashboard", letter: "D" },
+    { id: "generate", label: "Generate Ads", letter: "+", badge: "NEW" },
+    { id: "library", label: "Ad Library", letter: "L" },
+    { id: "brands", label: "Brands", letter: "B" },
+    { id: "canva", label: "Canva Templates", letter: "C" },
+];
+
+const BOTTOM_NAV = [
+    { id: "account", label: "Account", letter: "A" },
+    { id: "billing", label: "Billing", letter: "$" },
+];
+
+export default function Dashboard() {
+    const [brand, setBrand] = useState("all");
+    const [collapsed, setCollapsed] = useState(false);
+    const [page, setPage] = useState("dashboard");
+
+    const remaining = 565;
+    const limit = 750;
+    const pct = (remaining / limit) * 100;
+    const filtered = brand === "all" ? ADS : ADS.filter((a) => a.brand.toLowerCase().includes(brand));
+    const sw = collapsed ? 72 : 240;
+
+    return (
+        <div className="dashboard-layout">
+            {/* ===== SIDEBAR ===== */}
+            <div className="dash-sidebar" style={{ width: sw }}>
+                {/* Logo */}
+                <div
+                    className="dash-sidebar__header"
+                    style={{
+                        padding: collapsed ? "20px 12px" : "20px",
+                        justifyContent: collapsed ? "center" : "space-between",
+                    }}
+                >
+                    {collapsed ? (
+                        <div className="dash-sidebar__logo-icon" onClick={() => setCollapsed(false)}>
+                            S
+                        </div>
+                    ) : (
+                        <>
+                            <span className="dash-sidebar__logo grad-text">Static Engine</span>
+                            <div className="dash-sidebar__toggle" onClick={() => setCollapsed(true)}>
+                                &laquo;
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Nav */}
+                <div className="dash-sidebar__nav">
+                    {NAV_ITEMS.map((item) => (
+                        <div
+                            key={item.id}
+                            className={`nav-item ${page === item.id ? "nav-item--active" : ""}`}
+                            onClick={() => setPage(item.id)}
+                            style={{
+                                padding: collapsed ? "11px 0" : "11px 14px",
+                                justifyContent: collapsed ? "center" : "flex-start",
+                            }}
+                        >
+                            <div className={`nav-item__icon ${page === item.id ? "nav-item__icon--active" : "nav-item__icon--inactive"}`}>
+                                {item.letter}
+                            </div>
+                            {!collapsed && (
+                                <span
+                                    className="nav-item__label"
+                                    style={{
+                                        fontWeight: page === item.id ? 600 : 400,
+                                        color: page === item.id ? "var(--text)" : "var(--muted)",
+                                    }}
+                                >
+                                    {item.label}
+                                </span>
+                            )}
+                            {!collapsed && item.badge && <span className="nav-item__badge">{item.badge}</span>}
+                        </div>
+                    ))}
+
+                    <div className="dash-sidebar__spacer" />
+
+                    {/* Credits */}
+                    {!collapsed && (
+                        <div className="credits-card">
+                            <div className="credits-card__header">
+                                <span className="credits-card__label">Credits</span>
+                                <span className="credits-card__plan">Pro</span>
+                            </div>
+                            <div className="credits-card__amount">
+                                <span className="credits-card__value">{remaining}</span>
+                                <span className="credits-card__limit">/ {limit}</span>
+                            </div>
+                            <div className="credits-card__bar">
+                                <div className="credits-card__bar-fill" style={{ width: `${pct}%` }} />
+                            </div>
+                            <div className="credits-card__renew">Renews in 18 days</div>
+                        </div>
+                    )}
+
+                    {/* Bottom nav */}
+                    {BOTTOM_NAV.map((item) => (
+                        <div
+                            key={item.id}
+                            className="nav-item"
+                            onClick={() => setPage(item.id)}
+                            style={{
+                                padding: collapsed ? "10px 0" : "10px 14px",
+                                justifyContent: collapsed ? "center" : "flex-start",
+                            }}
+                        >
+                            <span style={{ fontSize: 13, width: 28, textAlign: "center", color: "var(--dim)", fontWeight: 600 }}>
+                                {item.letter}
+                            </span>
+                            {!collapsed && <span style={{ fontSize: 13, color: "var(--dim)" }}>{item.label}</span>}
+                        </div>
+                    ))}
+                </div>
+
+                {/* User */}
+                <div
+                    className="sidebar-user"
+                    style={{
+                        justifyContent: collapsed ? "center" : "flex-start",
+                        padding: collapsed ? "16px 0" : "16px",
+                    }}
+                >
+                    <div className="sidebar-user__avatar">B</div>
+                    {!collapsed && (
+                        <div>
+                            <div className="sidebar-user__name">Ben</div>
+                            <div className="sidebar-user__plan">Pro Plan</div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ===== MAIN CONTENT ===== */}
+            <div className="dash-main" style={{ marginLeft: sw }}>
+                {/* Header */}
+                <div className="dash-header">
+                    <div>
+                        <div className="dash-header__date">
+                            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                        </div>
+                        <div className="dash-header__title">Welcome back, Ben</div>
+                    </div>
+                    <button className="btn-generate">+ Generate New Ad</button>
+                </div>
+
+                {/* Stats */}
+                <div className="stats-grid">
+                    {[
+                        { label: "CREDITS LEFT", val: String(remaining), sub: `of ${limit}`, color: "var(--accent)", bar: pct },
+                        { label: "ADS GENERATED", val: "37", sub: "this cycle", color: "var(--g1)", trend: "+12 vs last month" },
+                        { label: "ADS SAVED", val: "24", sub: "across 2 brands", color: "var(--green)", trend: null },
+                        { label: "CANVA TEMPLATES", val: "3", sub: "1 pending", color: "var(--yellow)", trend: null },
+                    ].map((s, i) => (
+                        <div key={i} className="stat-card">
+                            <div className="stat-card__label">{s.label}</div>
+                            <div className="stat-card__row">
+                                <span className="stat-card__value" style={{ color: s.color }}>{s.val}</span>
+                                <span className="stat-card__sub">{s.sub}</span>
+                            </div>
+                            {s.bar != null && (
+                                <div className="stat-card__bar">
+                                    <div className="stat-card__bar-fill" style={{ width: `${s.bar}%` }} />
+                                </div>
+                            )}
+                            {s.trend && <div className="stat-card__trend">{s.trend}</div>}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Grid: Ads + Sidebar */}
+                <div className="dash-grid">
+                    {/* Recent Ads */}
+                    <div className="recent-ads">
+                        <div className="recent-ads__header">
+                            <span className="recent-ads__title">Recent Ads</span>
+                            <div className="recent-ads__filters">
+                                {[
+                                    { id: "all", label: "All", color: "var(--accent)" },
+                                    { id: "bron", label: "Bron", color: "#3ECFCF" },
+                                    { id: "fairway", label: "Fairway Fuel", color: "#22C55E" },
+                                ].map((b) => (
+                                    <button
+                                        key={b.id}
+                                        className={`brand-filter-btn ${brand === b.id ? "brand-filter-btn--active" : ""}`}
+                                        onClick={() => setBrand(b.id)}
+                                        style={{
+                                            background: brand === b.id ? `${b.color}22` : undefined,
+                                            color: brand === b.id ? b.color : undefined,
+                                        }}
+                                    >
+                                        {b.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="ads-grid">
+                            {filtered.slice(0, 6).map((ad, i) => (
+                                <div key={ad.id} className="ad-card">
+                                    <div
+                                        className="ad-card__image"
+                                        style={{
+                                            background: `linear-gradient(135deg, ${BG[i % 6]}dd, ${BG[(i + 3) % 6]}aa)`,
+                                        }}
+                                    >
+                                        <span className="ad-card__placeholder">AD</span>
+                                        <div className="ad-card__overlay">
+                                            <button className="btn-view-ad">View</button>
+                                            <button className="btn-dl">DL</button>
+                                        </div>
+                                        <div className="ad-card__ratios">
+                                            {ad.ratios.map((r) => (
+                                                <span key={r} className="ad-card__ratio">{r}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="ad-card__info">
+                                        <div className="ad-card__name">{ad.name}</div>
+                                        <div className="ad-card__meta">
+                                            <span className="ad-card__date">{ad.date}</span>
+                                            <span
+                                                className="ad-card__brand"
+                                                style={{
+                                                    background: ad.brand === "Bron" ? "#3ECFCF18" : "#22C55E18",
+                                                    color: ad.brand === "Bron" ? "#3ECFCF" : "#22C55E",
+                                                }}
+                                            >
+                                                {ad.brand}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="view-all-link">View all ads in library</div>
+                    </div>
+
+                    {/* Right sidebar */}
+                    <div className="dash-right">
+                        {/* Quick Actions */}
+                        <div className="quick-actions">
+                            <div className="quick-actions__title">Quick Actions</div>
+                            {[
+                                { label: "Generate New Ad", desc: "5 credits per generation", letter: "+", primary: true },
+                                { label: "Create New Brand", desc: "Set up a brand profile", letter: "B", primary: false },
+                                { label: "Buy More Credits", desc: "100 credits for $15", letter: "$", primary: false },
+                            ].map((a, i) => (
+                                <div
+                                    key={i}
+                                    className={`action-item ${a.primary ? "action-item--primary" : ""}`}
+                                    style={{ marginBottom: i < 2 ? 6 : 0 }}
+                                >
+                                    <div className={`action-item__icon ${a.primary ? "action-item__icon--primary" : "action-item__icon--default"}`}>
+                                        {a.letter}
+                                    </div>
+                                    <div>
+                                        <div className="action-item__label" style={{ color: a.primary ? "var(--text)" : "var(--muted)" }}>
+                                            {a.label}
+                                        </div>
+                                        <div className="action-item__desc">{a.desc}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Activity */}
+                        <div className="activity-card">
+                            <div className="activity-card__title">Recent Activity</div>
+                            {ACTIVITY.map((item, i) => (
+                                <div key={i} className="activity-item">
+                                    <div className="activity-item__icon">{item.letter}</div>
+                                    <div className="activity-item__body">
+                                        <div className="activity-item__action">{item.action}</div>
+                                        <div className="activity-item__detail">{item.detail}</div>
+                                    </div>
+                                    <span className="activity-item__time">{item.time}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Tip */}
+                        <div className="tip-card">
+                            <div className="tip-card__label">Tip of the day</div>
+                            <div className="tip-card__title">Try &quot;Feature Pointers&quot; for supplements</div>
+                            <div className="tip-card__desc">
+                                Brands in your space see 2.3x higher CTR with feature pointer ads that highlight specific product benefits.
+                            </div>
+                            <button className="tip-card__btn">Try this concept</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
