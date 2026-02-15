@@ -426,11 +426,36 @@
         cursor: pointer;
         transition: all 0.2s ease;
         background: var(--bg);
+        position: relative;
 
         &:hover {
             border-color: var(--accent);
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        &--inactive {
+            opacity: 0.5;
+            border-color: rgba(239, 68, 68, 0.3);
+
+            &::after {
+                content: 'HIDDEN';
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                font-size: 9px;
+                font-weight: 700;
+                letter-spacing: 1px;
+                color: #ef4444;
+                background: rgba(239, 68, 68, 0.15);
+                padding: 2px 8px;
+                border-radius: 4px;
+            }
+
+            &:hover {
+                opacity: 0.8;
+                border-color: rgba(239, 68, 68, 0.5);
+            }
         }
     }
 

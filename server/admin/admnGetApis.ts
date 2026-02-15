@@ -58,6 +58,8 @@ export async function getConcepts(
     if (params.search) query.set("search", params.search);
     query.set("page", String(params.page ?? 1));
     query.set("limit", String(params.limit ?? 20));
+    // Admin sees all concepts including inactive ones
+    query.set("include_inactive", "true");
 
     return getRequest<ConceptsResponse>(
         `${CONCEPT_API}/getConcepts?${query.toString()}`,

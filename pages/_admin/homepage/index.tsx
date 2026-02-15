@@ -157,7 +157,7 @@ function AdminDashboard() {
             await createConcept({
                 name: newName.trim(),
                 category: newCategory,
-                description: newDescription.trim() || undefined,
+                description: newDescription.trim() || "",
                 image_url: uploadRes.image_url,
                 tags,
                 source_url: newSourceUrl.trim() || undefined,
@@ -619,7 +619,7 @@ function AdminDashboard() {
         return (
             <div className="admin-dash__grid">
                 {concepts.map((c) => (
-                    <div key={c._id} className="admin-dash__concept-card">
+                    <div key={c._id} className={`admin-dash__concept-card ${!c.is_active ? "admin-dash__concept-card--inactive" : ""}`}>
                         <img
                             src={c.image_url}
                             alt={c.name}
