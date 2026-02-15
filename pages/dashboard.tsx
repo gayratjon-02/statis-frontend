@@ -1,4 +1,11 @@
 import React, { useState } from "react";
+import { useRouter } from "next/router";
+
+const ROUTES: Record<string, string> = {
+    dashboard: "/dashboard",
+    generate: "/generate",
+    library: "/library",
+};
 
 const BG = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
 
@@ -33,9 +40,18 @@ const BOTTOM_NAV = [
 ];
 
 export default function Dashboard() {
+    const router = useRouter();
     const [brand, setBrand] = useState("all");
     const [collapsed, setCollapsed] = useState(false);
     const [page, setPage] = useState("dashboard");
+
+    const handleNav = (id: string) => {
+        if (ROUTES[id]) {
+            router.push(ROUTES[id]);
+        } else {
+            setPage(id);
+        }
+    };
 
     const remaining = 565;
     const limit = 750;
@@ -75,7 +91,7 @@ export default function Dashboard() {
                         <div
                             key={item.id}
                             className={`nav-item ${page === item.id ? "nav-item--active" : ""}`}
-                            onClick={() => setPage(item.id)}
+                            onClick={() => handleNav(item.id)}
                             style={{
                                 padding: collapsed ? "11px 0" : "11px 14px",
                                 justifyContent: collapsed ? "center" : "flex-start",
@@ -166,7 +182,7 @@ export default function Dashboard() {
                         </div>
                         <div className="dash-header__title">Welcome back, Ben</div>
                     </div>
-                    <button className="btn-generate">+ Generate New Ad</button>
+                    <button className="btn-generate" onClick={() => router.push("/generate")}>+ Generate New Ad</button>
                 </div>
 
                 {/* Stats */}
@@ -259,7 +275,7 @@ export default function Dashboard() {
                             ))}
                         </div>
 
-                        <div className="view-all-link">View all ads in library</div>
+                        <div className="view-all-link" onClick={() => router.push("/library")} style={{ cursor: "pointer" }}>View all ads in library</div>
                     </div>
 
                     {/* Right sidebar */}
