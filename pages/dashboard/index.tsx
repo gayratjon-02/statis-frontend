@@ -4,6 +4,7 @@ import AuthGuard from "../../libs/auth/AuthGuard";
 import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest } from "../../server/user/login";
 import { getRecentGenerationsRequest } from "../../server/user/generation";
 import { getBrands, deleteBrand } from "../../server/user/brand";
+import { getBrandConfig, type IndustryItem } from "../../server/user/config";
 import type { Brand } from "../../libs/types/brand.type";
 import type { Member } from "../../libs/types/member.type";
 
@@ -51,12 +52,7 @@ interface BrandItem {
     name: string;
 }
 
-const INDUSTRY_LABELS: Record<string, string> = {
-    ecommerce: "E-Commerce", supplements: "Supplements", apparel: "Apparel",
-    beauty: "Beauty", food_beverage: "Food & Beverage", saas: "SaaS",
-    fitness: "Fitness", home_goods: "Home Goods", pets: "Pets",
-    financial_services: "Financial", education: "Education", other: "Other",
-};
+// Industry labels are now fetched from backend via getBrandConfig()
 
 const BRAND_COLORS = ["#3ECFCF", "#22C55E", "#8B5CF6", "#F59E0B", "#EC4899", "#6366F1"];
 
@@ -120,6 +116,11 @@ function DashboardPage() {
     const [fullBrands, setFullBrands] = useState<Brand[]>([]);
     const [brandsLoading, setBrandsLoading] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [industryList, setIndustryList] = useState<IndustryItem[]>([]);
+
+    /** Get label for industry ID from fetched config */
+    const getIndustryLabel = (id: string) =>
+        industryList.find((i) => i.id === id)?.label || id;
 
     useEffect(() => {
         async function fetchData() {
@@ -156,6 +157,10 @@ function DashboardPage() {
             }
         }
         fetchData();
+        // Fetch brand config (industry labels)
+        getBrandConfig()
+            .then((cfg) => setIndustryList(cfg.industries))
+            .catch(console.error);
     }, []);
 
     // Brands sahifasiga o'tganda — to'liq brand ma'lumotlarini yuklash
@@ -422,7 +427,7 @@ function DashboardPage() {
                                         <div className="brand-card__body">
                                             <h3 className="brand-card__name">{brand.name}</h3>
                                             <span className="brand-card__industry">
-                                                {INDUSTRY_LABELS[brand.industry] || brand.industry}
+                                                {getIndustryLabel(brand.industry)}
                                             </span>
                                             {brand.description && (
                                                 <p className="brand-card__desc">

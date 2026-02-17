@@ -4,16 +4,13 @@ import { getBrands, createBrand, uploadBrandLogo } from "../../server/user/brand
 import { getProducts, createProduct, uploadProductPhoto } from "../../server/user/product";
 import { getConcepts, getCategories, getRecommendedConcepts, getConceptConfig, incrementUsage } from "../../server/user/concept";
 import { createGeneration, getGenerationStatus, getGenerationBatchStatus } from "../../server/user/generation";
+import { getBrandConfig, type IndustryItem, type VoiceItem } from "../../server/user/config";
 import type { Brand, CreateBrandInput } from "../../libs/types/brand.type";
 import { BrandIndustry, BrandVoice } from "../../libs/types/brand.type";
 import type { Product, CreateProductInput } from "../../libs/types/product.type";
 import type { AdConcept, ConceptCategoryItem } from "../../libs/types/concept.type";
 
 const AD_COLORS = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
-
-const INDUSTRIES = Object.values(BrandIndustry);
-
-const VOICE_TAGS = Object.values(BrandVoice);
 
 interface BrandState {
     _id?: string; // If set, it's an existing brand
@@ -40,6 +37,14 @@ function GeneratePageContent() {
     const [products, setProducts] = useState<Product[]>([]);
     const [concepts, setConcepts] = useState<AdConcept[]>([]);
     const [conceptCategories, setConceptCategories] = useState<ConceptCategoryItem[]>([]);
+
+    // Config from backend (dynamic dropdowns)
+    const [industries, setIndustries] = useState<IndustryItem[]>([]);
+    const [voiceTags, setVoiceTags] = useState<VoiceItem[]>([]);
+
+    /** Helper: get industry label from fetched config */
+    const getIndustryLabel = (id: string) =>
+        industries.find((i) => i.id === id)?.label || id;
 
     const [brand, setBrand] = useState<BrandState>({
         name: "", description: "", url: "https://", industry: "",
@@ -89,6 +94,12 @@ function GeneratePageContent() {
         getBrands(1, 100).then((res) => setBrands(res.list)).catch(console.error);
         getConcepts().then((res) => setConcepts(res.list)).catch(console.error);
         getCategories().then((res) => setConceptCategories(res.list)).catch(console.error);
+        getBrandConfig()
+            .then((cfg) => {
+                setIndustries(cfg.industries);
+                setVoiceTags(cfg.voices);
+            })
+            .catch(console.error);
     }, []);
 
     useEffect(() => {
@@ -442,7 +453,7 @@ function GeneratePageContent() {
                                                 <select className="gen-select" value={brand.industry}
                                                     onChange={(e) => setBrand((p) => ({ ...p, industry: e.target.value }))}>
                                                     <option value="">Select industry</option>
-                                                    {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
+                                                    {industries.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                                                 </select>
                                             </div>
                                         </div>
@@ -510,10 +521,10 @@ function GeneratePageContent() {
                                         <div className="gen-mb-20">
                                             <label className="gen-label">Voice & Tone *</label>
                                             <div className="gen-tags">
-                                                {VOICE_TAGS.map((tag) => (
-                                                    <div key={tag} className={`gen-tag ${brand.voiceTags.includes(tag) ? "gen-tag--active" : ""}`}
-                                                        onClick={() => toggleVoiceTag(tag)}>
-                                                        {tag}
+                                                {voiceTags.map((item) => (
+                                                    <div key={item.id} className={`gen-tag ${brand.voiceTags.includes(item.id) ? "gen-tag--active" : ""}`}
+                                                        onClick={() => toggleVoiceTag(item.id)}>
+                                                        {item.label}
                                                     </div>
                                                 ))}
                                             </div>
