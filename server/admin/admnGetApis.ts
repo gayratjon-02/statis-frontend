@@ -1,16 +1,10 @@
 // =============================================
 // SERVER — Admin GET APIs (admin-only endpoints)
 // =============================================
-//
-// Admin manages the Concept library (CRUD with RolesGuard).
-// These GET endpoints support the admin concept management panel.
-// =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
-import type { AdConcept } from "../../libs/types/concept.type";
+import type { AdConcept, ConceptCategoryItem } from "../../libs/types/concept.type";
 import type { ConceptsResponse, GetConceptsParams } from "../../libs/types/admin.type";
-
-// ── Re-export types for consumer convenience ────────────────
 
 export type { ConceptsResponse, GetConceptsParams };
 
@@ -41,21 +35,34 @@ async function getRequest<T>(url: string): Promise<T> {
 }
 
 // =============================================
-// CONCEPT — Admin concept library management
+// CATEGORIES
 // =============================================
 
 const CONCEPT_API = `${API_BASE_URL}/concept`;
 
 /**
- * GET /concept/getConcepts?category=...&search=...&page=1&limit=20
+ * GET /concept/getCategories
+ * Returns all concept categories ordered by display_order.
+ */
+export async function getCategories(): Promise<{ list: ConceptCategoryItem[] }> {
+    return getRequest<{ list: ConceptCategoryItem[] }>(`${CONCEPT_API}/getCategories`);
+}
+
+// =============================================
+// CONCEPTS
+// =============================================
+
+/**
+ * GET /concept/getConcepts?category_id=...&search=...&tags=...&page=1&limit=20
  * Returns filtered, paginated concept library for admin management.
  */
 export async function getConcepts(
     params: GetConceptsParams = {},
 ): Promise<ConceptsResponse> {
     const query = new URLSearchParams();
-    if (params.category) query.set("category", params.category);
+    if (params.category_id) query.set("category_id", params.category_id);
     if (params.search) query.set("search", params.search);
+    if (params.tags) query.set("tags", params.tags);
     query.set("page", String(params.page ?? 1));
     query.set("limit", String(params.limit ?? 20));
     // Admin sees all concepts including inactive ones
@@ -70,6 +77,6 @@ export async function getConcepts(
  * GET /concept/getRecommended
  * Returns top 10 concepts sorted by usage_count.
  */
-export async function getRecommendedConcepts(): Promise<AdConcept[]> {
-    return getRequest<AdConcept[]>(`${CONCEPT_API}/getRecommended`);
+export async function getRecommendedConcepts(): Promise<{ list: AdConcept[] }> {
+    return getRequest<{ list: AdConcept[] }>(`${CONCEPT_API}/getRecommended`);
 }

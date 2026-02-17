@@ -2,10 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import AdminGuard from "../../../libs/auth/AdminGuard";
 import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
-import { getConcepts, getRecommendedConcepts } from "../../../server/admin/admnGetApis";
-import { deleteConcept, createConcept, uploadConceptImage, updateConcept } from "../../../server/admin/adminPostApis";
-import type { AdConcept } from "../../../libs/types/concept.type";
-import { ConceptCategory } from "../../../libs/types/concept.type";
+import { getConcepts, getRecommendedConcepts, getCategories } from "../../../server/admin/admnGetApis";
+import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, reorderConcepts } from "../../../server/admin/adminPostApis";
+import type { AdConcept, ConceptCategoryItem } from "../../../libs/types/concept.type";
 import API_BASE_URL from "../../../libs/config/api.config";
 
 /** Prepend API base URL to relative image paths */
@@ -20,15 +19,7 @@ const NAV_ITEMS = [
     { icon: "📊", label: "Dashboard", id: "dashboard" },
     { icon: "🎨", label: "Concepts", id: "concepts" },
     { icon: "⭐", label: "Recommended", id: "recommended" },
-];
-
-// ── Category labels for filters ──
-const CATEGORIES: { value: string; label: string }[] = [
-    { value: "", label: "All" },
-    ...Object.values(ConceptCategory).map((c) => ({
-        value: c,
-        label: c.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
-    })),
+    { icon: "🏷️", label: "Categories", id: "categories" },
 ];
 
 function AdminDashboard() {
@@ -39,19 +30,23 @@ function AdminDashboard() {
     const [activeNav, setActiveNav] = useState("dashboard");
     const [concepts, setConcepts] = useState<AdConcept[]>([]);
     const [recommended, setRecommended] = useState<AdConcept[]>([]);
+    const [categories, setCategories] = useState<ConceptCategoryItem[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [search, setSearch] = useState("");
-    const [category, setCategory] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState("");
     const [page, setPage] = useState(1);
+
+    // ── Drag & Drop ──
+    const [draggedId, setDraggedId] = useState<string | null>(null);
 
     // ── Create Concept Modal ──
     const [showModal, setShowModal] = useState(false);
     const [modalLoading, setModalLoading] = useState(false);
     const [modalError, setModalError] = useState("");
     const [newName, setNewName] = useState("");
-    const [newCategory, setNewCategory] = useState<ConceptCategory>(ConceptCategory.SOCIAL_PROOF);
+    const [newCategoryId, setNewCategoryId] = useState("");
     const [newDescription, setNewDescription] = useState("");
     const [newTags, setNewTags] = useState("");
     const [newSourceUrl, setNewSourceUrl] = useState("");
@@ -65,7 +60,7 @@ function AdminDashboard() {
     const [editError, setEditError] = useState("");
     const [editId, setEditId] = useState("");
     const [editName, setEditName] = useState("");
-    const [editCategory, setEditCategory] = useState<ConceptCategory>(ConceptCategory.SOCIAL_PROOF);
+    const [editCategoryId, setEditCategoryId] = useState("");
     const [editDescription, setEditDescription] = useState("");
     const [editTags, setEditTags] = useState("");
     const [editSourceUrl, setEditSourceUrl] = useState("");
@@ -73,12 +68,34 @@ function AdminDashboard() {
     const [editImagePreview, setEditImagePreview] = useState("");
     const editFileInputRef = useRef<HTMLInputElement>(null);
 
+    // ── Create Category Modal ──
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [catModalLoading, setCatModalLoading] = useState(false);
+    const [catModalError, setCatModalError] = useState("");
+    const [catName, setCatName] = useState("");
+    const [catDescription, setCatDescription] = useState("");
+
+    // ── Fetch categories ──
+    const fetchCategories = useCallback(async () => {
+        try {
+            const res = await getCategories();
+            setCategories(res.list || []);
+        } catch {
+            setCategories([]);
+        }
+    }, []);
+
     // ── Fetch concepts ──
     const fetchConcepts = useCallback(async () => {
         setLoading(true);
         setError("");
         try {
-            const res = await getConcepts({ search, category, page, limit: 12 });
+            const res = await getConcepts({
+                search,
+                category_id: categoryFilter || undefined,
+                page,
+                limit: 12,
+            });
             setConcepts(res.list || []);
             setTotal(res.total || 0);
         } catch (err: any) {
@@ -87,22 +104,38 @@ function AdminDashboard() {
         } finally {
             setLoading(false);
         }
-    }, [search, category, page]);
+    }, [search, categoryFilter, page]);
 
     // ── Fetch recommended ──
     const fetchRecommended = useCallback(async () => {
         try {
             const res = await getRecommendedConcepts();
-            setRecommended(res || []);
+            setRecommended(res.list || []);
         } catch {
             setRecommended([]);
         }
     }, []);
 
     useEffect(() => {
+        fetchCategories();
         fetchConcepts();
         fetchRecommended();
-    }, [fetchConcepts, fetchRecommended]);
+    }, [fetchCategories, fetchConcepts, fetchRecommended]);
+
+    // Set default category_id when categories load
+    useEffect(() => {
+        if (categories.length > 0 && !newCategoryId) {
+            setNewCategoryId(categories[0]._id);
+        }
+    }, [categories, newCategoryId]);
+
+    // ── Helper: get category name by ID ──
+    const getCategoryName = (categoryId?: string, categoryName?: string) => {
+        if (categoryName) return categoryName;
+        if (!categoryId) return "—";
+        const cat = categories.find((c) => c._id === categoryId);
+        return cat ? cat.name : "—";
+    };
 
     // ── Delete concept ──
     const handleDelete = async (id: string, name: string) => {
@@ -120,7 +153,7 @@ function AdminDashboard() {
     const openEditModal = (concept: AdConcept) => {
         setEditId(concept._id);
         setEditName(concept.name);
-        setEditCategory(concept.category as ConceptCategory);
+        setEditCategoryId(concept.category_id || "");
         setEditDescription(concept.description || "");
         setEditTags(concept.tags?.join(", ") || "");
         setEditSourceUrl(concept.source_url || "");
@@ -135,6 +168,11 @@ function AdminDashboard() {
         setShowEditModal(false);
         setEditId("");
         setEditError("");
+        // Revoke object URL to prevent memory leaks
+        if (editImagePreview && editImagePreview.startsWith("data:")) {
+            setEditImagePreview("");
+        }
+        setEditImageFile(null);
     };
 
     const handleEditImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,15 +193,13 @@ function AdminDashboard() {
 
         try {
             const updates: any = {};
-
             updates.name = editName.trim();
-            updates.category = editCategory;
+            updates.category_id = editCategoryId;
             updates.description = editDescription.trim();
             const tags = editTags.split(",").map((t) => t.trim()).filter(Boolean);
             if (tags.length > 0) updates.tags = tags;
             if (editSourceUrl.trim()) updates.source_url = editSourceUrl.trim();
 
-            // If new image uploaded, upload first
             if (editImageFile) {
                 const uploadRes = await uploadConceptImage(editImageFile);
                 updates.image_url = uploadRes.image_url;
@@ -180,7 +216,7 @@ function AdminDashboard() {
         }
     };
 
-    // ── Toggle visibility (active/inactive) ──
+    // ── Toggle visibility ──
     const handleToggleVisibility = async (concept: AdConcept) => {
         try {
             await updateConcept(concept._id, { is_active: !concept.is_active });
@@ -194,7 +230,7 @@ function AdminDashboard() {
     // ── Create concept ──
     const resetModal = () => {
         setNewName("");
-        setNewCategory(ConceptCategory.SOCIAL_PROOF);
+        setNewCategoryId(categories.length > 0 ? categories[0]._id : "");
         setNewDescription("");
         setNewTags("");
         setNewSourceUrl("");
@@ -211,6 +247,10 @@ function AdminDashboard() {
 
     const closeModal = () => {
         setShowModal(false);
+        // Revoke preview URL on close
+        if (newImagePreview && newImagePreview.startsWith("data:")) {
+            setNewImagePreview("");
+        }
         resetModal();
     };
 
@@ -227,6 +267,7 @@ function AdminDashboard() {
         e.preventDefault();
         if (!newName.trim()) { setModalError("Name is required"); return; }
         if (!newImageFile) { setModalError("Image is required"); return; }
+        if (!newCategoryId) { setModalError("Category is required"); return; }
 
         const tags = newTags.split(",").map((t) => t.trim()).filter(Boolean);
         if (tags.length === 0) { setModalError("At least 1 tag is required"); return; }
@@ -235,14 +276,11 @@ function AdminDashboard() {
         setModalError("");
 
         try {
-            // 1. Upload image
             const uploadRes = await uploadConceptImage(newImageFile);
-
-            // 2. Create concept
 
             await createConcept({
                 name: newName.trim(),
-                category: newCategory,
+                category_id: newCategoryId,
                 description: newDescription.trim() || "",
                 image_url: uploadRes.image_url,
                 tags,
@@ -260,6 +298,82 @@ function AdminDashboard() {
         }
     };
 
+    // ── Create category ──
+    const handleCreateCategory = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!catName.trim()) { setCatModalError("Name is required"); return; }
+
+        setCatModalLoading(true);
+        setCatModalError("");
+
+        try {
+            await createCategory({
+                name: catName.trim(),
+                description: catDescription.trim() || undefined,
+            });
+            setShowCategoryModal(false);
+            setCatName("");
+            setCatDescription("");
+            fetchCategories();
+        } catch (err: any) {
+            setCatModalError(err.message || "Failed to create category");
+        } finally {
+            setCatModalLoading(false);
+        }
+    };
+
+    // ── Drag & Drop reorder ──
+    const handleDragStart = (id: string) => {
+        setDraggedId(id);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+    };
+
+    const handleDrop = async (targetId: string) => {
+        if (!draggedId || draggedId === targetId) {
+            setDraggedId(null);
+            return;
+        }
+
+        // Snapshot for rollback
+        const snapshot = [...concepts];
+        const currentConcepts = [...concepts];
+        const dragIdx = currentConcepts.findIndex((c) => c._id === draggedId);
+        const dropIdx = currentConcepts.findIndex((c) => c._id === targetId);
+
+        if (dragIdx === -1 || dropIdx === -1) {
+            setDraggedId(null);
+            return;
+        }
+
+        // Reorder locally (optimistic)
+        const [moved] = currentConcepts.splice(dragIdx, 1);
+        currentConcepts.splice(dropIdx, 0, moved);
+        setConcepts(currentConcepts);
+        setDraggedId(null);
+
+        // Determine category_id — all items should be in same category when filtered
+        const draggedConcept = snapshot.find((c) => c._id === draggedId);
+        const reorderCategoryId = categoryFilter || draggedConcept?.category_id || "";
+
+        if (!reorderCategoryId) {
+            console.error("Reorder requires a category filter");
+            setConcepts(snapshot); // rollback
+            return;
+        }
+
+        // Send category-scoped reorder to backend
+        const items = currentConcepts.map((c, i) => ({ id: c._id, display_order: i }));
+        try {
+            await reorderConcepts({ category_id: reorderCategoryId, items });
+        } catch (err: any) {
+            console.error("Reorder failed:", err);
+            setConcepts(snapshot); // Rollback from snapshot
+        }
+    };
+
     // ── Logout ──
     const handleLogout = () => {
         logout();
@@ -269,10 +383,17 @@ function AdminDashboard() {
     // ── Stats ──
     const activeCount = concepts.filter((c) => c.is_active).length;
     const categoryCounts = concepts.reduce((acc, c) => {
-        acc[c.category] = (acc[c.category] || 0) + 1;
+        const name = getCategoryName(c.category_id, c.category_name);
+        acc[name] = (acc[name] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
     const topCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0];
+
+    // ── Build category filter tabs ──
+    const categoryFilters: { value: string; label: string }[] = [
+        { value: "", label: "All" },
+        ...categories.map((c) => ({ value: c._id, label: c.name })),
+    ];
 
     return (
         <div className="admin-dash">
@@ -323,11 +444,13 @@ function AdminDashboard() {
                             {activeNav === "dashboard" && "Dashboard"}
                             {activeNav === "concepts" && "Concept Library"}
                             {activeNav === "recommended" && "Recommended Concepts"}
+                            {activeNav === "categories" && "Category Management"}
                         </h1>
                         <p className="admin-dash__subtitle">
                             {activeNav === "dashboard" && "Overview of your concept library and platform"}
                             {activeNav === "concepts" && "Manage, search, and organize ad concepts"}
                             {activeNav === "recommended" && "Top performing concepts by usage"}
+                            {activeNav === "categories" && "Create and manage concept categories"}
                         </p>
                     </div>
                 </div>
@@ -358,8 +481,8 @@ function AdminDashboard() {
                                     <div className="admin-dash__stat-icon admin-dash__stat-icon--purple">🏷️</div>
                                     <span className="admin-dash__stat-trend admin-dash__stat-trend--neutral">types</span>
                                 </div>
-                                <div className="admin-dash__stat-value">{Object.keys(categoryCounts).length}</div>
-                                <div className="admin-dash__stat-label">Categories Used</div>
+                                <div className="admin-dash__stat-value">{categories.length}</div>
+                                <div className="admin-dash__stat-label">Categories</div>
                             </div>
                             <div className="admin-dash__stat-card">
                                 <div className="admin-dash__stat-top">
@@ -367,9 +490,7 @@ function AdminDashboard() {
                                     <span className="admin-dash__stat-trend admin-dash__stat-trend--up">top</span>
                                 </div>
                                 <div className="admin-dash__stat-value" style={{ fontSize: 16 }}>
-                                    {topCategory
-                                        ? topCategory[0].replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-                                        : "—"}
+                                    {topCategory ? topCategory[0] : "—"}
                                 </div>
                                 <div className="admin-dash__stat-label">Top Category</div>
                             </div>
@@ -433,7 +554,7 @@ function AdminDashboard() {
                                     Manage All →
                                 </button>
                             </div>
-                            {renderConceptGrid()}
+                            {renderConceptGrid(false)}
                         </div>
                     </>
                 )}
@@ -464,21 +585,23 @@ function AdminDashboard() {
                                     setPage(1);
                                 }}
                             />
-                            {CATEGORIES.map((cat) => (
-                                <button
-                                    key={cat.value}
-                                    className={`admin-dash__filter-btn ${category === cat.value ? "admin-dash__filter-btn--active" : ""}`}
-                                    onClick={() => {
-                                        setCategory(cat.value);
-                                        setPage(1);
-                                    }}
-                                >
-                                    {cat.label}
-                                </button>
-                            ))}
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                {categoryFilters.map((cat) => (
+                                    <button
+                                        key={cat.value}
+                                        className={`admin-dash__filter-btn ${categoryFilter === cat.value ? "admin-dash__filter-btn--active" : ""}`}
+                                        onClick={() => {
+                                            setCategoryFilter(cat.value);
+                                            setPage(1);
+                                        }}
+                                    >
+                                        {cat.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
-                        {renderConceptGrid()}
+                        {renderConceptGrid(true)}
 
                         {/* Pagination */}
                         {total > 12 && (
@@ -531,7 +654,7 @@ function AdminDashboard() {
                                         />
                                         <div className="admin-dash__concept-body">
                                             <div className="admin-dash__concept-category">
-                                                {c.category?.replace(/_/g, " ")}
+                                                {getCategoryName(c.category_id, c.category_name)}
                                             </div>
                                             <div className="admin-dash__concept-name">{c.name}</div>
                                             <div className="admin-dash__concept-meta">
@@ -553,6 +676,62 @@ function AdminDashboard() {
                                 <div className="admin-dash__empty-hint">
                                     Concepts will be ranked by usage_count
                                 </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ── Categories View ── */}
+                {activeNav === "categories" && (
+                    <div className="admin-dash__section">
+                        <div className="admin-dash__section-header">
+                            <div className="admin-dash__section-title">
+                                🏷️ All Categories
+                                <span className="admin-dash__section-count">{categories.length}</span>
+                            </div>
+                            <button
+                                className="admin-dash__btn admin-dash__btn--primary"
+                                onClick={() => {
+                                    setCatName("");
+                                    setCatDescription("");
+                                    setCatModalError("");
+                                    setShowCategoryModal(true);
+                                }}
+                            >
+                                ＋ Add Category
+                            </button>
+                        </div>
+
+                        {categories.length > 0 ? (
+                            <div className="admin-dash__grid">
+                                {categories.map((cat) => (
+                                    <div key={cat._id} className="admin-dash__concept-card">
+                                        <div className="admin-dash__concept-body" style={{ padding: 20 }}>
+                                            <div className="admin-dash__concept-name" style={{ fontSize: 16 }}>
+                                                {cat.name}
+                                            </div>
+                                            <div className="admin-dash__concept-category" style={{ marginTop: 4 }}>
+                                                slug: {cat.slug}
+                                            </div>
+                                            {cat.description && (
+                                                <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
+                                                    {cat.description}
+                                                </div>
+                                            )}
+                                            <div className="admin-dash__concept-meta" style={{ marginTop: 8 }}>
+                                                <span className="admin-dash__concept-usage">
+                                                    Order: {cat.display_order}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="admin-dash__empty">
+                                <div className="admin-dash__empty-icon">🏷️</div>
+                                <div className="admin-dash__empty-text">No categories yet</div>
+                                <div className="admin-dash__empty-hint">Create your first category to organize concepts</div>
                             </div>
                         )}
                     </div>
@@ -609,12 +788,12 @@ function AdminDashboard() {
                                 <label className="admin-modal__label">Category *</label>
                                 <select
                                     className="admin-modal__input admin-modal__select"
-                                    value={newCategory}
-                                    onChange={(e) => setNewCategory(e.target.value as ConceptCategory)}
+                                    value={newCategoryId}
+                                    onChange={(e) => setNewCategoryId(e.target.value)}
                                 >
-                                    {Object.values(ConceptCategory).map((cat) => (
-                                        <option key={cat} value={cat}>
-                                            {cat.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                                    {categories.map((cat) => (
+                                        <option key={cat._id} value={cat._id}>
+                                            {cat.name}
                                         </option>
                                     ))}
                                 </select>
@@ -723,12 +902,12 @@ function AdminDashboard() {
                                 <label className="admin-modal__label">Category *</label>
                                 <select
                                     className="admin-modal__input admin-modal__select"
-                                    value={editCategory}
-                                    onChange={(e) => setEditCategory(e.target.value as ConceptCategory)}
+                                    value={editCategoryId}
+                                    onChange={(e) => setEditCategoryId(e.target.value)}
                                 >
-                                    {Object.values(ConceptCategory).map((cat) => (
-                                        <option key={cat} value={cat}>
-                                            {cat.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                                    {categories.map((cat) => (
+                                        <option key={cat._id} value={cat._id}>
+                                            {cat.name}
                                         </option>
                                     ))}
                                 </select>
@@ -786,11 +965,62 @@ function AdminDashboard() {
                     </div>
                 </div>
             )}
+
+            {/* ── Create Category Modal ── */}
+            {showCategoryModal && (
+                <div className="admin-modal__overlay" onClick={() => setShowCategoryModal(false)}>
+                    <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="admin-modal__header">
+                            <h2 className="admin-modal__title">🏷️ New Category</h2>
+                            <button className="admin-modal__close" onClick={() => setShowCategoryModal(false)}>✕</button>
+                        </div>
+
+                        {catModalError && (
+                            <div className="admin-modal__error">⚠️ {catModalError}</div>
+                        )}
+
+                        <form className="admin-modal__form" onSubmit={handleCreateCategory}>
+                            <div className="admin-modal__field">
+                                <label className="admin-modal__label">Category Name *</label>
+                                <input
+                                    className="admin-modal__input"
+                                    placeholder="e.g. Social Proof"
+                                    value={catName}
+                                    onChange={(e) => setCatName(e.target.value)}
+                                />
+                            </div>
+                            <div className="admin-modal__field">
+                                <label className="admin-modal__label">Description</label>
+                                <textarea
+                                    className="admin-modal__input admin-modal__textarea"
+                                    placeholder="Describe what this category covers..."
+                                    value={catDescription}
+                                    onChange={(e) => setCatDescription(e.target.value)}
+                                    rows={2}
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                className="admin-modal__submit"
+                                disabled={catModalLoading}
+                            >
+                                {catModalLoading ? (
+                                    <>
+                                        <span className="admin-dash__spinner" /> Creating...
+                                    </>
+                                ) : (
+                                    "Create Category"
+                                )}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 
     // ── Render helpers ──
-    function renderConceptGrid() {
+    function renderConceptGrid(draggable: boolean = false) {
         if (loading) {
             return (
                 <div className="admin-dash__loading">
@@ -810,7 +1040,7 @@ function AdminDashboard() {
                     <div className="admin-dash__empty-icon">🎨</div>
                     <div className="admin-dash__empty-text">No concepts found</div>
                     <div className="admin-dash__empty-hint">
-                        {search || category ? "Try different filters" : "Create your first concept to get started"}
+                        {search || categoryFilter ? "Try different filters" : "Create your first concept to get started"}
                     </div>
                 </div>
             );
@@ -819,7 +1049,14 @@ function AdminDashboard() {
         return (
             <div className="admin-dash__grid">
                 {concepts.map((c) => (
-                    <div key={c._id} className={`admin-dash__concept-card ${!c.is_active ? "admin-dash__concept-card--inactive" : ""}`}>
+                    <div
+                        key={c._id}
+                        className={`admin-dash__concept-card ${!c.is_active ? "admin-dash__concept-card--inactive" : ""} ${draggedId === c._id ? "admin-dash__concept-card--dragging" : ""}`}
+                        draggable={draggable}
+                        onDragStart={() => draggable && handleDragStart(c._id)}
+                        onDragOver={draggable ? handleDragOver : undefined}
+                        onDrop={() => draggable && handleDrop(c._id)}
+                    >
                         <img
                             src={resolveImageUrl(c.image_url)}
                             alt={c.name}
@@ -830,7 +1067,7 @@ function AdminDashboard() {
                         />
                         <div className="admin-dash__concept-body">
                             <div className="admin-dash__concept-category">
-                                {c.category?.replace(/_/g, " ")}
+                                {getCategoryName(c.category_id, c.category_name)}
                             </div>
                             <div className="admin-dash__concept-name">{c.name}</div>
                             <div className="admin-dash__concept-meta">

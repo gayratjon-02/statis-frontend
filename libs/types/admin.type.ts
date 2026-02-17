@@ -3,7 +3,6 @@
 // =============================================
 
 import { AdminRole } from "../enums/admin.enum";
-import type { ConceptCategory } from "./concept.type";
 
 // ── Admin User ──────────────────────────────────────────────
 
@@ -42,7 +41,7 @@ export interface AdminLoginInput {
 
 /** POST /concept/createConceptByAdmin */
 export interface CreateConceptInput {
-    category: ConceptCategory;
+    category_id: string;
     name: string;
     image_url: string;
     tags: string[];
@@ -54,7 +53,7 @@ export interface CreateConceptInput {
 
 /** POST /concept/updateConceptByAdmin/:id */
 export interface UpdateConceptInput {
-    category?: ConceptCategory;
+    category_id?: string;
     name?: string;
     image_url?: string;
     tags?: string[];
@@ -62,6 +61,20 @@ export interface UpdateConceptInput {
     source_url?: string;
     is_active?: boolean;
     display_order?: number;
+}
+
+/** POST /concept/createCategoryByAdmin */
+export interface CreateCategoryInput {
+    name: string;
+    slug?: string;
+    description?: string;
+    display_order?: number;
+}
+
+/** POST /concept/reorderConceptsByAdmin */
+export interface ReorderConceptsInput {
+    category_id: string;
+    items: { id: string; display_order: number }[];
 }
 
 // ── Admin GET Response Types ────────────────────────────────
@@ -74,8 +87,9 @@ export interface ConceptsResponse {
 
 /** GET /concept/getConcepts query params */
 export interface GetConceptsParams {
-    category?: string;
+    category_id?: string;
     search?: string;
+    tags?: string;
     page?: number;
     limit?: number;
 }

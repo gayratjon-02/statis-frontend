@@ -1,23 +1,18 @@
 // =============================================
 // SERVER — Admin POST APIs (admin-only endpoints)
 // =============================================
-//
-// Admin-only POST endpoints (RolesGuard or admin auth):
-//   1. Auth      — adminSignup, adminLogin
-//   2. Concept   — uploadImage, createConcept, updateConcept, deleteConcept
-// =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
-import type { AdConcept } from "../../libs/types/concept.type";
+import type { AdConcept, ConceptCategoryItem } from "../../libs/types/concept.type";
 import type {
     AdminAuthResponse,
     AdminSignupInput,
     AdminLoginInput,
     CreateConceptInput,
     UpdateConceptInput,
+    CreateCategoryInput,
+    ReorderConceptsInput,
 } from "../../libs/types/admin.type";
-
-// ── Re-export types for consumer convenience ────────────────
 
 export type {
     AdminAuthResponse,
@@ -25,6 +20,8 @@ export type {
     AdminLoginInput,
     CreateConceptInput,
     UpdateConceptInput,
+    CreateCategoryInput,
+    ReorderConceptsInput,
 };
 
 // ── Shared Helpers ──────────────────────────────────────────
@@ -60,33 +57,35 @@ async function postRequest<T>(url: string, body: unknown): Promise<T> {
 
 const MEMBER_API = `${API_BASE_URL}/member`;
 
-/**
- * POST /member/adminSignup
- * Register a new admin account.
- */
 export async function adminSignup(input: AdminSignupInput): Promise<AdminAuthResponse> {
     return postRequest<AdminAuthResponse>(`${MEMBER_API}/adminSignup`, input);
 }
 
-/**
- * POST /member/adminLogin
- * Authenticate as admin, returns accessToken + admin profile.
- */
 export async function adminLogin(input: AdminLoginInput): Promise<AdminAuthResponse> {
     return postRequest<AdminAuthResponse>(`${MEMBER_API}/adminLogin`, input);
 }
 
 // =============================================
-// 2. CONCEPT — Admin concept library management
+// 2. CATEGORIES — Admin category management
 // =============================================
 
 const CONCEPT_API = `${API_BASE_URL}/concept`;
 
 /**
+ * POST /concept/createCategoryByAdmin
+ * Create a new concept category.
+ */
+export async function createCategory(input: CreateCategoryInput): Promise<ConceptCategoryItem> {
+    return postRequest<ConceptCategoryItem>(`${CONCEPT_API}/createCategoryByAdmin`, input);
+}
+
+// =============================================
+// 3. CONCEPTS — Admin concept management
+// =============================================
+
+/**
  * POST /concept/uploadImage
  * Upload a concept preview image (PNG, JPG, JPEG, WEBP). Max 10MB.
- * Requires: SUPER_ADMIN or CONTENT_ADMIN role.
- * Returns { image_url: string }.
  */
 export async function uploadConceptImage(file: File): Promise<{ image_url: string }> {
     const token = localStorage.getItem("se_admin_token");
@@ -111,8 +110,7 @@ export async function uploadConceptImage(file: File): Promise<{ image_url: strin
 
 /**
  * POST /concept/createConceptByAdmin
- * Create a new ad concept in the library.
- * Requires: SUPER_ADMIN or CONTENT_ADMIN role.
+ * Create a new ad concept.
  */
 export async function createConcept(input: CreateConceptInput): Promise<AdConcept> {
     return postRequest<AdConcept>(`${CONCEPT_API}/createConceptByAdmin`, input);
@@ -121,7 +119,6 @@ export async function createConcept(input: CreateConceptInput): Promise<AdConcep
 /**
  * POST /concept/updateConceptByAdmin/:id
  * Update an existing concept.
- * Requires: SUPER_ADMIN or CONTENT_ADMIN role.
  */
 export async function updateConcept(id: string, input: UpdateConceptInput): Promise<AdConcept> {
     return postRequest<AdConcept>(`${CONCEPT_API}/updateConceptByAdmin/${id}`, input);
@@ -129,9 +126,16 @@ export async function updateConcept(id: string, input: UpdateConceptInput): Prom
 
 /**
  * POST /concept/deleteConceptByAdmin/:id
- * Delete a concept from the library.
- * Requires: SUPER_ADMIN only.
+ * Delete a concept. SUPER_ADMIN only.
  */
 export async function deleteConcept(id: string): Promise<{ message: string }> {
     return postRequest<{ message: string }>(`${CONCEPT_API}/deleteConceptByAdmin/${id}`, {});
+}
+
+/**
+ * POST /concept/reorderConceptsByAdmin
+ * Batch reorder concepts via display_order.
+ */
+export async function reorderConcepts(input: ReorderConceptsInput): Promise<{ message: string }> {
+    return postRequest<{ message: string }>(`${CONCEPT_API}/reorderConceptsByAdmin`, input);
 }

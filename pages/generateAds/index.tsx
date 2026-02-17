@@ -2,18 +2,14 @@ import React, { useState, useRef, useEffect } from "react";
 import AuthGuard from "../../libs/auth/AuthGuard";
 import { getBrands, createBrand, uploadBrandLogo } from "../../server/user/brand";
 import { getProducts, createProduct, uploadProductPhoto } from "../../server/user/product";
-import { getConcepts } from "../../server/user/concept";
+import { getConcepts, getCategories, incrementUsage } from "../../server/user/concept";
 import { createGeneration, getGenerationStatus } from "../../server/user/generation";
 import type { Brand, CreateBrandInput } from "../../libs/types/brand.type";
 import { BrandIndustry, BrandVoice } from "../../libs/types/brand.type";
 import type { Product, CreateProductInput } from "../../libs/types/product.type";
-import type { AdConcept } from "../../libs/types/concept.type";
-import { ConceptCategory } from "../../libs/types/concept.type";
+import type { AdConcept, ConceptCategoryItem } from "../../libs/types/concept.type";
 
 const AD_COLORS = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
-
-
-const CATEGORIES = Object.values(ConceptCategory);
 
 const INDUSTRIES = Object.values(BrandIndustry);
 
@@ -43,6 +39,7 @@ function GeneratePageContent() {
     const [brands, setBrands] = useState<Brand[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [concepts, setConcepts] = useState<AdConcept[]>([]);
+    const [conceptCategories, setConceptCategories] = useState<ConceptCategoryItem[]>([]);
 
     const [brand, setBrand] = useState<BrandState>({
         name: "", description: "", url: "https://", industry: "",
@@ -87,9 +84,10 @@ function GeneratePageContent() {
     ];
 
     useEffect(() => {
-        // Fetch Brands & Concepts on mount
+        // Fetch Brands, Concepts & Categories on mount
         getBrands(1, 100).then((res) => setBrands(res.list)).catch(console.error);
         getConcepts().then((res) => setConcepts(res.list)).catch(console.error);
+        getCategories().then((res) => setConceptCategories(res.list)).catch(console.error);
     }, []);
 
     useEffect(() => {
@@ -118,6 +116,11 @@ function GeneratePageContent() {
             });
 
             const jobId = result.job_id;
+
+            // Increment usage count now that generation is confirmed
+            if (selectedConcept) {
+                incrementUsage(selectedConcept).catch(() => { /* silent */ });
+            }
 
             // Poll for generation status every 3 seconds
             const pollInterval = setInterval(async () => {
@@ -282,7 +285,7 @@ function GeneratePageContent() {
         setProduct((p) => ({ ...p, usps: p.usps.map((u, i) => (i === index ? value : u)) }));
     };
 
-    const filteredConcepts = conceptFilter === "All" ? concepts : concepts.filter((c) => c.category === conceptFilter);
+    const filteredConcepts = conceptFilter === "All" ? concepts : concepts.filter((c) => c.category_id === conceptFilter);
     const remaining = credits.limit - credits.used;
 
     return (
@@ -668,11 +671,16 @@ function GeneratePageContent() {
                         <div className="gen-card__desc">Select a template style. The AI will generate your ad in this format.</div>
 
                         <div className="gen-concept-filter">
-                            {CATEGORIES.map((cat) => (
-                                <button key={cat}
-                                    className={`gen-concept-filter-btn ${conceptFilter === cat ? "gen-concept-filter-btn--active" : ""}`}
-                                    onClick={() => setConceptFilter(cat)}>
-                                    {cat}
+                            <button
+                                className={`gen-concept-filter-btn ${conceptFilter === "All" ? "gen-concept-filter-btn--active" : ""}`}
+                                onClick={() => setConceptFilter("All")}>
+                                All
+                            </button>
+                            {conceptCategories.map((cat) => (
+                                <button key={cat._id}
+                                    className={`gen-concept-filter-btn ${conceptFilter === cat._id ? "gen-concept-filter-btn--active" : ""}`}
+                                    onClick={() => setConceptFilter(cat._id)}>
+                                    {cat.name}
                                 </button>
                             ))}
                         </div>
@@ -689,7 +697,7 @@ function GeneratePageContent() {
                                         {selectedConcept === concept._id && <div className="gen-concept-card__check">✓</div>}
                                     </div>
                                     <div className="gen-concept-card__info">
-                                        <div className="gen-concept-card__name">{concept.category}</div>
+                                        <div className="gen-concept-card__name">{concept.category_name || concept.name}</div>
                                         <div className="gen-concept-card__uses">{concept.usage_count} uses</div>
                                     </div>
                                 </div>
@@ -724,7 +732,7 @@ function GeneratePageContent() {
                                     {[
                                         { label: "Brand", value: brand.name || "Not set" },
                                         { label: "Product", value: product.name || "Not set" },
-                                        { label: "Concept", value: selectedConcept ? concepts.find((c) => c._id === selectedConcept)?.category : "Not selected" },
+                                        { label: "Concept", value: selectedConcept ? (concepts.find((c) => c._id === selectedConcept)?.category_name || concepts.find((c) => c._id === selectedConcept)?.name) : "Not selected" },
                                         { label: "Credit Cost", value: "5 credits (6 variations)" },
                                     ].map(({ label, value }) => (
                                         <div key={label} className="gen-summary__row">
