@@ -6,6 +6,7 @@ import { getProducts, createProduct, uploadProductPhoto } from "../../server/use
 import { getConcepts, getCategories, getRecommendedConcepts, getConceptConfig, incrementUsage } from "../../server/user/concept";
 import { createGeneration, getGenerationStatus, getGenerationBatchStatus } from "../../server/user/generation";
 import { getBrandConfig, type IndustryItem, type VoiceItem } from "../../server/user/config";
+import { getUsageRequest } from "../../server/user/login";
 import API_BASE_URL from "../../libs/config/api.config";
 import type { Brand, CreateBrandInput } from "../../libs/types/brand.type";
 import { BrandIndustry, BrandVoice } from "../../libs/types/brand.type";
@@ -88,7 +89,7 @@ function GeneratePageContent() {
     }
     const [generatedResults, setGeneratedResults] = useState<GeneratedResult[]>([]);
     const [showCreateBrandModal, setShowCreateBrandModal] = useState(false);
-    const [credits] = useState({ used: 185, limit: 750 });
+    const [credits, setCredits] = useState({ used: 0, limit: 0 });
     const fileInputRef = useRef<HTMLInputElement>(null);
     const productFileRef = useRef<HTMLInputElement>(null);
 
@@ -109,6 +110,14 @@ function GeneratePageContent() {
             .then((cfg) => {
                 setIndustries(cfg.industries);
                 setVoiceTags(cfg.voices);
+            })
+            .catch(console.error);
+        getUsageRequest()
+            .then((usage: any) => {
+                setCredits({
+                    used: usage.credits_used || 0,
+                    limit: usage.credits_limit || 0,
+                });
             })
             .catch(console.error);
     }, []);

@@ -112,6 +112,7 @@ function DashboardPage() {
     const [brandFilter, setBrandFilter] = useState("all");
     const [collapsed, setCollapsed] = useState(false);
     const [page, setPage] = useState("dashboard");
+    const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
     // API state
     const [member, setMember] = useState<Member | null>(null);
@@ -564,8 +565,14 @@ function DashboardPage() {
                                                     >
                                                         {!ad.image_url && <span className="ad-card__placeholder">AD</span>}
                                                         <div className="ad-card__overlay">
-                                                            <button className="btn-view-ad">View</button>
-                                                            <button className="btn-dl">DL</button>
+                                                            <button className="btn-view-ad" onClick={() => ad.image_url && setLightboxImage(ad.image_url)}>View</button>
+                                                            <button className="btn-dl" onClick={() => {
+                                                                if (!ad.image_url) return;
+                                                                const a = document.createElement("a");
+                                                                a.href = ad.image_url;
+                                                                a.download = `${ad.ad_name || "ad"}.png`;
+                                                                a.click();
+                                                            }}>DL</button>
                                                         </div>
                                                     </div>
                                                     <div className="ad-card__info">
@@ -599,14 +606,15 @@ function DashboardPage() {
                                 <div className="quick-actions">
                                     <div className="quick-actions__title">Quick Actions</div>
                                     {[
-                                        { label: "Generate New Ad", desc: "5 credits per generation", letter: "+", primary: true },
-                                        { label: "Create New Brand", desc: "Set up a brand profile", letter: "B", primary: false },
-                                        { label: "Buy More Credits", desc: "100 credits for $15", letter: "$", primary: false },
+                                        { label: "Generate New Ad", desc: `${remaining} credits remaining`, letter: "+", primary: true, route: "/generateAds" },
+                                        { label: "Create New Brand", desc: `${brands.length} brand${brands.length !== 1 ? "s" : ""} created`, letter: "B", primary: false, route: "/generateAds" },
+                                        { label: "View Ad Library", desc: `${usage?.stats?.ads_generated || 0} ads generated`, letter: "L", primary: false, route: "/adLibrary" },
                                     ].map((a, i) => (
                                         <div
                                             key={i}
                                             className={`action-item ${a.primary ? "action-item--primary" : ""}`}
-                                            style={{ marginBottom: i < 2 ? 6 : 0 }}
+                                            style={{ marginBottom: i < 2 ? 6 : 0, cursor: "pointer" }}
+                                            onClick={() => router.push(a.route)}
                                         >
                                             <div className={`action-item__icon ${a.primary ? "action-item__icon--primary" : "action-item__icon--default"}`}>
                                                 {a.letter}
@@ -652,6 +660,37 @@ function DashboardPage() {
                             </div>
                         </div>
                     </>
+                )}
+
+                {/* Lightbox */}
+                {lightboxImage && (
+                    <div
+                        style={{
+                            position: "fixed", inset: 0, zIndex: 9999,
+                            background: "rgba(0,0,0,0.85)", display: "flex",
+                            alignItems: "center", justifyContent: "center", cursor: "zoom-out",
+                        }}
+                        onClick={() => setLightboxImage(null)}
+                    >
+                        <img
+                            src={lightboxImage}
+                            alt="Ad preview"
+                            style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: 12, objectFit: "contain" }}
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                        <button
+                            onClick={() => setLightboxImage(null)}
+                            style={{
+                                position: "absolute", top: 24, right: 24,
+                                background: "rgba(255,255,255,0.15)", border: "none",
+                                color: "#fff", fontSize: 24, width: 44, height: 44,
+                                borderRadius: "50%", cursor: "pointer", display: "flex",
+                                alignItems: "center", justifyContent: "center",
+                            }}
+                        >
+                            X
+                        </button>
+                    </div>
                 )}
             </div>
         </div>
