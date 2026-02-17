@@ -8,7 +8,8 @@ import type {
     GenerationResponse,
     GetGenerationsQuery,
     LibraryCounts,
-    AdLibraryItem
+    AdLibraryItem,
+    GenerationBatchResponse
 } from "../../libs/types/generation.type";
 
 const GENERATION_API = `${API_BASE_URL}/generation`;
@@ -118,5 +119,23 @@ export async function getLibraryCountsRequest(): Promise<LibraryCounts> {
     });
 
     if (!res.ok) throw new Error("Failed to fetch library counts");
+    return res.json();
+}
+
+/**
+ * GET /generation/getBatchStatus/:batchId
+ * Poll for batch generation status + image URLs.
+ */
+export async function getGenerationBatchStatus(batchId: string): Promise<GenerationBatchResponse> {
+    const res = await fetch(`${GENERATION_API}/getBatchStatus/${batchId}`, {
+        method: "GET",
+        headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Status check failed" }));
+        throw new Error(error.message || `Status check failed (${res.status})`);
+    }
+
     return res.json();
 }

@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import AuthGuard from "../../libs/auth/AuthGuard";
 import { getBrands, createBrand, uploadBrandLogo } from "../../server/user/brand";
 import { getProducts, createProduct, uploadProductPhoto } from "../../server/user/product";
-import { getConcepts, getCategories, incrementUsage } from "../../server/user/concept";
-import { createGeneration, getGenerationStatus } from "../../server/user/generation";
+import { getConcepts, getCategories, getRecommendedConcepts, getConceptConfig, incrementUsage } from "../../server/user/concept";
+import { createGeneration, getGenerationStatus, getGenerationBatchStatus } from "../../server/user/generation";
 import type { Brand, CreateBrandInput } from "../../libs/types/brand.type";
 import { BrandIndustry, BrandVoice } from "../../libs/types/brand.type";
 import type { Product, CreateProductInput } from "../../libs/types/product.type";
@@ -59,6 +59,7 @@ function GeneratePageContent() {
     const [generatingAds, setGeneratingAds] = useState([false, false, false, false, false, false]);
     const [completedAds, setCompletedAds] = useState([false, false, false, false, false, false]);
     const [savedAds, setSavedAds] = useState([false, false, false, false, false, false]);
+    const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
     // Real generation results from backend
     interface GeneratedResult {
@@ -116,44 +117,83 @@ function GeneratePageContent() {
             });
 
             const jobId = result.job_id;
+            const batchId = result.batch_id || jobId; // Fallback to jobId if batch_id is missing (backward compat)
 
             // Increment usage count now that generation is confirmed
             if (selectedConcept) {
                 incrementUsage(selectedConcept).catch(() => { /* silent */ });
             }
 
-            // Poll for generation status every 3 seconds
+            // Poll for generation status every 3 seconds (Batch Mode)
             const pollInterval = setInterval(async () => {
                 try {
-                    const status = await getGenerationStatus(jobId);
+                    // Use batch status endpoint
+                    const batchStatus = await getGenerationBatchStatus(batchId);
 
-                    if (status.generation_status === "completed") {
-                        clearInterval(pollInterval);
+                    // Update Results State
+                    // Map variations to GeneratedResult format
+                    const currentResults = batchStatus.variations.map(v => ({
+                        _id: v._id,
+                        image_url_1x1: v.image_url_1x1,
+                        image_url_9x16: v.image_url_9x16,
+                        image_url_16x9: v.image_url_16x9,
+                        ad_copy_json: v.ad_copy_json,
+                        ad_name: v.ad_name,
+                    }));
 
-                        // Store the result
-                        const newResult: GeneratedResult = {
-                            _id: status._id,
-                            image_url_1x1: status.image_url_1x1,
-                            image_url_9x16: status.image_url_9x16,
-                            image_url_16x9: status.image_url_16x9,
-                            ad_copy_json: status.ad_copy_json,
-                            ad_name: status.ad_name,
-                        };
+                    setGeneratedResults(currentResults);
 
-                        setGeneratedResults([newResult]);
+                    // Update Loading/Completed State Grid
+                    const nextGenCheck = [false, false, false, false, false, false];
+                    const nextCompCheck = [false, false, false, false, false, false];
 
-                        // Mark all as completed (single generation for now; batch logic later)
-                        setGeneratingAds([false, false, false, false, false, false]);
-                        setCompletedAds([true, false, false, false, false, false]);
-                        setTimeout(() => setStep(5), 500);
+                    // We expect 6 variations. If fewer, default to loading?
+                    // The batch initialization creates 6 pending records, so we should receive 6.
 
-                    } else if (status.generation_status === "failed") {
-                        clearInterval(pollInterval);
-                        setGeneratingAds([false, false, false, false, false, false]);
-                        alert("Generation failed. Please try again.");
-                        setStep(3);
+                    batchStatus.variations.forEach((v, idx) => {
+                        if (idx >= 6) return; // Safety
+
+                        if (v.generation_status === 'completed') {
+                            nextCompCheck[idx] = true;
+                        } else if (v.generation_status === 'failed') {
+                            nextCompCheck[idx] = true; // Treat failed as done for spinner purposes (maybe show error icon later)
+                        } else {
+                            nextGenCheck[idx] = true; // Pending/Processing
+                        }
+                    });
+
+                    // If we have fewer than 6 variations returned (e.g. strict filtering or error), 
+                    // ensure the remaining slots show as processing or something.
+                    // But our backend creates 6.
+                    for (let i = batchStatus.variations.length; i < 6; i++) {
+                        nextGenCheck[i] = true;
                     }
-                    // If still pending/processing, continue polling
+
+                    setGeneratingAds(nextGenCheck);
+                    setCompletedAds(nextCompCheck);
+
+                    // Check Overall Status
+                    if (batchStatus.status === "completed" || batchStatus.status === "failed") {
+                        clearInterval(pollInterval);
+
+                        if (batchStatus.status === "completed") {
+                            // Success!
+                            // Optional: Move to next step if desired, or let user review.
+                            // Original logic moved to step 5.
+                            setTimeout(() => setStep(5), 1000);
+                        } else {
+                            // Failed (partially or fully?)
+                            // If completely failed (no useful results), show alert.
+                            const anySuccess = batchStatus.variations.some(v => v.generation_status === 'completed');
+                            if (!anySuccess) {
+                                alert("Generation failed. Please try again.");
+                                setStep(3);
+                            } else {
+                                // Partial success
+                                setTimeout(() => setStep(5), 1000);
+                            }
+                        }
+                    }
                 } catch (pollErr) {
                     console.error("Polling error:", pollErr);
                 }
@@ -301,7 +341,7 @@ function GeneratePageContent() {
                         <span className="gen-credits__label">Credits</span>
                         <div className="gen-credits__bar-wrap">
                             <div className="gen-credits__bar">
-                                <div className="gen-credits__bar-fill" style={{ width: `${(remaining / credits.limit) * 100}%` }} />
+                                <div className="gen-credits__bar-fill" style={{ width: `${(remaining / credits.limit) * 100}% ` }} />
                             </div>
                             <span className="gen-credits__val">{remaining}</span>
                             <span className="gen-credits__max">/ {credits.limit}</span>
@@ -317,10 +357,10 @@ function GeneratePageContent() {
                     {steps.map((s, i) => (
                         <div key={i} className="gen-step">
                             <div
-                                className={`gen-step__btn ${i === step ? "gen-step__btn--active" : ""} ${i < step ? "gen-step__btn--done" : ""}`}
+                                className={`gen - step__btn ${i === step ? "gen-step__btn--active" : ""} ${i < step ? "gen-step__btn--done" : ""} `}
                                 onClick={() => { if (i < step) setStep(i); }}
                             >
-                                <div className={`gen-step__num ${i === step ? "gen-step__num--active" : i < step ? "gen-step__num--done" : "gen-step__num--pending"}`}>
+                                <div className={`gen - step__num ${i === step ? "gen-step__num--active" : i < step ? "gen-step__num--done" : "gen-step__num--pending"} `}>
                                     {i < step ? "✓" : i + 1}
                                 </div>
                                 <span className="gen-step__label" style={{
@@ -339,7 +379,7 @@ function GeneratePageContent() {
             )}
 
             {/* ===== CONTENT ===== */}
-            <div className={`gen-content ${step === 2 ? "gen-content--medium" : step >= 4 ? "gen-content--wide" : "gen-content--narrow"}`}>
+            <div className={`gen - content ${step === 2 ? "gen-content--medium" : step >= 4 ? "gen-content--wide" : "gen-content--narrow"} `}>
 
                 {/* ══════ STEP 0: BRAND ══════ */}
                 {step === 0 && (
@@ -368,7 +408,7 @@ function GeneratePageContent() {
                                             setStep(1);
                                         }}
                                     >
-                                        <div className="gen-brand-item__icon" style={{ background: `${b.primary_color}33`, color: b.primary_color }}>
+                                        <div className="gen-brand-item__icon" style={{ background: `${b.primary_color} 33`, color: b.primary_color }}>
                                             {b.name[0]}
                                         </div>
                                         <span style={{ fontWeight: 500 }}>{b.name}</span>
@@ -471,7 +511,7 @@ function GeneratePageContent() {
                                             <label className="gen-label">Voice & Tone *</label>
                                             <div className="gen-tags">
                                                 {VOICE_TAGS.map((tag) => (
-                                                    <div key={tag} className={`gen-tag ${brand.voiceTags.includes(tag) ? "gen-tag--active" : ""}`}
+                                                    <div key={tag} className={`gen - tag ${brand.voiceTags.includes(tag) ? "gen-tag--active" : ""} `}
                                                         onClick={() => toggleVoiceTag(tag)}>
                                                         {tag}
                                                     </div>
@@ -672,13 +712,13 @@ function GeneratePageContent() {
 
                         <div className="gen-concept-filter">
                             <button
-                                className={`gen-concept-filter-btn ${conceptFilter === "All" ? "gen-concept-filter-btn--active" : ""}`}
+                                className={`gen - concept - filter - btn ${conceptFilter === "All" ? "gen-concept-filter-btn--active" : ""} `}
                                 onClick={() => setConceptFilter("All")}>
                                 All
                             </button>
                             {conceptCategories.map((cat) => (
                                 <button key={cat._id}
-                                    className={`gen-concept-filter-btn ${conceptFilter === cat._id ? "gen-concept-filter-btn--active" : ""}`}
+                                    className={`gen - concept - filter - btn ${conceptFilter === cat._id ? "gen-concept-filter-btn--active" : ""} `}
                                     onClick={() => setConceptFilter(cat._id)}>
                                     {cat.name}
                                 </button>
@@ -688,7 +728,7 @@ function GeneratePageContent() {
                         <div className="gen-concepts-grid">
                             {filteredConcepts.map((concept) => (
                                 <div key={concept._id}
-                                    className={`gen-concept-card ${selectedConcept === concept._id ? "gen-concept-card--selected" : ""}`}
+                                    className={`gen - concept - card ${selectedConcept === concept._id ? "gen-concept-card--selected" : ""} `}
                                     onClick={() => setSelectedConcept(concept._id)}>
                                     <div className="gen-concept-card__preview"
                                         style={{ backgroundImage: `url(${concept.image_url})`, backgroundSize: 'cover' }}>
@@ -722,7 +762,7 @@ function GeneratePageContent() {
                             <div className="gen-card__desc">Any special instructions for the AI? This is optional but helps fine-tune your results.</div>
 
                             <textarea className="gen-textarea" style={{ height: 160, fontSize: 15, lineHeight: 1.6 }}
-                                placeholder={`Examples:\n• "Make sure the ad mentions the color blue"\n• "Use a dark, moody background"\n• "Target audience is men 30-50 who play golf"\n• "Ad should feel premium and luxurious"`}
+                                placeholder={`Examples: \n• "Make sure the ad mentions the color blue"\n• "Use a dark, moody background"\n• "Target audience is men 30-50 who play golf"\n• "Ad should feel premium and luxurious"`}
                                 value={notes} onChange={(e) => setNotes(e.target.value)} />
                             <div className="gen-char-count">{notes.length}/500</div>
 
@@ -765,11 +805,11 @@ function GeneratePageContent() {
                                     <div key={result._id} className="gen-ad-card gen-ad-card--complete">
                                         <div className="gen-ad-card__preview" style={{ height: 280, position: "relative" }}>
                                             {result.image_url_1x1 ? (
-                                                <img src={result.image_url_1x1} alt={result.ad_name || `Variation ${i + 1}`}
+                                                <img src={result.image_url_1x1} alt={result.ad_name || `Variation ${i + 1} `}
                                                     style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }} />
                                             ) : (
                                                 <div className="gen-ad-card__result">
-                                                    <div className="gen-ad-card__result-title">{result.ad_name || `Variation ${i + 1}`}</div>
+                                                    <div className="gen-ad-card__result-title">{result.ad_name || `Variation ${i + 1} `}</div>
                                                     <div className="gen-ad-card__result-sub">Image not available</div>
                                                 </div>
                                             )}
@@ -802,19 +842,24 @@ function GeneratePageContent() {
                         <div className="gen-ad-grid">
                             {generatedResults.length > 0 ? (
                                 generatedResults.map((result, i) => (
-                                    <div key={result._id} className={`gen-ad-card ${savedAds[i] ? "gen-ad-card--saved" : ""}`}>
+                                    <div key={result._id} className={`gen - ad - card ${savedAds[i] ? "gen-ad-card--saved" : ""} `}>
                                         <div className="gen-ad-card__preview"
                                             style={{ height: 280, position: "relative", overflow: "hidden" }}>
                                             {result.image_url_1x1 ? (
-                                                <img src={result.image_url_1x1} alt={result.ad_name || `Variation ${i + 1}`}
+                                                <img src={result.image_url_1x1} alt={result.ad_name || `Variation ${i + 1} `}
                                                     style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }} />
                                             ) : (
                                                 <div className="gen-ad-card__result"
-                                                    style={{ background: `linear-gradient(135deg, ${AD_COLORS[i % 6]}dd, ${AD_COLORS[(i + 3) % 6]}aa)`, width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 12 }}>
+                                                    style={{ background: `linear - gradient(135deg, ${AD_COLORS[i % 6]}dd, ${AD_COLORS[(i + 3) % 6]}aa)`, width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 12 }}>
                                                     <div style={{ fontSize: 14, opacity: 0.7 }}>Image not available</div>
                                                 </div>
                                             )}
                                             {savedAds[i] && <div className="gen-ad-card__saved-badge">SAVED</div>}
+                                            {result.image_url_1x1 && (
+                                                <div className="gen-ad-card__overlay" onClick={() => setLightboxImage(result.image_url_1x1)}>
+                                                    <div className="gen-ad-card__eye">👁</div>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Ad copy info */}
@@ -834,7 +879,7 @@ function GeneratePageContent() {
                                                         if (result.image_url_1x1) {
                                                             const a = document.createElement("a");
                                                             a.href = result.image_url_1x1;
-                                                            a.download = `${result.ad_name || "ad"}_1x1.png`;
+                                                            a.download = `${result.ad_name || "ad"} _1x1.png`;
                                                             a.target = "_blank";
                                                             a.click();
                                                         }
@@ -871,6 +916,14 @@ function GeneratePageContent() {
                     </div>
                 )}
             </div>
+
+            {/* ===== LIGHTBOX ===== */}
+            {lightboxImage && (
+                <div className="gen-lightbox" onClick={() => setLightboxImage(null)}>
+                    <div className="gen-lightbox__close" onClick={() => setLightboxImage(null)}>×</div>
+                    <img src={lightboxImage} className="gen-lightbox__content" alt="Full view" onClick={(e) => e.stopPropagation()} />
+                </div>
+            )}
         </div>
     );
 }

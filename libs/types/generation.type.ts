@@ -20,6 +20,7 @@ export interface CreateGenerationInput {
 /** POST /generation/createGeneration response */
 export interface GenerationResponse {
     job_id: string;
+    batch_id: string;
     status: GenerationStatus;
     message: string;
 }
@@ -57,6 +58,21 @@ export interface GeneratedAd {
     is_favorite: boolean;
 
     created_at: string;
+}
+
+export interface GenerationBatchResponse {
+    batch_id: string;
+    status: GenerationStatus;
+    variations: {
+        _id: string;
+        generation_status: GenerationStatus;
+        image_url_1x1: string | null;
+        image_url_9x16: string | null;
+        image_url_16x9: string | null;
+        ad_copy_json: any;
+        ad_name: string | null;
+        created_at: string;
+    }[];
 }
 
 export interface AdLibraryItem {
