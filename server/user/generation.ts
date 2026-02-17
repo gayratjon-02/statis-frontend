@@ -43,6 +43,33 @@ export async function createGeneration(input: CreateGenerationInput): Promise<Ge
 }
 
 /**
+ * GET /generation/getStatus/:jobId
+ * Poll for generation status + image URLs.
+ */
+export async function getGenerationStatus(jobId: string): Promise<{
+    _id: string;
+    generation_status: string;
+    image_url_1x1: string | null;
+    image_url_9x16: string | null;
+    image_url_16x9: string | null;
+    ad_copy_json: any;
+    ad_name: string | null;
+    created_at: string;
+}> {
+    const res = await fetch(`${GENERATION_API}/getStatus/${jobId}`, {
+        method: "GET",
+        headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Status check failed" }));
+        throw new Error(error.message || `Status check failed (${res.status})`);
+    }
+
+    return res.json();
+}
+
+/**
  * GET /generation/getRecent
  * Fetch the authenticated user's recent generations.
  */

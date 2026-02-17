@@ -3,7 +3,7 @@ import AuthGuard from "../../libs/auth/AuthGuard";
 import { getBrands, createBrand, uploadBrandLogo } from "../../server/user/brand";
 import { getProducts, createProduct, uploadProductPhoto } from "../../server/user/product";
 import { getConcepts } from "../../server/user/concept";
-import { createGeneration } from "../../server/user/generation";
+import { createGeneration, getGenerationStatus } from "../../server/user/generation";
 import type { Brand, CreateBrandInput } from "../../libs/types/brand.type";
 import { BrandIndustry, BrandVoice } from "../../libs/types/brand.type";
 import type { Product, CreateProductInput } from "../../libs/types/product.type";
@@ -62,6 +62,17 @@ function GeneratePageContent() {
     const [generatingAds, setGeneratingAds] = useState([false, false, false, false, false, false]);
     const [completedAds, setCompletedAds] = useState([false, false, false, false, false, false]);
     const [savedAds, setSavedAds] = useState([false, false, false, false, false, false]);
+
+    // Real generation results from backend
+    interface GeneratedResult {
+        _id: string;
+        image_url_1x1: string | null;
+        image_url_9x16: string | null;
+        image_url_16x9: string | null;
+        ad_copy_json: any;
+        ad_name: string | null;
+    }
+    const [generatedResults, setGeneratedResults] = useState<GeneratedResult[]>([]);
     const [showCreateBrandModal, setShowCreateBrandModal] = useState(false);
     const [credits] = useState({ used: 185, limit: 750 });
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -96,27 +107,58 @@ function GeneratePageContent() {
         setGeneratingAds([true, true, true, true, true, true]);
         setCompletedAds([false, false, false, false, false, false]);
         setSavedAds([false, false, false, false, false, false]);
+        setGeneratedResults([]);
 
         try {
-            await createGeneration({
+            const result = await createGeneration({
                 brand_id: brand._id,
                 product_id: product._id,
                 concept_id: selectedConcept,
                 important_notes: notes,
             });
-            // Mocking the progress for now as the API currently processes in background
-            // ideally we would poll for status, but for this step we keeping the animation
-            [1200, 2800, 4200, 5800, 7500, 9000].forEach((delay, i) => {
-                setTimeout(() => {
-                    setGeneratingAds((prev) => { const n = [...prev]; n[i] = false; return n; });
-                    setCompletedAds((prev) => { const n = [...prev]; n[i] = true; return n; });
-                    if (i === 5) setTimeout(() => setStep(5), 300);
-                }, delay);
-            });
+
+            const jobId = result.job_id;
+
+            // Poll for generation status every 3 seconds
+            const pollInterval = setInterval(async () => {
+                try {
+                    const status = await getGenerationStatus(jobId);
+
+                    if (status.generation_status === "completed") {
+                        clearInterval(pollInterval);
+
+                        // Store the result
+                        const newResult: GeneratedResult = {
+                            _id: status._id,
+                            image_url_1x1: status.image_url_1x1,
+                            image_url_9x16: status.image_url_9x16,
+                            image_url_16x9: status.image_url_16x9,
+                            ad_copy_json: status.ad_copy_json,
+                            ad_name: status.ad_name,
+                        };
+
+                        setGeneratedResults([newResult]);
+
+                        // Mark all as completed (single generation for now; batch logic later)
+                        setGeneratingAds([false, false, false, false, false, false]);
+                        setCompletedAds([true, false, false, false, false, false]);
+                        setTimeout(() => setStep(5), 500);
+
+                    } else if (status.generation_status === "failed") {
+                        clearInterval(pollInterval);
+                        setGeneratingAds([false, false, false, false, false, false]);
+                        alert("Generation failed. Please try again.");
+                        setStep(3);
+                    }
+                    // If still pending/processing, continue polling
+                } catch (pollErr) {
+                    console.error("Polling error:", pollErr);
+                }
+            }, 3000);
+
         } catch (error) {
             console.error("Failed to start generation", error);
-            // Revert state or show error
-            setStep(3); // Go back to notes
+            setStep(3);
             alert("Failed to start generation. Please try again.");
         }
     };
@@ -706,31 +748,32 @@ function GeneratePageContent() {
                     <div style={{ animation: "fadeIn 0.4s ease" }}>
                         <div className="gen-progress-title">
                             <h2>Generating Your Ads</h2>
-                            <p>{completedAds.filter(Boolean).length} of 6 variations complete</p>
+                            <p>{generatedResults.length > 0 ? `${generatedResults.length} variation(s) complete` : "Processing..."}</p>
                         </div>
 
                         <div className="gen-ad-grid">
-                            {[0, 1, 2, 3, 4, 5].map((i) => (
-                                <div key={i} className={`gen-ad-card ${completedAds[i] ? "gen-ad-card--complete" : ""}`}>
-                                    <div className={`gen-ad-card__preview ${generatingAds[i] ? "gen-ad-card__preview--shimmer" : !completedAds[i] ? "gen-ad-card__preview--empty" : ""}`}
-                                        style={completedAds[i] ? { background: `linear-gradient(135deg, ${AD_COLORS[i]}dd, ${AD_COLORS[(i + 3) % 6]}aa)` } : {}}>
-                                        {completedAds[i] ? (
-                                            <div className="gen-ad-card__result">
-                                                <div className="gen-ad-card__result-title">Ad Variation {i + 1}</div>
-                                                <div className="gen-ad-card__result-sub">[Generated Image]</div>
-                                            </div>
-                                        ) : generatingAds[i] ? (
-                                            <div className="gen-ad-card__gen-text">Generating...</div>
-                                        ) : null}
-                                    </div>
-                                    {completedAds[i] && (
-                                        <div className="gen-ad-card__actions">
-                                            <button className="gen-ad-btn">Fix Errors</button>
-                                            <button className="gen-ad-btn gen-ad-btn--primary">Save Ad</button>
+                            {generatedResults.length > 0 ? (
+                                generatedResults.map((result, i) => (
+                                    <div key={result._id} className="gen-ad-card gen-ad-card--complete">
+                                        <div className="gen-ad-card__preview" style={{ height: 280, position: "relative" }}>
+                                            {result.image_url_1x1 ? (
+                                                <img src={result.image_url_1x1} alt={result.ad_name || `Variation ${i + 1}`}
+                                                    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }} />
+                                            ) : (
+                                                <div className="gen-ad-card__result">
+                                                    <div className="gen-ad-card__result-title">{result.ad_name || `Variation ${i + 1}`}</div>
+                                                    <div className="gen-ad-card__result-sub">Image not available</div>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 60 }}>
+                                    <div className="gen-loading-spinner" />
+                                    <p style={{ color: "#8892b0", marginTop: 16 }}>AI is generating your ad creative...</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 )}
@@ -741,7 +784,7 @@ function GeneratePageContent() {
                         <div className="gen-results-header">
                             <div>
                                 <h2>Your Ad Variations</h2>
-                                <p>6 variations generated · 5 credits used</p>
+                                <p>{generatedResults.length} variation(s) generated · 5 credits used</p>
                             </div>
                             <button className="gen-results-regen" onClick={() => { setStep(4); startGeneration(); }}>
                                 🔄 Regenerate All (5 credits)
@@ -749,42 +792,66 @@ function GeneratePageContent() {
                         </div>
 
                         <div className="gen-ad-grid">
-                            {[0, 1, 2, 3, 4, 5].map((i) => (
-                                <div key={i} className={`gen-ad-card ${savedAds[i] ? "gen-ad-card--saved" : ""}`}>
-                                    <div className="gen-ad-card__preview"
-                                        style={{
-                                            background: `linear-gradient(135deg, ${AD_COLORS[i]}dd, ${AD_COLORS[(i + 3) % 6]}aa)`,
-                                            height: 280,
-                                            position: "relative",
-                                        }}>
-                                        <div className="gen-ad-card__result">
-                                            <div style={{ fontSize: 16, fontWeight: 700, opacity: 0.7 }}>Variation {i + 1}</div>
-                                            <div style={{ fontSize: 11, opacity: 0.4, marginTop: 4 }}>[AI Generated Ad]</div>
-                                        </div>
-                                        {savedAds[i] && <div className="gen-ad-card__saved-badge">SAVED</div>}
-                                    </div>
-
-                                    <div className="gen-ad-card__actions-full">
-                                        <div style={{ display: "flex", gap: 6 }}>
-                                            <button className="gen-ad-btn">Fix Errors</button>
-                                            <button className="gen-ad-btn">↻ Redo</button>
-                                            <button className="gen-ad-btn">⤓ Download</button>
+                            {generatedResults.length > 0 ? (
+                                generatedResults.map((result, i) => (
+                                    <div key={result._id} className={`gen-ad-card ${savedAds[i] ? "gen-ad-card--saved" : ""}`}>
+                                        <div className="gen-ad-card__preview"
+                                            style={{ height: 280, position: "relative", overflow: "hidden" }}>
+                                            {result.image_url_1x1 ? (
+                                                <img src={result.image_url_1x1} alt={result.ad_name || `Variation ${i + 1}`}
+                                                    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }} />
+                                            ) : (
+                                                <div className="gen-ad-card__result"
+                                                    style={{ background: `linear-gradient(135deg, ${AD_COLORS[i % 6]}dd, ${AD_COLORS[(i + 3) % 6]}aa)`, width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 12 }}>
+                                                    <div style={{ fontSize: 14, opacity: 0.7 }}>Image not available</div>
+                                                </div>
+                                            )}
+                                            {savedAds[i] && <div className="gen-ad-card__saved-badge">SAVED</div>}
                                         </div>
 
-                                        {!savedAds[i] ? (
-                                            <button className="gen-ad-btn--save"
-                                                onClick={() => setSavedAds((prev) => { const n = [...prev]; n[i] = true; return n; })}>
-                                                Save Ad
-                                            </button>
-                                        ) : (
-                                            <div style={{ display: "flex", gap: 6 }}>
-                                                <button className="gen-ad-btn--ratio">Get All Ratios</button>
-                                                <button className="gen-ad-btn--canva">Buy Canva Template</button>
+                                        {/* Ad copy info */}
+                                        {result.ad_copy_json && (
+                                            <div style={{ padding: "10px 12px 4px", fontSize: 13 }}>
+                                                <div style={{ fontWeight: 700, color: "#e6f1ff", marginBottom: 4 }}>{result.ad_copy_json.headline}</div>
+                                                <div style={{ color: "#8892b0", fontSize: 11 }}>{result.ad_copy_json.subheadline}</div>
                                             </div>
                                         )}
+
+                                        <div className="gen-ad-card__actions-full">
+                                            <div style={{ display: "flex", gap: 6 }}>
+                                                <button className="gen-ad-btn">Fix Errors</button>
+                                                <button className="gen-ad-btn">↻ Redo</button>
+                                                <button className="gen-ad-btn"
+                                                    onClick={() => {
+                                                        if (result.image_url_1x1) {
+                                                            const a = document.createElement("a");
+                                                            a.href = result.image_url_1x1;
+                                                            a.download = `${result.ad_name || "ad"}_1x1.png`;
+                                                            a.target = "_blank";
+                                                            a.click();
+                                                        }
+                                                    }}>⤓ Download</button>
+                                            </div>
+
+                                            {!savedAds[i] ? (
+                                                <button className="gen-ad-btn--save"
+                                                    onClick={() => setSavedAds((prev) => { const n = [...prev]; n[i] = true; return n; })}>
+                                                    Save Ad
+                                                </button>
+                                            ) : (
+                                                <div style={{ display: "flex", gap: 6 }}>
+                                                    <button className="gen-ad-btn--ratio">Get All Ratios</button>
+                                                    <button className="gen-ad-btn--canva">Buy Canva Template</button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 60 }}>
+                                    <p style={{ color: "#8892b0" }}>No results yet. Generate some ads first!</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
 
                         <div className="gen-results-footer">
