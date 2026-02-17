@@ -45,7 +45,7 @@ function GeneratePageContent() {
     const [concepts, setConcepts] = useState<AdConcept[]>([]);
 
     const [brand, setBrand] = useState<BrandState>({
-        name: "", description: "", url: "", industry: "",
+        name: "", description: "", url: "https://", industry: "",
         logo: null, logoPreview: null,
         primaryColor: "#3ECFCF", secondaryColor: "#3B82F6", accentColor: "#E94560",
         voiceTags: [], targetAudience: "", competitors: "",
