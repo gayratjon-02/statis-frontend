@@ -95,81 +95,9 @@ function LibraryPage() {
     const detailAd = detailId ? ads.find((a) => a._id === detailId) : null;
 
     return (
-        <div className="library-layout">
-            {/* ===== LEFT PANEL ===== */}
-            <div className="lib-panel">
-                <div className="lib-panel__header">
-                    <span className="lib-panel__logo grad-text">Library</span>
-                </div>
-
-                {/* Brands */}
-                <div className="panel-section">
-                    <div className="panel-section__header">
-                        <span className="panel-section__title">Brands</span>
-                        {/* <button className="panel-section__action">+</button> */}
-                    </div>
-                    <div
-                        className={`panel-item ${!selectedBrand ? "panel-item--active" : ""}`}
-                        onClick={() => setSelectedBrand(null)}
-                        style={{
-                            background: !selectedBrand ? "rgba(62,207,207,0.05)" : "transparent",
-                        }}
-                    >
-                        <span className="panel-item__icon">⊞</span>
-                        <span className="panel-item__label" style={{ fontWeight: !selectedBrand ? 600 : 400, color: !selectedBrand ? "var(--text)" : "var(--muted)" }}>
-                            All Brands
-                        </span>
-                        <span className="panel-item__count">{counts.total_ads}</span>
-                    </div>
-                    {counts.brands.map((b) => (
-                        <div
-                            key={b._id}
-                            className={`panel-item ${selectedBrand === b._id ? "panel-item--active" : ""}`}
-                            onClick={() => setSelectedBrand(selectedBrand === b._id ? null : b._id)}
-                            style={{
-                                background: selectedBrand === b._id ? `${b.color}0a` : "transparent",
-                            }}
-                        >
-                            <span className="panel-item__dot" style={{ background: b.color }} />
-                            <span className="panel-item__label" style={{ fontWeight: selectedBrand === b._id ? 600 : 400, color: selectedBrand === b._id ? "var(--text)" : "var(--muted)" }}>
-                                {b.name}
-                            </span>
-                            <span className="panel-item__count">{b.count}</span>
-                        </div>
-                    ))}
-                </div>
-
-                <hr className="panel-divider" />
-
-                {/* Folders (Products) */}
-                <div className="panel-section">
-                    <div className="panel-section__header">
-                        <span className="panel-section__title">Products</span>
-                        {/* <button className="panel-section__action">+</button> */}
-                    </div>
-                    {counts.products
-                        .filter(p => !selectedBrand || p.brand_id === selectedBrand)
-                        .map((f) => (
-                            <div
-                                key={f._id}
-                                className={`panel-item ${selectedFolder === f._id ? "panel-item--active" : ""}`}
-                                onClick={() => setSelectedFolder(selectedFolder === f._id ? null : f._id)}
-                                style={{
-                                    background: selectedFolder === f._id ? "rgba(62,207,207,0.05)" : "transparent",
-                                }}
-                            >
-                                <span className="panel-item__icon">📁</span>
-                                <span className="panel-item__label" style={{ fontWeight: selectedFolder === f._id ? 600 : 400, color: selectedFolder === f._id ? "var(--text)" : "var(--muted)" }}>
-                                    {f.name}
-                                </span>
-                                <span className="panel-item__count">{f.count}</span>
-                            </div>
-                        ))}
-                </div>
-            </div>
-
-            {/* ===== MAIN CONTENT ===== */}
-            <div className="lib-main">
+        <div className="library-page">
+            {/* ===== MAIN CONTENT (Full Width, Centered) ===== */}
+            <div className="lib-main lib-main--full">
                 {/* Top Bar */}
                 <div className="lib-topbar">
                     <div className="lib-topbar__title-area">
@@ -213,7 +141,54 @@ function LibraryPage() {
                     </div>
                 </div>
 
-                {/* Concept Filter (Mock for now as we client-side filter) */}
+                {/* Brand Filter Chips */}
+                <div className="lib-filters">
+                    <div
+                        className={`lib-filter-btn ${!selectedBrand ? "lib-filter-btn--active" : ""}`}
+                        onClick={() => { setSelectedBrand(null); setSelectedFolder(null); }}
+                        style={{ cursor: "pointer" }}
+                    >
+                        All Brands ({counts.total_ads})
+                    </div>
+                    {counts.brands.map((b) => (
+                        <div
+                            key={b._id}
+                            className={`lib-filter-btn ${selectedBrand === b._id ? "lib-filter-btn--active" : ""}`}
+                            onClick={() => { setSelectedBrand(selectedBrand === b._id ? null : b._id); setSelectedFolder(null); }}
+                            style={{ cursor: "pointer" }}
+                        >
+                            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: b.color, marginRight: 6 }} />
+                            {b.name} ({b.count})
+                        </div>
+                    ))}
+                </div>
+
+                {/* Product Filter Chips (filtered by selected brand) */}
+                {counts.products.filter(p => !selectedBrand || p.brand_id === selectedBrand).length > 0 && (
+                    <div className="lib-filters" style={{ marginTop: -8 }}>
+                        <div
+                            className={`lib-filter-btn ${!selectedFolder ? "lib-filter-btn--active" : ""}`}
+                            onClick={() => setSelectedFolder(null)}
+                            style={{ cursor: "pointer", fontSize: 12 }}
+                        >
+                            All Products
+                        </div>
+                        {counts.products
+                            .filter(p => !selectedBrand || p.brand_id === selectedBrand)
+                            .map((f) => (
+                                <div
+                                    key={f._id}
+                                    className={`lib-filter-btn ${selectedFolder === f._id ? "lib-filter-btn--active" : ""}`}
+                                    onClick={() => setSelectedFolder(selectedFolder === f._id ? null : f._id)}
+                                    style={{ cursor: "pointer", fontSize: 12 }}
+                                >
+                                    📁 {f.name} ({f.count})
+                                </div>
+                            ))}
+                    </div>
+                )}
+
+                {/* Concept Filter */}
                 <div className="lib-filters">
                     {CONCEPTS.map((cat) => (
                         <button
@@ -263,7 +238,6 @@ function LibraryPage() {
                                     >
                                         {selectedIds.includes(ad._id) ? "✓" : ""}
                                     </div>
-                                    {/* Mocking Canva/Pending based on status if needed, or remove for now */}
                                 </div>
                                 <div className="lib-ad-card__info">
                                     <div className="lib-ad-card__name">{ad.name}</div>

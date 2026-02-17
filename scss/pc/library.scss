@@ -8,6 +8,13 @@
     font-family: var(--font-body);
 }
 
+.library-page {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+}
+
 /* --- Left Panel --- */
 .lib-panel {
     width: 240px;
@@ -121,6 +128,13 @@
     flex: 1;
     margin-left: 240px;
     padding: 0 36px 60px;
+
+    &--full {
+        margin-left: 0;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 48px 60px;
+    }
 }
 
 /* --- Top Bar --- */
