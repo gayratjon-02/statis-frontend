@@ -3,6 +3,8 @@ import { useRouter } from "next/router";
 import AuthGuard from "../../libs/auth/AuthGuard";
 import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest } from "../../server/user/login";
 import { getRecentGenerationsRequest } from "../../server/user/generation";
+import { getBrands, deleteBrand } from "../../server/user/brand";
+import type { Brand } from "../../libs/types/brand.type";
 import type { Member } from "../../libs/types/member.type";
 
 const ROUTES: Record<string, string> = {
@@ -48,6 +50,15 @@ interface BrandItem {
     _id: string;
     name: string;
 }
+
+const INDUSTRY_LABELS: Record<string, string> = {
+    ecommerce: "E-Commerce", supplements: "Supplements", apparel: "Apparel",
+    beauty: "Beauty", food_beverage: "Food & Beverage", saas: "SaaS",
+    fitness: "Fitness", home_goods: "Home Goods", pets: "Pets",
+    financial_services: "Financial", education: "Education", other: "Other",
+};
+
+const BRAND_COLORS = ["#3ECFCF", "#22C55E", "#8B5CF6", "#F59E0B", "#EC4899", "#6366F1"];
 
 interface RecentAd {
     _id: string;
@@ -105,6 +116,11 @@ function DashboardPage() {
     const [activity, setActivity] = useState<ActivityItem[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Brands page state
+    const [fullBrands, setFullBrands] = useState<Brand[]>([]);
+    const [brandsLoading, setBrandsLoading] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
     useEffect(() => {
         async function fetchData() {
             try {
@@ -141,6 +157,32 @@ function DashboardPage() {
         }
         fetchData();
     }, []);
+
+    // Brands sahifasiga o'tganda — to'liq brand ma'lumotlarini yuklash
+    useEffect(() => {
+        if (page === "brands") {
+            setBrandsLoading(true);
+            getBrands(1, 100)
+                .then((res) => setFullBrands(res.list))
+                .catch(console.error)
+                .finally(() => setBrandsLoading(false));
+        }
+    }, [page]);
+
+    const handleDeleteBrand = async (id: string) => {
+        if (!confirm("Do you want to delete this brand?")) return;
+        setDeletingId(id);
+        try {
+            await deleteBrand(id);
+            setFullBrands((prev) => prev.filter((b) => b._id !== id));
+            setBrands((prev) => prev.filter((b) => b._id !== id));
+        } catch (err) {
+            console.error("Delete brand error:", err);
+            alert("Brand o'chirishda xato yuz berdi");
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     const handleNav = (id: string) => {
         if (ROUTES[id]) {
@@ -307,167 +349,296 @@ function DashboardPage() {
                         <div className="dash-header__date">
                             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                         </div>
-                        <div className="dash-header__title">Welcome back, {userName.split(" ")[0]}</div>
-                    </div>
-                    <button className="btn-generate" onClick={() => router.push("/generateAds")}>+ Generate New Ad</button>
-                </div>
-
-                {/* Stats */}
-                <div className="stats-grid">
-                    {[
-                        { label: "CREDITS LEFT", val: String(remaining), sub: `of ${limit}`, color: "var(--accent)", bar: pct },
-                        { label: "ADS GENERATED", val: String(usage?.stats?.ads_generated || 0), sub: "lifetime", color: "var(--g1)", trend: null },
-                        { label: "ADS SAVED", val: String(usage?.stats?.ads_saved || 0), sub: "across brands", color: "var(--green)", trend: null },
-                        { label: "CANVA TEMPLATES", val: String(usage?.stats?.canva_templates || 0), sub: "ready to use", color: "var(--yellow)", trend: null },
-                    ].map((s: any, i) => (
-                        <div key={i} className="stat-card">
-                            <div className="stat-card__label">{s.label}</div>
-                            <div className="stat-card__row">
-                                <span className="stat-card__value" style={{ color: s.color }}>{s.val}</span>
-                                <span className="stat-card__sub">{s.sub}</span>
-                            </div>
-                            {s.bar != null && (
-                                <div className="stat-card__bar">
-                                    <div className="stat-card__bar-fill" style={{ width: `${s.bar}%` }} />
-                                </div>
-                            )}
-                            {s.trend && <div className="stat-card__trend">{s.trend}</div>}
+                        <div className="dash-header__title">
+                            {page === "brands" ? "My Brands" : `Welcome back, ${userName.split(" ")[0]}`}
                         </div>
-                    ))}
+                    </div>
+                    {page === "brands" ? (
+                        <button className="btn-generate" onClick={() => router.push("/generateAds")}>
+                            + Create New Brand
+                        </button>
+                    ) : (
+                        <button className="btn-generate" onClick={() => router.push("/generateAds")}>+ Generate New Ad</button>
+                    )}
                 </div>
 
-                {/* Grid: Ads + Sidebar */}
-                <div className="dash-grid">
-                    {/* Recent Ads */}
-                    <div className="recent-ads">
-                        <div className="recent-ads__header">
-                            <span className="recent-ads__title">Recent Ads</span>
-                            <div className="recent-ads__filters">
-                                {[
-                                    { id: "all", label: "All", color: "var(--accent)" },
-                                    ...brands.map((b, i) => ({
-                                        id: b.name.toLowerCase(),
-                                        label: b.name,
-                                        color: ["#3ECFCF", "#22C55E", "#F59E0B", "#8B5CF6", "#EC4899"][i % 5],
-                                    })),
-                                ].map((b) => (
-                                    <button
-                                        key={b.id}
-                                        className={`brand-filter-btn ${brandFilter === b.id ? "brand-filter-btn--active" : ""}`}
-                                        onClick={() => setBrandFilter(b.id)}
-                                        style={{
-                                            background: brandFilter === b.id ? `${b.color}22` : undefined,
-                                            color: brandFilter === b.id ? b.color : undefined,
-                                        }}
-                                    >
-                                        {b.label}
-                                    </button>
+                {/* ===== BRANDS PAGE ===== */}
+                {page === "brands" && (
+                    <div className="brands-page">
+                        {/* Stats Row */}
+                        <div className="brands-page__stats">
+                            <div className="brands-stat">
+                                <span className="brands-stat__value" style={{ color: "var(--accent)" }}>{fullBrands.length}</span>
+                                <span className="brands-stat__label">Total Brands</span>
+                            </div>
+                            <div className="brands-stat">
+                                <span className="brands-stat__value" style={{ color: "var(--green)" }}>{usage?.stats?.ads_generated || 0}</span>
+                                <span className="brands-stat__label">Ads Generated</span>
+                            </div>
+                            <div className="brands-stat">
+                                <span className="brands-stat__value" style={{ color: "var(--g1)" }}>
+                                    {[...new Set(fullBrands.map(b => b.industry))].length}
+                                </span>
+                                <span className="brands-stat__label">Industries</span>
+                            </div>
+                        </div>
+
+                        {/* Brands Grid */}
+                        {brandsLoading ? (
+                            <div className="brands-page__loading">
+                                <div className="brands-page__spinner" />
+                                <span>Loading brands...</span>
+                            </div>
+                        ) : fullBrands.length === 0 ? (
+                            <div className="brands-page__empty">
+                                <div className="brands-page__empty-icon">B</div>
+                                <h3>No brands yet</h3>
+                                <p>Create your first brand to start generating ads</p>
+                                <button className="btn-generate" onClick={() => router.push("/generateAds")}>
+                                    + Create First Brand
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="brands-grid">
+                                {fullBrands.map((brand, i) => (
+                                    <div key={brand._id} className="brand-card">
+                                        {/* Card Header with gradient */}
+                                        <div
+                                            className="brand-card__header"
+                                            style={{
+                                                background: `linear-gradient(135deg, ${brand.primary_color || BRAND_COLORS[i % 6]}cc, ${brand.secondary_color || BRAND_COLORS[(i + 2) % 6]}88)`,
+                                            }}
+                                        >
+                                            <div className="brand-card__logo">
+                                                {brand.logo_url ? (
+                                                    <img src={brand.logo_url} alt={brand.name} />
+                                                ) : (
+                                                    <span>{brand.name.charAt(0).toUpperCase()}</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Card Body */}
+                                        <div className="brand-card__body">
+                                            <h3 className="brand-card__name">{brand.name}</h3>
+                                            <span className="brand-card__industry">
+                                                {INDUSTRY_LABELS[brand.industry] || brand.industry}
+                                            </span>
+                                            {brand.description && (
+                                                <p className="brand-card__desc">
+                                                    {brand.description.length > 80
+                                                        ? brand.description.slice(0, 80) + "..."
+                                                        : brand.description}
+                                                </p>
+                                            )}
+
+                                            {/* Colors */}
+                                            <div className="brand-card__colors">
+                                                {[brand.primary_color, brand.secondary_color, brand.accent_color, brand.background_color]
+                                                    .filter(Boolean)
+                                                    .map((color, ci) => (
+                                                        <div
+                                                            key={ci}
+                                                            className="brand-card__color-dot"
+                                                            style={{ backgroundColor: color }}
+                                                            title={color}
+                                                        />
+                                                    ))}
+                                            </div>
+
+                                            {/* Voice tags */}
+                                            {brand.voice_tags && brand.voice_tags.length > 0 && (
+                                                <div className="brand-card__tags">
+                                                    {brand.voice_tags.slice(0, 3).map((tag) => (
+                                                        <span key={tag} className="brand-card__tag">{tag}</span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Card Footer */}
+                                        <div className="brand-card__footer">
+                                            <span className="brand-card__date">
+                                                {new Date(brand.created_at).toLocaleDateString()}
+                                            </span>
+                                            <div className="brand-card__actions">
+                                                <button
+                                                    className="brand-card__btn brand-card__btn--delete"
+                                                    onClick={() => handleDeleteBrand(brand._id)}
+                                                    disabled={deletingId === brand._id}
+                                                >
+                                                    {deletingId === brand._id ? "..." : "✕"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
-                        </div>
-
-                        <div className="ads-grid">
-                            {recentAds.length > 0 ? (
-                                recentAds
-                                    .filter(ad => brandFilter === "all" || ad.brand_name.toLowerCase() === brandFilter)
-                                    .slice(0, 6)
-                                    .map((ad, i) => (
-                                        <div key={ad._id} className="ad-card">
-                                            <div
-                                                className="ad-card__image"
-                                                style={{
-                                                    background: ad.image_url ? `url(${ad.image_url}) center/cover` : `linear-gradient(135deg, ${BG[i % 6]}dd, ${BG[(i + 3) % 6]}aa)`,
-                                                }}
-                                            >
-                                                {!ad.image_url && <span className="ad-card__placeholder">AD</span>}
-                                                <div className="ad-card__overlay">
-                                                    <button className="btn-view-ad">View</button>
-                                                    <button className="btn-dl">DL</button>
-                                                </div>
-                                            </div>
-                                            <div className="ad-card__info">
-                                                <div className="ad-card__name">{ad.ad_name}</div>
-                                                <div className="ad-card__meta">
-                                                    <span className="ad-card__date">{timeAgo(ad.created_at)}</span>
-                                                    <span
-                                                        className="ad-card__brand"
-                                                        style={{
-                                                            background: "#3ECFCF18",
-                                                            color: "#3ECFCF",
-                                                        }}
-                                                    >
-                                                        {ad.brand_name}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                            ) : (
-                                <div style={{ color: "var(--muted)", fontStyle: "italic", padding: 20 }}>No ads generated yet.</div>
-                            )}
-                        </div>
-
-                        <div className="view-all-link" onClick={() => router.push("/adLibrary")} style={{ cursor: "pointer" }}>View all ads in library</div>
+                        )}
                     </div>
+                )}
 
-                    {/* Right sidebar */}
-                    <div className="dash-right">
-                        {/* Quick Actions */}
-                        <div className="quick-actions">
-                            <div className="quick-actions__title">Quick Actions</div>
+                {/* ===== DASHBOARD PAGE ===== */}
+                {page === "dashboard" && (
+                    <>
+                        {/* Stats */}
+                        <div className="stats-grid">
                             {[
-                                { label: "Generate New Ad", desc: "5 credits per generation", letter: "+", primary: true },
-                                { label: "Create New Brand", desc: "Set up a brand profile", letter: "B", primary: false },
-                                { label: "Buy More Credits", desc: "100 credits for $15", letter: "$", primary: false },
-                            ].map((a, i) => (
-                                <div
-                                    key={i}
-                                    className={`action-item ${a.primary ? "action-item--primary" : ""}`}
-                                    style={{ marginBottom: i < 2 ? 6 : 0 }}
-                                >
-                                    <div className={`action-item__icon ${a.primary ? "action-item__icon--primary" : "action-item__icon--default"}`}>
-                                        {a.letter}
+                                { label: "CREDITS LEFT", val: String(remaining), sub: `of ${limit}`, color: "var(--accent)", bar: pct },
+                                { label: "ADS GENERATED", val: String(usage?.stats?.ads_generated || 0), sub: "lifetime", color: "var(--g1)", trend: null },
+                                { label: "ADS SAVED", val: String(usage?.stats?.ads_saved || 0), sub: "across brands", color: "var(--green)", trend: null },
+                                { label: "CANVA TEMPLATES", val: String(usage?.stats?.canva_templates || 0), sub: "ready to use", color: "var(--yellow)", trend: null },
+                            ].map((s: any, i) => (
+                                <div key={i} className="stat-card">
+                                    <div className="stat-card__label">{s.label}</div>
+                                    <div className="stat-card__row">
+                                        <span className="stat-card__value" style={{ color: s.color }}>{s.val}</span>
+                                        <span className="stat-card__sub">{s.sub}</span>
                                     </div>
-                                    <div>
-                                        <div className="action-item__label" style={{ color: a.primary ? "var(--text)" : "var(--muted)" }}>
-                                            {a.label}
+                                    {s.bar != null && (
+                                        <div className="stat-card__bar">
+                                            <div className="stat-card__bar-fill" style={{ width: `${s.bar}%` }} />
                                         </div>
-                                        <div className="action-item__desc">{a.desc}</div>
-                                    </div>
+                                    )}
+                                    {s.trend && <div className="stat-card__trend">{s.trend}</div>}
                                 </div>
                             ))}
                         </div>
 
-                        {/* Activity */}
-                        <div className="activity-card">
-                            <div className="activity-card__title">Recent Activity</div>
-                            {activity.length > 0 ? (
-                                activity.map((item, i) => (
-                                    <div key={item._id} className="activity-item">
-                                        <div className="activity-item__icon">{item.icon}</div>
-                                        <div className="activity-item__body">
-                                            <div className="activity-item__action">{item.label}</div>
-                                            <div className="activity-item__detail">{item.sub}</div>
-                                        </div>
-                                        <span className="activity-item__time">{timeAgo(item.created_at)}</span>
+                        {/* Grid: Ads + Sidebar */}
+                        <div className="dash-grid">
+                            {/* Recent Ads */}
+                            <div className="recent-ads">
+                                <div className="recent-ads__header">
+                                    <span className="recent-ads__title">Recent Ads</span>
+                                    <div className="recent-ads__filters">
+                                        {[
+                                            { id: "all", label: "All", color: "var(--accent)" },
+                                            ...brands.map((b, i) => ({
+                                                id: b.name.toLowerCase(),
+                                                label: b.name,
+                                                color: ["#3ECFCF", "#22C55E", "#F59E0B", "#8B5CF6", "#EC4899"][i % 5],
+                                            })),
+                                        ].map((b) => (
+                                            <button
+                                                key={b.id}
+                                                className={`brand-filter-btn ${brandFilter === b.id ? "brand-filter-btn--active" : ""}`}
+                                                onClick={() => setBrandFilter(b.id)}
+                                                style={{
+                                                    background: brandFilter === b.id ? `${b.color}22` : undefined,
+                                                    color: brandFilter === b.id ? b.color : undefined,
+                                                }}
+                                            >
+                                                {b.label}
+                                            </button>
+                                        ))}
                                     </div>
-                                ))
-                            ) : (
-                                <div style={{ padding: 16, color: "var(--muted)", fontSize: 13 }}>No recent activity.</div>
-                            )}
-                        </div>
+                                </div>
 
-                        {/* Tip */}
-                        <div className="tip-card">
-                            <div className="tip-card__label">Tip of the day</div>
-                            <div className="tip-card__title">Try &quot;Feature Pointers&quot; for supplements</div>
-                            <div className="tip-card__desc">
-                                Brands in your space see 2.3x higher CTR with feature pointer ads that highlight specific product benefits.
+                                <div className="ads-grid">
+                                    {recentAds.length > 0 ? (
+                                        recentAds
+                                            .filter(ad => brandFilter === "all" || ad.brand_name.toLowerCase() === brandFilter)
+                                            .slice(0, 6)
+                                            .map((ad, i) => (
+                                                <div key={ad._id} className="ad-card">
+                                                    <div
+                                                        className="ad-card__image"
+                                                        style={{
+                                                            background: ad.image_url ? `url(${ad.image_url}) center/cover` : `linear-gradient(135deg, ${BG[i % 6]}dd, ${BG[(i + 3) % 6]}aa)`,
+                                                        }}
+                                                    >
+                                                        {!ad.image_url && <span className="ad-card__placeholder">AD</span>}
+                                                        <div className="ad-card__overlay">
+                                                            <button className="btn-view-ad">View</button>
+                                                            <button className="btn-dl">DL</button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="ad-card__info">
+                                                        <div className="ad-card__name">{ad.ad_name}</div>
+                                                        <div className="ad-card__meta">
+                                                            <span className="ad-card__date">{timeAgo(ad.created_at)}</span>
+                                                            <span
+                                                                className="ad-card__brand"
+                                                                style={{
+                                                                    background: "#3ECFCF18",
+                                                                    color: "#3ECFCF",
+                                                                }}
+                                                            >
+                                                                {ad.brand_name}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                    ) : (
+                                        <div style={{ color: "var(--muted)", fontStyle: "italic", padding: 20 }}>No ads generated yet.</div>
+                                    )}
+                                </div>
+
+                                <div className="view-all-link" onClick={() => router.push("/adLibrary")} style={{ cursor: "pointer" }}>View all ads in library</div>
                             </div>
-                            <button className="tip-card__btn">Try this concept</button>
+
+                            {/* Right sidebar */}
+                            <div className="dash-right">
+                                {/* Quick Actions */}
+                                <div className="quick-actions">
+                                    <div className="quick-actions__title">Quick Actions</div>
+                                    {[
+                                        { label: "Generate New Ad", desc: "5 credits per generation", letter: "+", primary: true },
+                                        { label: "Create New Brand", desc: "Set up a brand profile", letter: "B", primary: false },
+                                        { label: "Buy More Credits", desc: "100 credits for $15", letter: "$", primary: false },
+                                    ].map((a, i) => (
+                                        <div
+                                            key={i}
+                                            className={`action-item ${a.primary ? "action-item--primary" : ""}`}
+                                            style={{ marginBottom: i < 2 ? 6 : 0 }}
+                                        >
+                                            <div className={`action-item__icon ${a.primary ? "action-item__icon--primary" : "action-item__icon--default"}`}>
+                                                {a.letter}
+                                            </div>
+                                            <div>
+                                                <div className="action-item__label" style={{ color: a.primary ? "var(--text)" : "var(--muted)" }}>
+                                                    {a.label}
+                                                </div>
+                                                <div className="action-item__desc">{a.desc}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Activity */}
+                                <div className="activity-card">
+                                    <div className="activity-card__title">Recent Activity</div>
+                                    {activity.length > 0 ? (
+                                        activity.map((item, i) => (
+                                            <div key={item._id} className="activity-item">
+                                                <div className="activity-item__icon">{item.icon}</div>
+                                                <div className="activity-item__body">
+                                                    <div className="activity-item__action">{item.label}</div>
+                                                    <div className="activity-item__detail">{item.sub}</div>
+                                                </div>
+                                                <span className="activity-item__time">{timeAgo(item.created_at)}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div style={{ padding: 16, color: "var(--muted)", fontSize: 13 }}>No recent activity.</div>
+                                    )}
+                                </div>
+
+                                {/* Tip */}
+                                <div className="tip-card">
+                                    <div className="tip-card__label">Tip of the day</div>
+                                    <div className="tip-card__title">Try &quot;Feature Pointers&quot; for supplements</div>
+                                    <div className="tip-card__desc">
+                                        Brands in your space see 2.3x higher CTR with feature pointer ads that highlight specific product benefits.
+                                    </div>
+                                    <button className="tip-card__btn">Try this concept</button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </>
+                )}
             </div>
         </div>
     );
