@@ -796,32 +796,59 @@ function GeneratePageContent() {
                     <div style={{ animation: "fadeIn 0.4s ease" }}>
                         <div className="gen-progress-title">
                             <h2>Generating Your Ads</h2>
-                            <p>{generatedResults.length > 0 ? `${generatedResults.length} variation(s) complete` : "Processing..."}</p>
+                            <p>{completedAds.filter(Boolean).length} of 6 variations complete</p>
+                            <div className="gen-progress-bar">
+                                <div className="gen-progress-bar__fill" style={{ width: `${(completedAds.filter(Boolean).length / 6) * 100}%` }} />
+                            </div>
                         </div>
 
                         <div className="gen-ad-grid">
-                            {generatedResults.length > 0 ? (
-                                generatedResults.map((result, i) => (
-                                    <div key={result._id} className="gen-ad-card gen-ad-card--complete">
-                                        <div className="gen-ad-card__preview" style={{ height: 280, position: "relative" }}>
-                                            {result.image_url_1x1 ? (
-                                                <img src={result.image_url_1x1} alt={result.ad_name || `Variation ${i + 1} `}
-                                                    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }} />
+                            {Array.from({ length: 6 }).map((_, i) => {
+                                const result = generatedResults[i];
+                                const isCompleted = completedAds[i];
+                                const isGenerating = generatingAds[i];
+                                const hasImage = result?.image_url_1x1;
+
+                                return (
+                                    <div key={result?._id || `slot-${i}`}
+                                        className={`gen-ad-card ${isCompleted ? "gen-ad-card--complete" : ""}`}
+                                        style={{ animation: isCompleted && hasImage ? "cardReveal 0.5s ease" : undefined }}>
+                                        <div className="gen-ad-card__preview" style={{ height: 280, position: "relative", overflow: "hidden" }}>
+                                            {isCompleted && hasImage ? (
+                                                <>
+                                                    <img src={result.image_url_1x1!} alt={result?.ad_name || `Variation ${i + 1}`}
+                                                        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }} />
+                                                    <div className="gen-ad-card__overlay" onClick={() => setLightboxImage(result.image_url_1x1)}>
+                                                        <div className="gen-ad-card__eye">👁</div>
+                                                    </div>
+                                                </>
+                                            ) : isCompleted && !hasImage ? (
+                                                <div className="gen-ad-card__failed">
+                                                    <div style={{ fontSize: 28, marginBottom: 8 }}>⚠️</div>
+                                                    <div style={{ fontSize: 13, color: "var(--muted)" }}>Generation failed</div>
+                                                    <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>This variation could not be generated</div>
+                                                </div>
                                             ) : (
-                                                <div className="gen-ad-card__result">
-                                                    <div className="gen-ad-card__result-title">{result.ad_name || `Variation ${i + 1} `}</div>
-                                                    <div className="gen-ad-card__result-sub">Image not available</div>
+                                                <div className="gen-ad-card__skeleton">
+                                                    <div className="gen-ad-card__skeleton-shimmer" />
+                                                    <div className="gen-ad-card__skeleton-content">
+                                                        <div className="gen-loading-spinner" style={{ width: 32, height: 32, borderWidth: 2 }} />
+                                                        <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 10 }}>
+                                                            Variation {i + 1}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
+                                        {isCompleted && result?.ad_copy_json && (
+                                            <div style={{ padding: "10px 12px 8px", fontSize: 13 }}>
+                                                <div style={{ fontWeight: 700, color: "#e6f1ff", marginBottom: 2 }}>{result.ad_copy_json.headline}</div>
+                                                <div style={{ color: "#8892b0", fontSize: 11 }}>{result.ad_copy_json.subheadline}</div>
+                                            </div>
+                                        )}
                                     </div>
-                                ))
-                            ) : (
-                                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 60 }}>
-                                    <div className="gen-loading-spinner" />
-                                    <p style={{ color: "#8892b0", marginTop: 16 }}>AI is generating your ad creative...</p>
-                                </div>
-                            )}
+                                );
+                            })}
                         </div>
                     </div>
                 )}
