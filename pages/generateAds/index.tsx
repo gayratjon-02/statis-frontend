@@ -357,10 +357,10 @@ function GeneratePageContent() {
                     {steps.map((s, i) => (
                         <div key={i} className="gen-step">
                             <div
-                                className={`gen - step__btn ${i === step ? "gen-step__btn--active" : ""} ${i < step ? "gen-step__btn--done" : ""} `}
+                                className={`gen-step__btn ${i === step ? "gen-step__btn--active" : ""} ${i < step ? "gen-step__btn--done" : ""}`}
                                 onClick={() => { if (i < step) setStep(i); }}
                             >
-                                <div className={`gen - step__num ${i === step ? "gen-step__num--active" : i < step ? "gen-step__num--done" : "gen-step__num--pending"} `}>
+                                <div className={`gen-step__num ${i === step ? "gen-step__num--active" : i < step ? "gen-step__num--done" : "gen-step__num--pending"}`}>
                                     {i < step ? "✓" : i + 1}
                                 </div>
                                 <span className="gen-step__label" style={{
@@ -379,7 +379,7 @@ function GeneratePageContent() {
             )}
 
             {/* ===== CONTENT ===== */}
-            <div className={`gen - content ${step === 2 ? "gen-content--medium" : step >= 4 ? "gen-content--wide" : "gen-content--narrow"} `}>
+            <div className={`gen-content ${step === 2 ? "gen-content--medium" : step >= 4 ? "gen-content--wide" : "gen-content--narrow"}`}>
 
                 {/* ══════ STEP 0: BRAND ══════ */}
                 {step === 0 && (
@@ -511,7 +511,7 @@ function GeneratePageContent() {
                                             <label className="gen-label">Voice & Tone *</label>
                                             <div className="gen-tags">
                                                 {VOICE_TAGS.map((tag) => (
-                                                    <div key={tag} className={`gen - tag ${brand.voiceTags.includes(tag) ? "gen-tag--active" : ""} `}
+                                                    <div key={tag} className={`gen-tag ${brand.voiceTags.includes(tag) ? "gen-tag--active" : ""}`}
                                                         onClick={() => toggleVoiceTag(tag)}>
                                                         {tag}
                                                     </div>
@@ -712,13 +712,13 @@ function GeneratePageContent() {
 
                         <div className="gen-concept-filter">
                             <button
-                                className={`gen - concept - filter - btn ${conceptFilter === "All" ? "gen-concept-filter-btn--active" : ""} `}
+                                className={`gen-concept-filter-btn ${conceptFilter === "All" ? "gen-concept-filter-btn--active" : ""}`}
                                 onClick={() => setConceptFilter("All")}>
                                 All
                             </button>
                             {conceptCategories.map((cat) => (
                                 <button key={cat._id}
-                                    className={`gen - concept - filter - btn ${conceptFilter === cat._id ? "gen-concept-filter-btn--active" : ""} `}
+                                    className={`gen-concept-filter-btn ${conceptFilter === cat._id ? "gen-concept-filter-btn--active" : ""}`}
                                     onClick={() => setConceptFilter(cat._id)}>
                                     {cat.name}
                                 </button>
@@ -728,7 +728,7 @@ function GeneratePageContent() {
                         <div className="gen-concepts-grid">
                             {filteredConcepts.map((concept) => (
                                 <div key={concept._id}
-                                    className={`gen - concept - card ${selectedConcept === concept._id ? "gen-concept-card--selected" : ""} `}
+                                    className={`gen-concept-card ${selectedConcept === concept._id ? "gen-concept-card--selected" : ""}`}
                                     onClick={() => setSelectedConcept(concept._id)}>
                                     <div className="gen-concept-card__preview"
                                         style={{ backgroundImage: `url(${concept.image_url})`, backgroundSize: 'cover' }}>
@@ -842,7 +842,7 @@ function GeneratePageContent() {
                         <div className="gen-ad-grid">
                             {generatedResults.length > 0 ? (
                                 generatedResults.map((result, i) => (
-                                    <div key={result._id} className={`gen - ad - card ${savedAds[i] ? "gen-ad-card--saved" : ""} `}>
+                                    <div key={result._id} className={`gen-ad-card ${savedAds[i] ? "gen-ad-card--saved" : ""}`}>
                                         <div className="gen-ad-card__preview"
                                             style={{ height: 280, position: "relative", overflow: "hidden" }}>
                                             {result.image_url_1x1 ? (
