@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/router";
 import AuthGuard from "../../libs/auth/AuthGuard";
 import { getBrands, createBrand, uploadBrandLogo } from "../../server/user/brand";
 import { getProducts, createProduct, uploadProductPhoto } from "../../server/user/product";
@@ -38,6 +39,7 @@ interface ProductState {
 }
 
 function GeneratePageContent() {
+    const router = useRouter();
     const [step, setStep] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -353,8 +355,27 @@ function GeneratePageContent() {
             {/* ===== TOP BAR ===== */}
             <div className="gen-topbar">
                 <div className="gen-topbar__brand">
-                    <span className="gen-topbar__logo grad-text">Static Engine</span>
+                    <span className="gen-topbar__logo grad-text" style={{ cursor: "pointer" }} onClick={() => router.push("/dashboard")}>Static Engine</span>
                     <span className="gen-topbar__beta">BETA</span>
+                    <button
+                        onClick={() => router.push("/dashboard")}
+                        style={{
+                            marginLeft: 16,
+                            padding: "6px 14px",
+                            fontSize: 13,
+                            fontWeight: 500,
+                            color: "var(--muted)",
+                            background: "rgba(255,255,255,0.06)",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            borderRadius: 8,
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "var(--text)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "var(--muted)"; }}
+                    >
+                        ← Dashboard
+                    </button>
                 </div>
                 <div className="gen-topbar__right">
                     <div className="gen-credits">
