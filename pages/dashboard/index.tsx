@@ -5,6 +5,7 @@ import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest
 import { getRecentGenerationsRequest } from "../../server/user/generation";
 import { getBrands, deleteBrand } from "../../server/user/brand";
 import { getBrandConfig, type IndustryItem } from "../../server/user/config";
+import API_BASE_URL from "../../libs/config/api.config";
 import type { Brand } from "../../libs/types/brand.type";
 import type { Member } from "../../libs/types/member.type";
 
@@ -53,6 +54,14 @@ interface BrandItem {
 }
 
 // Industry labels are now fetched from backend via getBrandConfig()
+
+/** Resolve relative /uploads/ paths to absolute backend URLs */
+const resolveImageUrl = (url: string | null | undefined): string => {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    if (url.startsWith("/uploads/")) return `${API_BASE_URL}${url}`;
+    return url;
+};
 
 const BRAND_COLORS = ["#3ECFCF", "#22C55E", "#8B5CF6", "#F59E0B", "#EC4899", "#6366F1"];
 
@@ -416,7 +425,7 @@ function DashboardPage() {
                                         >
                                             <div className="brand-card__logo">
                                                 {brand.logo_url ? (
-                                                    <img src={brand.logo_url} alt={brand.name} />
+                                                    <img src={resolveImageUrl(brand.logo_url)} alt={brand.name} />
                                                 ) : (
                                                     <span>{brand.name.charAt(0).toUpperCase()}</span>
                                                 )}
