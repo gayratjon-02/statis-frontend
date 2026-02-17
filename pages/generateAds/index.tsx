@@ -230,10 +230,21 @@ function GeneratePageContent() {
                 }
             }, 3000);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to start generation", error);
             setStep(3);
-            alert("Failed to start generation. Please try again.");
+
+            const msg = error?.message || "";
+            if (msg.toLowerCase().includes("insufficient credits") || msg.toLowerCase().includes("credit")) {
+                const goToBilling = confirm(
+                    "You don't have enough credits to generate ads.\n\nWould you like to top up your account?"
+                );
+                if (goToBilling) {
+                    router.push("/dashboard");
+                }
+            } else {
+                alert("Failed to start generation. Please try again.");
+            }
         }
     };
 
