@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import AuthGuard from "../../libs/auth/AuthGuard";
 import { getLibraryAdsRequest, getLibraryCountsRequest } from "../../server/user/generation";
 import type { AdLibraryItem, LibraryCounts } from "../../libs/types/generation.type";
@@ -27,6 +28,7 @@ function timeAgo(dateStr: string) {
 }
 
 function LibraryPage() {
+    const router = useRouter();
     // Filters & UI State
     const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
     const [selectedFolder, setSelectedFolder] = useState<string | null>(null); // Product ID
@@ -101,6 +103,25 @@ function LibraryPage() {
                 {/* Top Bar */}
                 <div className="lib-topbar">
                     <div className="lib-topbar__title-area">
+                        <button
+                            onClick={() => router.push("/dashboard")}
+                            style={{
+                                padding: "6px 14px",
+                                fontSize: 13,
+                                fontWeight: 500,
+                                color: "var(--muted)",
+                                background: "rgba(255,255,255,0.06)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                borderRadius: 8,
+                                cursor: "pointer",
+                                marginBottom: 8,
+                                transition: "all 0.2s",
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "var(--text)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "var(--muted)"; }}
+                        >
+                            ← Dashboard
+                        </button>
                         <div className="lib-topbar__title">
                             {selectedBrand ? counts.brands.find((b) => b._id === selectedBrand)?.name : "All"} Ads
                         </div>
