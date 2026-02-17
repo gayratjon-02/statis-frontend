@@ -5,12 +5,21 @@ import { getProducts, createProduct, uploadProductPhoto } from "../../server/use
 import { getConcepts, getCategories, getRecommendedConcepts, getConceptConfig, incrementUsage } from "../../server/user/concept";
 import { createGeneration, getGenerationStatus, getGenerationBatchStatus } from "../../server/user/generation";
 import { getBrandConfig, type IndustryItem, type VoiceItem } from "../../server/user/config";
+import API_BASE_URL from "../../libs/config/api.config";
 import type { Brand, CreateBrandInput } from "../../libs/types/brand.type";
 import { BrandIndustry, BrandVoice } from "../../libs/types/brand.type";
 import type { Product, CreateProductInput } from "../../libs/types/product.type";
 import type { AdConcept, ConceptCategoryItem } from "../../libs/types/concept.type";
 
 const AD_COLORS = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
+
+/** Resolve relative /uploads/ paths to absolute backend URLs */
+const resolveImageUrl = (url: string | null | undefined): string => {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    if (url.startsWith("/uploads/")) return `${API_BASE_URL}${url}`;
+    return url;
+};
 
 interface BrandState {
     _id?: string; // If set, it's an existing brand
@@ -408,7 +417,7 @@ function GeneratePageContent() {
                                                 url: b.website_url,
                                                 industry: b.industry,
                                                 logo: null,
-                                                logoPreview: b.logo_url,
+                                                logoPreview: resolveImageUrl(b.logo_url),
                                                 primaryColor: b.primary_color,
                                                 secondaryColor: b.secondary_color,
                                                 accentColor: b.accent_color,
@@ -575,7 +584,7 @@ function GeneratePageContent() {
                                                     description: p.description,
                                                     usps: p.usps,
                                                     photo: null,
-                                                    photoPreview: p.photo_url,
+                                                    photoPreview: resolveImageUrl(p.photo_url),
                                                     noPhysicalProduct: !p.has_physical_product,
                                                     price: p.price_text,
                                                     productUrl: p.product_url,
@@ -742,7 +751,7 @@ function GeneratePageContent() {
                                     className={`gen-concept-card ${selectedConcept === concept._id ? "gen-concept-card--selected" : ""}`}
                                     onClick={() => setSelectedConcept(concept._id)}>
                                     <div className="gen-concept-card__preview"
-                                        style={{ backgroundImage: `url(${concept.image_url})`, backgroundSize: 'cover' }}>
+                                        style={{ backgroundImage: `url(${resolveImageUrl(concept.image_url)})`, backgroundSize: 'cover' }}>
                                         <div className="gen-concept-card__placeholder">▣</div>
                                         {concept.usage_count > 100 && <div className="gen-concept-card__popular">POPULAR</div>}
                                         {selectedConcept === concept._id && <div className="gen-concept-card__check">✓</div>}
@@ -774,8 +783,9 @@ function GeneratePageContent() {
 
                             <textarea className="gen-textarea" style={{ height: 160, fontSize: 15, lineHeight: 1.6 }}
                                 placeholder={`Examples: \n• "Make sure the ad mentions the color blue"\n• "Use a dark, moody background"\n• "Target audience is men 30-50 who play golf"\n• "Ad should feel premium and luxurious"`}
+                                maxLength={2000}
                                 value={notes} onChange={(e) => setNotes(e.target.value)} />
-                            <div className="gen-char-count">{notes.length}/500</div>
+                            <div className="gen-char-count">{notes.length}/2000</div>
 
                             <div className="gen-summary">
                                 <div className="gen-summary__title">GENERATION SUMMARY</div>
