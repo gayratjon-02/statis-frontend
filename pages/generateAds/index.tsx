@@ -428,8 +428,8 @@ function GeneratePageContent() {
                                             setStep(1);
                                         }}
                                     >
-                                        <div className="gen-brand-item__icon" style={{ background: `${b.primary_color} 33`, color: b.primary_color }}>
-                                            {b.name[0]}
+                                        <div className="gen-brand-item__icon" style={{ background: b.logo_url ? 'transparent' : `${b.primary_color}33`, color: b.primary_color }}>
+                                            {b.logo_url ? <img src={resolveImageUrl(b.logo_url)} alt={b.name} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }} /> : b.name[0]}
                                         </div>
                                         <span style={{ fontWeight: 500 }}>{b.name}</span>
                                     </div>
@@ -595,7 +595,8 @@ function GeneratePageContent() {
                                                 setStep(2);
                                             }}
                                         >
-                                            <div className="gen-brand-item__icon" style={{ backgroundImage: `url(${p.photo_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                                            <div className="gen-brand-item__icon" style={p.photo_url ? { backgroundImage: `url(${resolveImageUrl(p.photo_url)})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: '#3ECFCF33', color: '#3ECFCF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {!p.photo_url && p.name[0]}
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                 <span style={{ fontWeight: 500 }}>{p.name}</span>
