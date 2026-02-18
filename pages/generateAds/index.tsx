@@ -77,6 +77,9 @@ function GeneratePageContent() {
     const [completedAds, setCompletedAds] = useState([false, false, false, false, false, false]);
     const [savedAds, setSavedAds] = useState([false, false, false, false, false, false]);
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analyzingStep, setAnalyzingStep] = useState(0);
+    const analyzingSteps = ["Analyzing brand identity", "Crafting ad copy", "Preparing image prompts"];
 
     // Real generation results from backend
     interface GeneratedResult {
@@ -130,11 +133,20 @@ function GeneratePageContent() {
         }
     }, [brand._id]);
 
+    useEffect(() => {
+        if (!isAnalyzing) { setAnalyzingStep(0); return; }
+        const timer = setInterval(() => {
+            setAnalyzingStep((prev) => (prev < analyzingSteps.length - 1 ? prev + 1 : prev));
+        }, 3000);
+        return () => clearInterval(timer);
+    }, [isAnalyzing]);
+
     const startGeneration = async () => {
         if (!brand._id || !product._id || !selectedConcept) return;
 
         setStep(4);
-        setGeneratingAds([true, true, true, true, true, true]);
+        setIsAnalyzing(true);
+        setGeneratingAds([false, false, false, false, false, false]);
         setCompletedAds([false, false, false, false, false, false]);
         setSavedAds([false, false, false, false, false, false]);
         setGeneratedResults([]);
@@ -146,6 +158,10 @@ function GeneratePageContent() {
                 concept_id: selectedConcept,
                 important_notes: notes,
             });
+
+            // Claude finished, Gemini jobs queued — show skeleton cards
+            setIsAnalyzing(false);
+            setGeneratingAds([true, true, true, true, true, true]);
 
             const jobId = result.job_id;
             const batchId = result.batch_id || jobId; // Fallback to jobId if batch_id is missing (backward compat)
@@ -232,6 +248,7 @@ function GeneratePageContent() {
 
         } catch (error: any) {
             console.error("Failed to start generation", error);
+            setIsAnalyzing(false);
             setStep(3);
 
             const msg = error?.message || "";
@@ -857,6 +874,21 @@ function GeneratePageContent() {
                 {/* ══════ STEP 4: GENERATING ══════ */}
                 {step === 4 && (
                     <div style={{ animation: "fadeIn 0.4s ease" }}>
+                        {isAnalyzing ? (
+                            <div className="gen-analyzing">
+                                <div className="gen-analyzing__spinner" />
+                                <h2 className="gen-analyzing__title">Analyzing your brand...</h2>
+                                <p className="gen-analyzing__desc">Our AI is studying your brand, product, and concept to craft the perfect ad variations.</p>
+                                <div className="gen-analyzing__steps">
+                                    {analyzingSteps.map((label, idx) => (
+                                        <div key={idx} className={`gen-analyzing__step ${idx <= analyzingStep ? "gen-analyzing__step--active" : ""} ${idx < analyzingStep ? "gen-analyzing__step--done" : ""}`}>
+                                            {label}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                        <>
                         <div className="gen-progress-title">
                             <h2>Generating Your Ads</h2>
                             <p>{completedAds.filter(Boolean).length} of 6 variations complete</p>
@@ -913,6 +945,8 @@ function GeneratePageContent() {
                                 );
                             })}
                         </div>
+                        </>
+                        )}
                     </div>
                 )}
 
