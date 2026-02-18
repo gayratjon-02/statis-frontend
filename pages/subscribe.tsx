@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import AuthGuard from "../libs/auth/AuthGuard";
 import { createCheckoutRequest } from "../server/user/billing";
@@ -35,6 +35,23 @@ function SubscribePage() {
     const router = useRouter();
     const [loading, setLoading] = useState<string | null>(null);
     const [error, setError] = useState("");
+
+    // Agar allaqachon aktiv obuna bo'lsa → dashboard
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem("se_member");
+            if (stored) {
+                const member = JSON.parse(stored);
+                const PAID_TIERS = ["starter", "pro", "growth"];
+                if (
+                    member?.subscription_status === "active" &&
+                    PAID_TIERS.includes(member?.subscription_tier?.toLowerCase())
+                ) {
+                    router.replace("/dashboard");
+                }
+            }
+        } catch { }
+    }, [router]);
 
     const handleChoosePlan = async (tier: string) => {
         setLoading(tier);

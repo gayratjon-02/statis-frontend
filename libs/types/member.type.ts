@@ -48,6 +48,7 @@ export interface Member {
 export interface AuthResponse {
     accessToken: string;
     member: Member;
+    needs_subscription?: boolean;
 }
 
 // ── DTOs ──
@@ -64,5 +65,4 @@ export interface SignupInput {
     password: string;
     full_name: string;
     avatar_url?: string;
-    subscription_tier?: string;
 }

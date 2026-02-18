@@ -2,11 +2,13 @@
 // GUARD — SubscriptionGuard
 // Wraps AuthGuard. Requires an active paid subscription.
 // Users without subscription are redirected to /subscribe.
+// After Stripe checkout, re-fetches member data from backend.
 // =============================================
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AuthGuard from "./AuthGuard";
+import { getMemberRequest } from "../../server/user/login";
 
 const PAID_TIERS = ["starter", "pro", "growth"];
 
@@ -22,31 +24,59 @@ function SubscriptionCheck({ children }: { children: React.ReactNode }) {
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
-        // After Stripe payment, allow through so dashboard can refresh data
-        const isCheckoutReturn =
-            router.query.checkout === "success" ||
-            router.query.checkout === "cancelled";
+        const checkSubscription = async () => {
+            // After Stripe payment, re-fetch member data from backend
+            const isCheckoutReturn =
+                router.query.checkout === "success" ||
+                router.query.checkout === "cancelled";
 
-        if (isCheckoutReturn) {
-            setReady(true);
-            return;
-        }
+            if (isCheckoutReturn) {
+                try {
+                    // Backend'dan eng so'nggi member data olish
+                    const member = await getMemberRequest();
+                    localStorage.setItem("se_member", JSON.stringify(member));
 
-        // Fast check against stored member data
-        try {
-            const stored = localStorage.getItem("se_member");
-            if (stored) {
-                const member = JSON.parse(stored);
-                if (!hasPaidSubscription(member)) {
-                    router.replace("/subscribe");
-                    return;
+                    if (hasPaidSubscription(member)) {
+                        setReady(true);
+                        return;
+                    }
+
+                    // Webhook hali yetib kelmagan bo'lishi mumkin — 3s kutib retry
+                    await new Promise((resolve) => setTimeout(resolve, 3000));
+                    const retryMember = await getMemberRequest();
+                    localStorage.setItem("se_member", JSON.stringify(retryMember));
+
+                    if (hasPaidSubscription(retryMember)) {
+                        setReady(true);
+                    } else {
+                        // Hali ham subscription yo'q — subscribe sahifasiga qaytarish
+                        router.replace("/subscribe");
+                    }
+                } catch {
+                    // API xato — let through, dashboard will handle
+                    setReady(true);
                 }
+                return;
             }
-        } catch {
-            // Corrupt data — let through, dashboard will re-verify
-        }
 
-        setReady(true);
+            // Normal check — localStorage'dagi member data
+            try {
+                const stored = localStorage.getItem("se_member");
+                if (stored) {
+                    const member = JSON.parse(stored);
+                    if (!hasPaidSubscription(member)) {
+                        router.replace("/subscribe");
+                        return;
+                    }
+                }
+            } catch {
+                // Corrupt data — let through, dashboard will re-verify
+            }
+
+            setReady(true);
+        };
+
+        checkSubscription();
     }, [router.query]);
 
     if (!ready) {
@@ -58,6 +88,8 @@ function SubscriptionCheck({ children }: { children: React.ReactNode }) {
                     alignItems: "center",
                     justifyContent: "center",
                     background: "var(--bg)",
+                    flexDirection: "column",
+                    gap: 12,
                 }}
             >
                 <div
@@ -70,6 +102,11 @@ function SubscriptionCheck({ children }: { children: React.ReactNode }) {
                         animation: "admin-spin 0.6s linear infinite",
                     }}
                 />
+                {router.query.checkout === "success" && (
+                    <div style={{ color: "var(--muted)", fontSize: 13, fontFamily: "var(--font-body)" }}>
+                        Verifying your subscription...
+                    </div>
+                )}
             </div>
         );
     }

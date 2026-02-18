@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { loginRequest, signupRequest } from "../server/user/login";
-import { createCheckoutRequest } from "../server/user/billing";
 import { useAuth } from "../libs/hooks/useAuth";
 
 export default function UserAuth() {
@@ -29,52 +28,23 @@ export default function UserAuth() {
 
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [loadingStep, setLoadingStep] = useState<"account" | "payment">("account");
     const [error, setError] = useState("");
-
-    // Read selected plan from query param
-    const selectedPlan = (router.query.plan as string) || null;
-    const planInfo: Record<string, { label: string; price: string; credits: string; badge?: string }> = {
-        starter: { label: "Starter", price: "$39/mo", credits: "250 credits" },
-        pro: { label: "Pro", price: "$99/mo", credits: "750 credits", badge: "POPULAR" },
-        growth: { label: "Growth", price: "$199/mo", credits: "2,000 credits" },
-    };
-    const plan = selectedPlan ? planInfo[selectedPlan] : null;
-
-    const handlePlanSelect = (tier: string) => {
-        router.replace(`/login?plan=${tier}`, undefined, { shallow: true });
-        setMode("signup");
-        setError("");
-    };
-
-    const redirectAfterAuth = async (plan: string | null) => {
-        const isPaid = plan && plan !== "free" && planInfo[plan];
-        if (isPaid) {
-            setLoadingStep("payment");
-            try {
-                const { checkout_url } = await createCheckoutRequest(plan, "monthly");
-                window.location.href = checkout_url;
-            } catch (err: any) {
-                // Checkout failed — user is logged in, send to billing page
-                setError(err.message || "Payment setup failed. You can subscribe from the Billing page.");
-                setLoading(false);
-                setTimeout(() => router.push("/dashboard"), 2500);
-            }
-        } else {
-            router.push("/dashboard");
-        }
-    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
         setLoading(true);
-        setLoadingStep("account");
         try {
             const res = await loginRequest({ email: loginEmail, password: loginPassword });
             localStorage.setItem("se_access_token", res.accessToken);
             localStorage.setItem("se_member", JSON.stringify(res.member));
-            await redirectAfterAuth(selectedPlan);
+
+            // Subscription yo'q bo'lsa → plan tanlash sahifasiga
+            if (res.needs_subscription) {
+                router.push("/subscribe");
+            } else {
+                router.push("/dashboard");
+            }
         } catch (err: any) {
             setError(err.message || "Login failed");
         } finally {
@@ -90,19 +60,17 @@ export default function UserAuth() {
         }
         setError("");
         setLoading(true);
-        setLoadingStep("account");
         try {
-            // Only send subscription_tier if it's a valid plan key
-            const validTier = selectedPlan && planInfo[selectedPlan] ? selectedPlan : undefined;
             const res = await signupRequest({
                 email: signupEmail,
                 password: signupPassword,
                 full_name: signupName,
-                subscription_tier: validTier,
             });
             localStorage.setItem("se_access_token", res.accessToken);
             localStorage.setItem("se_member", JSON.stringify(res.member));
-            await redirectAfterAuth(selectedPlan);
+
+            // Yangi user har doim plan sotib olish kerak
+            router.push("/subscribe");
         } catch (err: any) {
             setError(err.message || "Signup failed");
         } finally {
@@ -132,59 +100,38 @@ export default function UserAuth() {
                             Generate high-quality static ads in seconds. Upload your brand, pick a concept, and let AI do the rest.
                         </p>
 
-                        {/* Plan selection */}
-                        <div style={{ marginTop: 28 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 12 }}>
-                                {selectedPlan && planInfo[selectedPlan] ? "Selected Plan" : "Choose a Plan"}
+                        {/* Feature highlights */}
+                        <div style={{ marginTop: 32 }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 16 }}>
+                                Why Static Engine?
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                {(Object.entries(planInfo) as [string, { label: string; price: string; credits: string; badge?: string }][]).map(([tier, info]) => {
-                                    const isActive = selectedPlan === tier;
-                                    return (
-                                        <div
-                                            key={tier}
-                                            onClick={() => handlePlanSelect(tier)}
-                                            style={{
-                                                padding: "13px 16px",
-                                                borderRadius: 12,
-                                                border: `1px solid ${isActive ? "rgba(62,207,207,0.5)" : "rgba(255,255,255,0.07)"}`,
-                                                background: isActive ? "rgba(62,207,207,0.08)" : "rgba(255,255,255,0.03)",
-                                                cursor: "pointer",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "space-between",
-                                                transition: "border-color 0.15s, background 0.15s",
-                                                position: "relative",
-                                            }}
-                                        >
-                                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                                <div style={{
-                                                    width: 18, height: 18, borderRadius: "50%",
-                                                    border: `2px solid ${isActive ? "#3ECFCF" : "rgba(255,255,255,0.2)"}`,
-                                                    background: isActive ? "#3ECFCF" : "transparent",
-                                                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                                                }}>
-                                                    {isActive && <span style={{ color: "#0a0a0f", fontSize: 10, fontWeight: 800 }}>✓</span>}
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontSize: 14, fontWeight: 600, color: isActive ? "#3ECFCF" : "var(--text)", display: "flex", alignItems: "center", gap: 6 }}>
-                                                        {info.label}
-                                                        {info.badge && (
-                                                            <span style={{ fontSize: 9, fontWeight: 800, background: "rgba(62,207,207,0.15)", color: "#3ECFCF", padding: "2px 7px", borderRadius: 20, letterSpacing: 0.5 }}>
-                                                                {info.badge}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 1 }}>{info.credits}/mo</div>
-                                                </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                {[
+                                    { icon: "🎨", title: "AI-Powered Ads", desc: "Generate stunning ads with a single click" },
+                                    { icon: "⚡", title: "Lightning Fast", desc: "From concept to ad in under 30 seconds" },
+                                    { icon: "🎯", title: "Brand Consistent", desc: "Every ad matches your brand identity" },
+                                ].map((item) => (
+                                    <div
+                                        key={item.title}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "flex-start",
+                                            gap: 12,
+                                            padding: "10px 14px",
+                                            borderRadius: 10,
+                                            background: "rgba(255,255,255,0.03)",
+                                            border: "1px solid rgba(255,255,255,0.06)",
+                                        }}
+                                    >
+                                        <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>
+                                                {item.title}
                                             </div>
-                                            <div style={{ fontSize: 14, fontWeight: 700, color: isActive ? "#3ECFCF" : "var(--muted)" }}>
-                                                {info.price}
-                                            </div>
+                                            <div style={{ fontSize: 11, color: "var(--muted)" }}>{item.desc}</div>
                                         </div>
-                                    );
-                                })}
-
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -209,37 +156,13 @@ export default function UserAuth() {
                             </button>
                         </div>
 
-                        {/* Selected plan banner */}
-                        {plan && mode === "signup" && (
-                            <div style={{
-                                background: "linear-gradient(135deg, rgba(62,207,207,0.12), rgba(120,80,255,0.12))",
-                                border: "1px solid rgba(62,207,207,0.25)",
-                                borderRadius: 12,
-                                padding: "14px 18px",
-                                marginBottom: 20,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 12,
-                            }}>
-                                <span style={{ fontSize: 22 }}>🎯</span>
-                                <div>
-                                    <div style={{ color: "#3ECFCF", fontWeight: 700, fontSize: 14 }}>
-                                        {plan.label} Plan Selected
-                                    </div>
-                                    <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 2 }}>
-                                        {plan.price} · {plan.credits}/month
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         <h1 className="admin-auth__title">
-                            {mode === "login" ? "Welcome back" : "Start your free trial"}
+                            {mode === "login" ? "Welcome back" : "Get started for free"}
                         </h1>
                         <p className="admin-auth__subtitle">
                             {mode === "login"
                                 ? "Enter your credentials to access your dashboard"
-                                : "Create an account and start generating ads today"}
+                                : "Create your account — you'll choose a plan next"}
                         </p>
 
                         {/* Error */}
@@ -363,13 +286,10 @@ export default function UserAuth() {
                                 <button type="submit" className="admin-auth__submit" disabled={loading}>
                                     {loading ? (
                                         <>
-                                            <span className="admin-auth__spinner" />
-                                            {loadingStep === "payment"
-                                                ? "Redirecting to payment..."
-                                                : "Creating account..."}
+                                            <span className="admin-auth__spinner" /> Creating account...
                                         </>
                                     ) : (
-                                        plan ? `Create Account & Pay` : "Create Account"
+                                        "Create Account"
                                     )}
                                 </button>
                             </form>
