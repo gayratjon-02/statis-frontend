@@ -163,6 +163,9 @@ function GeneratePageContent() {
             setIsAnalyzing(false);
             setGeneratingAds([true, true, true, true, true, true]);
 
+            // Update credits in real-time (5 credits deducted per generation)
+            setCredits((prev) => ({ ...prev, used: prev.used + 5 }));
+
             const jobId = result.job_id;
             const batchId = result.batch_id || jobId; // Fallback to jobId if batch_id is missing (backward compat)
 
