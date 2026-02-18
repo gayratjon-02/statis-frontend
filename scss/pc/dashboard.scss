@@ -401,11 +401,14 @@
     }
 
     &__image {
-        height: 150px;
+        aspect-ratio: 4 / 3;
         position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
+        overflow: hidden;
+        background-size: cover;
+        background-position: center;
     }
 
     &__placeholder {

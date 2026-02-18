@@ -636,7 +636,7 @@ function GeneratePageContent() {
                                                 setStep(2);
                                             }}
                                         >
-                                            <div className="gen-brand-item__icon" style={p.photo_url ? { backgroundImage: `url(${resolveImageUrl(p.photo_url)})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: '#3ECFCF33', color: '#3ECFCF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <div className="gen-brand-item__icon" style={p.photo_url ? { backgroundImage: `url(${resolveImageUrl(p.photo_url)})`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' } : { background: '#3ECFCF33', color: '#3ECFCF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 {!p.photo_url && p.name[0]}
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
