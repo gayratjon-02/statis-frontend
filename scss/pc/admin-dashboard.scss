@@ -461,7 +461,7 @@
 
     &__concept-img {
         width: 100%;
-        height: 140px;
+        aspect-ratio: 4 / 3;
         object-fit: cover;
         display: block;
         background: var(--bg-hover);
