@@ -29,6 +29,7 @@ export default function UserAuth() {
 
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [loadingStep, setLoadingStep] = useState<"account" | "payment">("account");
     const [error, setError] = useState("");
 
     // Read selected plan from query param
@@ -43,12 +44,15 @@ export default function UserAuth() {
     const redirectAfterAuth = async (plan: string | null) => {
         const isPaid = plan && plan !== "free" && planInfo[plan];
         if (isPaid) {
+            setLoadingStep("payment");
             try {
                 const { checkout_url } = await createCheckoutRequest(plan, "monthly");
                 window.location.href = checkout_url;
-            } catch {
-                // If checkout creation fails, fall back to dashboard
-                router.push("/dashboard");
+            } catch (err: any) {
+                // Checkout failed — user is logged in, send to billing page
+                setError(err.message || "Payment setup failed. You can subscribe from the Billing page.");
+                setLoading(false);
+                setTimeout(() => router.push("/dashboard"), 2500);
             }
         } else {
             router.push("/dashboard");
@@ -59,6 +63,7 @@ export default function UserAuth() {
         e.preventDefault();
         setError("");
         setLoading(true);
+        setLoadingStep("account");
         try {
             const res = await loginRequest({ email: loginEmail, password: loginPassword });
             localStorage.setItem("se_access_token", res.accessToken);
@@ -79,6 +84,7 @@ export default function UserAuth() {
         }
         setError("");
         setLoading(true);
+        setLoadingStep("account");
         try {
             // Only send subscription_tier if it's a valid plan key
             const validTier = selectedPlan && planInfo[selectedPlan] ? selectedPlan : undefined;
@@ -311,10 +317,13 @@ export default function UserAuth() {
                                 <button type="submit" className="admin-auth__submit" disabled={loading}>
                                     {loading ? (
                                         <>
-                                            <span className="admin-auth__spinner" /> Creating account...
+                                            <span className="admin-auth__spinner" />
+                                            {loadingStep === "payment"
+                                                ? "Redirecting to payment..."
+                                                : "Creating account..."}
                                         </>
                                     ) : (
-                                        "Create Account"
+                                        plan ? `Create Account & Pay` : "Create Account"
                                     )}
                                 </button>
                             </form>
