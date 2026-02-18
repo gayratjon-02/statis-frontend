@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { loginRequest, signupRequest } from "../server/user/login";
+import { createCheckoutRequest } from "../server/user/billing";
 import { useAuth } from "../libs/hooks/useAuth";
 
 export default function UserAuth() {
@@ -35,9 +36,24 @@ export default function UserAuth() {
     const planInfo: Record<string, { label: string; price: string; credits: string }> = {
         starter: { label: "Starter", price: "$39/mo", credits: "250 credits" },
         pro: { label: "Pro", price: "$99/mo", credits: "750 credits" },
-        growth_engine: { label: "Growth Engine", price: "$199/mo", credits: "2,000 credits" },
+        growth: { label: "Growth", price: "$199/mo", credits: "2,000 credits" },
     };
     const plan = selectedPlan ? planInfo[selectedPlan] : null;
+
+    const redirectAfterAuth = async (plan: string | null) => {
+        const isPaid = plan && plan !== "free" && planInfo[plan];
+        if (isPaid) {
+            try {
+                const { checkout_url } = await createCheckoutRequest(plan, "monthly");
+                window.location.href = checkout_url;
+            } catch {
+                // If checkout creation fails, fall back to dashboard
+                router.push("/dashboard");
+            }
+        } else {
+            router.push("/dashboard");
+        }
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -47,7 +63,7 @@ export default function UserAuth() {
             const res = await loginRequest({ email: loginEmail, password: loginPassword });
             localStorage.setItem("se_access_token", res.accessToken);
             localStorage.setItem("se_member", JSON.stringify(res.member));
-            router.push("/dashboard");
+            await redirectAfterAuth(selectedPlan);
         } catch (err: any) {
             setError(err.message || "Login failed");
         } finally {
@@ -72,7 +88,7 @@ export default function UserAuth() {
             });
             localStorage.setItem("se_access_token", res.accessToken);
             localStorage.setItem("se_member", JSON.stringify(res.member));
-            router.push("/dashboard");
+            await redirectAfterAuth(selectedPlan);
         } catch (err: any) {
             setError(err.message || "Signup failed");
         } finally {

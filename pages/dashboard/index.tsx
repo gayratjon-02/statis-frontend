@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import AuthGuard from "../../libs/auth/AuthGuard";
 import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest } from "../../server/user/login";
+import { createCheckoutRequest, createPortalRequest, purchaseAddonRequest } from "../../server/user/billing";
 import { getRecentGenerationsRequest } from "../../server/user/generation";
 import { getBrands, deleteBrand } from "../../server/user/brand";
 import { getBrandConfig, type IndustryItem } from "../../server/user/config";
@@ -84,8 +85,8 @@ interface ActivityItem {
 }
 
 function tierLabel(tier: string): string {
-    const map: Record<string, string> = { free: "Free", starter: "Starter", pro: "Pro", growth_engine: "Growth Engine" };
-    return map[tier] || tier;
+    const map: Record<string, string> = { free: "Free", starter: "Starter", pro: "Pro", growth: "Growth" };
+    return map[tier?.toLowerCase()] || tier;
 }
 
 function daysUntil(dateStr: string | null): number {
@@ -113,6 +114,8 @@ function DashboardPage() {
     const [collapsed, setCollapsed] = useState(false);
     const [page, setPage] = useState("dashboard");
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+    const [checkoutBanner, setCheckoutBanner] = useState<"success" | "cancelled" | null>(null);
+    const [billingLoading, setBillingLoading] = useState<string | null>(null);
 
     // API state
     const [member, setMember] = useState<Member | null>(null);
@@ -173,6 +176,19 @@ function DashboardPage() {
             .catch(console.error);
     }, []);
 
+    // Handle Stripe checkout success/cancel query params
+    useEffect(() => {
+        const { checkout } = router.query;
+        if (checkout === "success") {
+            setCheckoutBanner("success");
+            // Remove query param from URL without reload
+            router.replace("/dashboard", undefined, { shallow: true });
+        } else if (checkout === "cancelled") {
+            setCheckoutBanner("cancelled");
+            router.replace("/dashboard", undefined, { shallow: true });
+        }
+    }, [router.query]);
+
     // Brands sahifasiga o'tganda — to'liq brand ma'lumotlarini yuklash
     useEffect(() => {
         if (page === "brands") {
@@ -196,6 +212,42 @@ function DashboardPage() {
             alert("Brand o'chirishda xato yuz berdi");
         } finally {
             setDeletingId(null);
+        }
+    };
+
+    const handleUpgrade = async (tier: string, interval: "monthly" | "annual" = "monthly") => {
+        setBillingLoading(`upgrade-${tier}`);
+        try {
+            const { checkout_url } = await createCheckoutRequest(tier, interval);
+            window.location.href = checkout_url;
+        } catch (err: any) {
+            alert(err.message || "Failed to start checkout");
+        } finally {
+            setBillingLoading(null);
+        }
+    };
+
+    const handlePortal = async () => {
+        setBillingLoading("portal");
+        try {
+            const { portal_url } = await createPortalRequest();
+            window.location.href = portal_url;
+        } catch (err: any) {
+            alert(err.message || "Failed to open billing portal");
+        } finally {
+            setBillingLoading(null);
+        }
+    };
+
+    const handleAddon = async (addon_key: string) => {
+        setBillingLoading(`addon-${addon_key}`);
+        try {
+            const { checkout_url } = await purchaseAddonRequest(addon_key);
+            window.location.href = checkout_url;
+        } catch (err: any) {
+            alert(err.message || "Failed to start addon purchase");
+        } finally {
+            setBillingLoading(null);
         }
     };
 
@@ -358,6 +410,53 @@ function DashboardPage() {
 
             {/* ===== MAIN CONTENT ===== */}
             <div className="dash-main" style={{ marginLeft: sw }}>
+
+                {/* Checkout result banners */}
+                {checkoutBanner === "success" && (
+                    <div style={{
+                        background: "linear-gradient(135deg, rgba(34,197,94,0.15), rgba(62,207,207,0.1))",
+                        border: "1px solid rgba(34,197,94,0.4)",
+                        borderRadius: 12, padding: "14px 20px", margin: "16px 24px 0",
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                    }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <span style={{ fontSize: 22 }}>🎉</span>
+                            <div>
+                                <div style={{ color: "#22C55E", fontWeight: 700, fontSize: 14 }}>Subscription activated!</div>
+                                <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 2 }}>
+                                    Your plan is now active. Credits will be added shortly.
+                                </div>
+                            </div>
+                        </div>
+                        <button onClick={() => setCheckoutBanner(null)}
+                            style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 18 }}>
+                            ×
+                        </button>
+                    </div>
+                )}
+                {checkoutBanner === "cancelled" && (
+                    <div style={{
+                        background: "rgba(239,68,68,0.08)",
+                        border: "1px solid rgba(239,68,68,0.3)",
+                        borderRadius: 12, padding: "14px 20px", margin: "16px 24px 0",
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                    }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <span style={{ fontSize: 22 }}>ℹ️</span>
+                            <div>
+                                <div style={{ color: "#EF4444", fontWeight: 700, fontSize: 14 }}>Checkout cancelled</div>
+                                <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 2 }}>
+                                    No charges were made. You can upgrade anytime from Billing.
+                                </div>
+                            </div>
+                        </div>
+                        <button onClick={() => setCheckoutBanner(null)}
+                            style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 18 }}>
+                            ×
+                        </button>
+                    </div>
+                )}
+
                 {/* Header */}
                 <div className="dash-header">
                     <div>
@@ -365,14 +464,14 @@ function DashboardPage() {
                             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                         </div>
                         <div className="dash-header__title">
-                            {page === "brands" ? "My Brands" : `Welcome back, ${userName.split(" ")[0]}`}
+                            {page === "brands" ? "My Brands" : page === "billing" ? "Billing & Subscription" : `Welcome back, ${userName.split(" ")[0]}`}
                         </div>
                     </div>
                     {page === "brands" ? (
                         <button className="btn-generate" onClick={() => router.push("/generateAds")}>
                             + Create New Brand
                         </button>
-                    ) : (
+                    ) : page === "billing" ? null : (
                         <button className="btn-generate" onClick={() => router.push("/generateAds")}>+ Generate New Ad</button>
                     )}
                 </div>
@@ -490,6 +589,170 @@ function DashboardPage() {
                                 ))}
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* ===== BILLING PAGE ===== */}
+                {page === "billing" && (
+                    <div style={{ padding: "0 24px 40px" }}>
+                        {/* Current plan card */}
+                        <div style={{
+                            background: "var(--card)",
+                            border: "1px solid var(--border)",
+                            borderRadius: 16, padding: 28, marginBottom: 24,
+                        }}>
+                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+                                <div>
+                                    <div style={{ color: "var(--muted)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+                                        Current Plan
+                                    </div>
+                                    <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text)" }}>
+                                        {tierLabel(usage?.subscription_tier || "free")}
+                                    </div>
+                                    <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                                        <span style={{
+                                            fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
+                                            background: usage?.subscription_status === "active" ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.12)",
+                                            color: usage?.subscription_status === "active" ? "#22C55E" : "#EF4444",
+                                        }}>
+                                            {usage?.subscription_status?.toUpperCase() || "INACTIVE"}
+                                        </span>
+                                        {usage?.billing_cycle_end && (
+                                            <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                                                Renews {new Date(usage.billing_cycle_end).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div style={{ display: "flex", gap: 10 }}>
+                                    {usage?.subscription_status === "active" && (
+                                        <button
+                                            onClick={handlePortal}
+                                            disabled={billingLoading === "portal"}
+                                            style={{
+                                                padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)",
+                                                background: "transparent", color: "var(--text)", fontSize: 13,
+                                                fontWeight: 600, cursor: "pointer", opacity: billingLoading === "portal" ? 0.6 : 1,
+                                            }}
+                                        >
+                                            {billingLoading === "portal" ? "Loading..." : "Manage Subscription"}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Credits usage */}
+                            <div style={{ marginTop: 24, paddingTop: 24, borderTop: "1px solid var(--border)" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                                    <span style={{ fontSize: 13, color: "var(--muted)" }}>Credits used</span>
+                                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+                                        {usage?.credits_used || 0} / {usage?.credits_limit || 0}
+                                    </span>
+                                </div>
+                                <div style={{ height: 8, borderRadius: 99, background: "var(--border)", overflow: "hidden" }}>
+                                    <div style={{
+                                        height: "100%", borderRadius: 99,
+                                        background: "linear-gradient(90deg, var(--accent), var(--g1))",
+                                        width: `${usage && usage.credits_limit > 0 ? Math.min(100, (usage.credits_used / usage.credits_limit) * 100) : 0}%`,
+                                        transition: "width 0.4s",
+                                    }} />
+                                </div>
+                                {(usage?.addon_credits_remaining || 0) > 0 && (
+                                    <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
+                                        + {usage?.addon_credits_remaining} addon credits remaining
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Upgrade plans */}
+                        {usage?.subscription_tier === "free" || !usage?.subscription_status || usage?.subscription_status !== "active" ? (
+                            <>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 16 }}>
+                                    Upgrade your plan
+                                </div>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 32 }}>
+                                    {[
+                                        { tier: "starter", label: "Starter", price: "$39", credits: "250 credits/mo", features: ["250 image generations", "3 brands", "Standard support"] },
+                                        { tier: "pro", label: "Pro", price: "$99", credits: "750 credits/mo", features: ["750 image generations", "10 brands", "Priority support"], highlight: true },
+                                        { tier: "growth", label: "Growth", price: "$199", credits: "2,000 credits/mo", features: ["2,000 image generations", "Unlimited brands", "Dedicated support"] },
+                                    ].map((plan) => (
+                                        <div key={plan.tier} style={{
+                                            background: plan.highlight ? "linear-gradient(135deg, rgba(62,207,207,0.1), rgba(120,80,255,0.08))" : "var(--card)",
+                                            border: `1px solid ${plan.highlight ? "rgba(62,207,207,0.4)" : "var(--border)"}`,
+                                            borderRadius: 14, padding: 24,
+                                            position: "relative",
+                                        }}>
+                                            {plan.highlight && (
+                                                <div style={{
+                                                    position: "absolute", top: -1, right: 16,
+                                                    background: "var(--accent)", color: "#0a0a0f",
+                                                    fontSize: 10, fontWeight: 800, padding: "4px 10px",
+                                                    borderRadius: "0 0 8px 8px", letterSpacing: 0.5,
+                                                }}>
+                                                    POPULAR
+                                                </div>
+                                            )}
+                                            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>{plan.label}</div>
+                                            <div style={{ marginTop: 4 }}>
+                                                <span style={{ fontSize: 28, fontWeight: 800, color: plan.highlight ? "var(--accent)" : "var(--text)" }}>{plan.price}</span>
+                                                <span style={{ fontSize: 13, color: "var(--muted)" }}>/mo</span>
+                                            </div>
+                                            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2, marginBottom: 16 }}>{plan.credits}</div>
+                                            <ul style={{ listStyle: "none", padding: 0, margin: "0 0 20px", display: "flex", flexDirection: "column", gap: 6 }}>
+                                                {plan.features.map((f) => (
+                                                    <li key={f} style={{ fontSize: 13, color: "var(--muted)", display: "flex", alignItems: "center", gap: 6 }}>
+                                                        <span style={{ color: "#22C55E", fontWeight: 700 }}>✓</span> {f}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            <button
+                                                onClick={() => handleUpgrade(plan.tier, "monthly")}
+                                                disabled={!!billingLoading}
+                                                style={{
+                                                    width: "100%", padding: "10px 0", borderRadius: 10,
+                                                    border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                                                    background: plan.highlight ? "var(--accent)" : "rgba(255,255,255,0.08)",
+                                                    color: plan.highlight ? "#0a0a0f" : "var(--text)",
+                                                    opacity: billingLoading === `upgrade-${plan.tier}` ? 0.6 : 1,
+                                                }}
+                                            >
+                                                {billingLoading === `upgrade-${plan.tier}` ? "Redirecting..." : `Get ${plan.label}`}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        ) : null}
+
+                        {/* Addon credits */}
+                        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 16 }}>
+                            Buy Extra Credits
+                        </div>
+                        <div style={{
+                            background: "var(--card)", border: "1px solid var(--border)",
+                            borderRadius: 14, padding: 24,
+                            display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16,
+                        }}>
+                            <div>
+                                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>100 Credits Pack</div>
+                                <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
+                                    One-time purchase · $19 · Never expires
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => handleAddon("credits_100")}
+                                disabled={!!billingLoading}
+                                style={{
+                                    padding: "10px 24px", borderRadius: 10, border: "1px solid var(--accent)",
+                                    background: "transparent", color: "var(--accent)", fontWeight: 700,
+                                    fontSize: 13, cursor: "pointer",
+                                    opacity: billingLoading === "addon-credits_100" ? 0.6 : 1,
+                                }}
+                            >
+                                {billingLoading === "addon-credits_100" ? "Redirecting..." : "Buy Credits"}
+                            </button>
+                        </div>
                     </div>
                 )}
 
