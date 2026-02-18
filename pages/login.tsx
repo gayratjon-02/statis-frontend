@@ -80,11 +80,13 @@ export default function UserAuth() {
         setError("");
         setLoading(true);
         try {
+            // Only send subscription_tier if it's a valid plan key
+            const validTier = selectedPlan && planInfo[selectedPlan] ? selectedPlan : undefined;
             const res = await signupRequest({
                 email: signupEmail,
                 password: signupPassword,
                 full_name: signupName,
-                subscription_tier: selectedPlan || undefined,
+                subscription_tier: validTier,
             });
             localStorage.setItem("se_access_token", res.accessToken);
             localStorage.setItem("se_member", JSON.stringify(res.member));
