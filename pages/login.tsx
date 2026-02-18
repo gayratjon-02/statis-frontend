@@ -34,12 +34,22 @@ export default function UserAuth() {
 
     // Read selected plan from query param
     const selectedPlan = (router.query.plan as string) || null;
-    const planInfo: Record<string, { label: string; price: string; credits: string }> = {
+    const planInfo: Record<string, { label: string; price: string; credits: string; badge?: string }> = {
         starter: { label: "Starter", price: "$39/mo", credits: "250 credits" },
-        pro: { label: "Pro", price: "$99/mo", credits: "750 credits" },
+        pro: { label: "Pro", price: "$99/mo", credits: "750 credits", badge: "POPULAR" },
         growth: { label: "Growth", price: "$199/mo", credits: "2,000 credits" },
     };
     const plan = selectedPlan ? planInfo[selectedPlan] : null;
+
+    const handlePlanSelect = (tier: string) => {
+        if (tier === "free") {
+            router.replace("/login", undefined, { shallow: true });
+        } else {
+            router.replace(`/login?plan=${tier}`, undefined, { shallow: true });
+        }
+        setMode("signup");
+        setError("");
+    };
 
     const redirectAfterAuth = async (plan: string | null) => {
         const isPaid = plan && plan !== "free" && planInfo[plan];
@@ -126,20 +136,77 @@ export default function UserAuth() {
                             Generate high-quality static ads in seconds. Upload your brand, pick a concept, and let AI do the rest.
                         </p>
 
-                        <div className="admin-auth__features">
-                            {[
-                                { icon: "🎨", title: "6 Variations Per Click", desc: "Every generation gives you 6 unique ad images" },
-                                { icon: "⚡", title: "60-Second Generation", desc: "From concept to finished ads in under a minute" },
-                                { icon: "📐", title: "Multi-Ratio Export", desc: "1:1, 9:16, and 16:9 formats included" },
-                            ].map((feature, i) => (
-                                <div key={i} className="admin-auth__feature">
-                                    <span className="admin-auth__feature-icon">{feature.icon}</span>
-                                    <div>
-                                        <div className="admin-auth__feature-title">{feature.title}</div>
-                                        <div className="admin-auth__feature-desc">{feature.desc}</div>
-                                    </div>
+                        {/* Plan selection */}
+                        <div style={{ marginTop: 28 }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 12 }}>
+                                {selectedPlan && planInfo[selectedPlan] ? "Selected Plan" : "Choose a Plan"}
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                {(Object.entries(planInfo) as [string, { label: string; price: string; credits: string; badge?: string }][]).map(([tier, info]) => {
+                                    const isActive = selectedPlan === tier;
+                                    return (
+                                        <div
+                                            key={tier}
+                                            onClick={() => handlePlanSelect(tier)}
+                                            style={{
+                                                padding: "13px 16px",
+                                                borderRadius: 12,
+                                                border: `1px solid ${isActive ? "rgba(62,207,207,0.5)" : "rgba(255,255,255,0.07)"}`,
+                                                background: isActive ? "rgba(62,207,207,0.08)" : "rgba(255,255,255,0.03)",
+                                                cursor: "pointer",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "space-between",
+                                                transition: "border-color 0.15s, background 0.15s",
+                                                position: "relative",
+                                            }}
+                                        >
+                                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                                <div style={{
+                                                    width: 18, height: 18, borderRadius: "50%",
+                                                    border: `2px solid ${isActive ? "#3ECFCF" : "rgba(255,255,255,0.2)"}`,
+                                                    background: isActive ? "#3ECFCF" : "transparent",
+                                                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                                                }}>
+                                                    {isActive && <span style={{ color: "#0a0a0f", fontSize: 10, fontWeight: 800 }}>✓</span>}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: 14, fontWeight: 600, color: isActive ? "#3ECFCF" : "var(--text)", display: "flex", alignItems: "center", gap: 6 }}>
+                                                        {info.label}
+                                                        {info.badge && (
+                                                            <span style={{ fontSize: 9, fontWeight: 800, background: "rgba(62,207,207,0.15)", color: "#3ECFCF", padding: "2px 7px", borderRadius: 20, letterSpacing: 0.5 }}>
+                                                                {info.badge}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 1 }}>{info.credits}/mo</div>
+                                                </div>
+                                            </div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: isActive ? "#3ECFCF" : "var(--muted)" }}>
+                                                {info.price}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {/* Free option */}
+                                <div
+                                    onClick={() => handlePlanSelect("free")}
+                                    style={{
+                                        padding: "10px 16px",
+                                        borderRadius: 10,
+                                        border: `1px solid ${!selectedPlan || selectedPlan === "free" ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.05)"}`,
+                                        background: "transparent",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                    }}
+                                >
+                                    <span style={{ fontSize: 13, color: "var(--muted)" }}>Continue with Free</span>
+                                    <span style={{ fontSize: 12, color: "var(--dim)" }}>10 credits · $0</span>
                                 </div>
-                            ))}
+                            </div>
                         </div>
                     </div>
                 </div>
