@@ -42,11 +42,7 @@ export default function UserAuth() {
     const plan = selectedPlan ? planInfo[selectedPlan] : null;
 
     const handlePlanSelect = (tier: string) => {
-        if (tier === "free") {
-            router.replace("/login", undefined, { shallow: true });
-        } else {
-            router.replace(`/login?plan=${tier}`, undefined, { shallow: true });
-        }
+        router.replace(`/login?plan=${tier}`, undefined, { shallow: true });
         setMode("signup");
         setError("");
     };
@@ -189,23 +185,6 @@ export default function UserAuth() {
                                     );
                                 })}
 
-                                {/* Free option */}
-                                <div
-                                    onClick={() => handlePlanSelect("free")}
-                                    style={{
-                                        padding: "10px 16px",
-                                        borderRadius: 10,
-                                        border: `1px solid ${!selectedPlan || selectedPlan === "free" ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.05)"}`,
-                                        background: "transparent",
-                                        cursor: "pointer",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                    }}
-                                >
-                                    <span style={{ fontSize: 13, color: "var(--muted)" }}>Continue with Free</span>
-                                    <span style={{ fontSize: 12, color: "var(--dim)" }}>10 credits · $0</span>
-                                </div>
                             </div>
                         </div>
                     </div>

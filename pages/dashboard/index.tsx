@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import AuthGuard from "../../libs/auth/AuthGuard";
+import SubscriptionGuard from "../../libs/auth/SubscriptionGuard";
 import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest } from "../../server/user/login";
 import { createCheckoutRequest, createPortalRequest, purchaseAddonRequest } from "../../server/user/billing";
 import { getRecentGenerationsRequest } from "../../server/user/generation";
@@ -153,8 +153,20 @@ function DashboardPage() {
                 ]);
 
                 if (memberData.status === "fulfilled") {
-                    setMember(memberData.value as Member);
-                    localStorage.setItem("se_member", JSON.stringify(memberData.value));
+                    const freshMember = memberData.value as Member;
+                    setMember(freshMember);
+                    localStorage.setItem("se_member", JSON.stringify(freshMember));
+
+                    // Post-fetch subscription guard (catches stale localStorage)
+                    const isCheckoutReturn = window.location.search.includes("checkout=success");
+                    const paidTiers = ["starter", "pro", "growth"];
+                    const hasActiveSub =
+                        freshMember.subscription_status === "active" &&
+                        paidTiers.includes(freshMember.subscription_tier?.toLowerCase());
+                    if (!hasActiveSub && !isCheckoutReturn) {
+                        router.replace("/subscribe");
+                        return;
+                    }
                 }
                 if (usageData.status === "fulfilled") setUsage(usageData.value as UsageData);
                 if (brandsData.status === "fulfilled") {
@@ -962,8 +974,8 @@ function DashboardPage() {
 
 export default function Dashboard() {
     return (
-        <AuthGuard>
+        <SubscriptionGuard>
             <DashboardPage />
-        </AuthGuard>
+        </SubscriptionGuard>
     );
 }

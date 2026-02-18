@@ -21,7 +21,7 @@ export enum SubscriptionTier {
     FREE = "free",
     STARTER = "starter",
     PRO = "pro",
-    GROWTH_ENGINE = "growth_engine",
+    GROWTH = "growth",
 }
 
 /** Subscription status */
