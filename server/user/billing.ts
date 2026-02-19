@@ -88,3 +88,27 @@ export async function getPlansRequest(): Promise<any[]> {
 
     return res.json();
 }
+
+/**
+ * POST /billing/verify-checkout
+ * Verify checkout from Stripe directly and activate subscription.
+ * Fallback for when webhooks are delayed or unavailable.
+ */
+export async function verifyCheckoutRequest(): Promise<{
+    verified: boolean;
+    subscription_tier?: string;
+    subscription_status?: string;
+    credits_limit?: number;
+}> {
+    const res = await fetch(`${BILLING_API}/verify-checkout`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Verify failed" }));
+        throw new Error(error.message || `Verify failed (${res.status})`);
+    }
+
+    return res.json();
+}
