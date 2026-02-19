@@ -24,8 +24,13 @@ function SubscriptionCheck({ children }: { children: React.ReactNode }) {
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
+        // Wait for Next.js router to be ready — during hydration,
+        // router.query is {} which would cause a false "no checkout return"
+        if (!router.isReady) return;
+
         const checkSubscription = async () => {
             console.log("\n━━━ SubscriptionGuard CHECK ━━━");
+            console.log("  router.isReady:", router.isReady);
             console.log("  router.query:", JSON.stringify(router.query));
 
             // After Stripe payment, verify subscription via Stripe API directly
@@ -127,7 +132,7 @@ function SubscriptionCheck({ children }: { children: React.ReactNode }) {
         };
 
         checkSubscription();
-    }, [router.query]);
+    }, [router.isReady, router.query]);
 
     if (!ready) {
         return (
