@@ -4,7 +4,7 @@ import AuthGuard from "../../libs/auth/AuthGuard";
 import { getBrands, createBrand, uploadBrandLogo } from "../../server/user/brand";
 import { getProducts, createProduct, uploadProductPhoto } from "../../server/user/product";
 import { getConcepts, getCategories, getRecommendedConcepts, getConceptConfig, incrementUsage } from "../../server/user/concept";
-import { createGeneration, getGenerationStatus, getGenerationBatchStatus } from "../../server/user/generation";
+import { createGeneration, getGenerationStatus, getGenerationBatchStatus, exportRatiosRequest } from "../../server/user/generation";
 import { getBrandConfig, type IndustryItem, type VoiceItem } from "../../server/user/config";
 import { getUsageRequest } from "../../server/user/login";
 import API_BASE_URL from "../../libs/config/api.config";
@@ -77,6 +77,14 @@ function GeneratePageContent() {
     const [completedAds, setCompletedAds] = useState([false, false, false, false, false, false]);
     const [savedAds, setSavedAds] = useState([false, false, false, false, false, false]);
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+    const [ratioModal, setRatioModal] = useState<{
+        adId: string;
+        adName: string | null;
+        image_url_1x1: string | null;
+        image_url_9x16: string | null;
+        image_url_16x9: string | null;
+    } | null>(null);
+    const [ratioModalLoading, setRatioModalLoading] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analyzingStep, setAnalyzingStep] = useState(0);
     const analyzingSteps = ["Analyzing brand identity", "Crafting ad copy", "Preparing image prompts"];
@@ -1028,7 +1036,18 @@ function GeneratePageContent() {
                                                 </button>
                                             ) : (
                                                 <div style={{ display: "flex", gap: 6 }}>
-                                                    <button className="gen-ad-btn--ratio">Get All Ratios</button>
+                                                    <button className="gen-ad-btn--ratio" disabled={ratioModalLoading} onClick={async () => {
+                                                        if (!result._id) return;
+                                                        setRatioModalLoading(true);
+                                                        try {
+                                                            const data = await exportRatiosRequest(result._id);
+                                                            setRatioModal({ adId: data._id, adName: data.ad_name, image_url_1x1: data.image_url_1x1, image_url_9x16: data.image_url_9x16, image_url_16x9: data.image_url_16x9 });
+                                                        } catch (e: any) {
+                                                            alert(e.message || "Failed to load ratios");
+                                                        } finally {
+                                                            setRatioModalLoading(false);
+                                                        }
+                                                    }}>{ratioModalLoading ? "Loading..." : "Get All Ratios"}</button>
                                                     <button className="gen-ad-btn--canva">Buy Canva Template</button>
                                                 </div>
                                             )}
@@ -1057,6 +1076,38 @@ function GeneratePageContent() {
                 <div className="gen-lightbox" onClick={() => setLightboxImage(null)}>
                     <div className="gen-lightbox__close" onClick={() => setLightboxImage(null)}>×</div>
                     <img src={lightboxImage} className="gen-lightbox__content" alt="Full view" onClick={(e) => e.stopPropagation()} />
+                </div>
+            )}
+
+            {/* ===== RATIO MODAL ===== */}
+            {ratioModal && (
+                <div className="gen-lightbox" onClick={() => setRatioModal(null)}>
+                    <div onClick={(e) => e.stopPropagation()} style={{ background: "#0d1117", border: "1px solid #30363d", borderRadius: 12, padding: 32, maxWidth: 640, width: "90%", position: "relative" }}>
+                        <div className="gen-lightbox__close" onClick={() => setRatioModal(null)}>×</div>
+                        <h3 style={{ color: "#e6edf3", marginBottom: 8, fontSize: 18 }}>All Ratios — {ratioModal.adName || "Ad"}</h3>
+                        <p style={{ color: "#8b949e", marginBottom: 24, fontSize: 13 }}>Download each format for different platforms</p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                            {[
+                                { label: "1:1 — Instagram / Facebook", key: "image_url_1x1", url: ratioModal.image_url_1x1, size: "1080×1080" },
+                                { label: "9:16 — Stories / Reels / TikTok", key: "image_url_9x16", url: ratioModal.image_url_9x16, size: "1080×1920" },
+                                { label: "16:9 — YouTube / Twitter / LinkedIn", key: "image_url_16x9", url: ratioModal.image_url_16x9, size: "1920×1080" },
+                            ].map(({ label, url, size }) => (
+                                <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#161b22", border: "1px solid #21262d", borderRadius: 8, padding: "12px 16px" }}>
+                                    <div>
+                                        <div style={{ color: "#e6edf3", fontSize: 14, fontWeight: 500 }}>{label}</div>
+                                        <div style={{ color: "#8b949e", fontSize: 12 }}>{size}</div>
+                                    </div>
+                                    {url ? (
+                                        <a href={url} download target="_blank" rel="noreferrer" style={{ background: "#238636", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", textDecoration: "none", whiteSpace: "nowrap" }}>
+                                            ⤓ Download
+                                        </a>
+                                    ) : (
+                                        <span style={{ color: "#6e7681", fontSize: 13 }}>Not available</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

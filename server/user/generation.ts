@@ -123,6 +123,31 @@ export async function getLibraryCountsRequest(): Promise<LibraryCounts> {
 }
 
 /**
+ * POST /generation/exportRatios/:adId
+ * Get all 3 ratio URLs for a completed ad.
+ */
+export async function exportRatiosRequest(adId: string): Promise<{
+    _id: string;
+    ad_name: string | null;
+    image_url_1x1: string | null;
+    image_url_9x16: string | null;
+    image_url_16x9: string | null;
+    generation_status: string;
+}> {
+    const res = await fetch(`${GENERATION_API}/exportRatios/${adId}`, {
+        method: "POST",
+        headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Export failed" }));
+        throw new Error(error.message || `Export failed (${res.status})`);
+    }
+
+    return res.json();
+}
+
+/**
  * GET /generation/getBatchStatus/:batchId
  * Poll for batch generation status + image URLs.
  */
