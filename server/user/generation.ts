@@ -123,6 +123,23 @@ export async function getLibraryCountsRequest(): Promise<LibraryCounts> {
 }
 
 /**
+ * POST /generation/cancelBatch/:batchId
+ * Cancel all pending/processing ads in a batch (user left the page).
+ * Uses keepalive so the request survives page unload.
+ */
+export function cancelBatchRequest(batchId: string): void {
+    const token = localStorage.getItem("se_access_token");
+    fetch(`${GENERATION_API}/cancelBatch/${batchId}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        keepalive: true, // survives beforeunload
+    }).catch(() => { /* silent — best effort */ });
+}
+
+/**
  * POST /generation/exportRatios/:adId
  * Get all 3 ratio URLs for a completed ad.
  */

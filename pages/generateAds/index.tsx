@@ -4,7 +4,7 @@ import AuthGuard from "../../libs/auth/AuthGuard";
 import { getBrands, createBrand, uploadBrandLogo } from "../../server/user/brand";
 import { getProducts, createProduct, uploadProductPhoto } from "../../server/user/product";
 import { getConcepts, getCategories, getRecommendedConcepts, getConceptConfig, incrementUsage } from "../../server/user/concept";
-import { createGeneration, getGenerationStatus, getGenerationBatchStatus, exportRatiosRequest } from "../../server/user/generation";
+import { createGeneration, getGenerationStatus, getGenerationBatchStatus, exportRatiosRequest, cancelBatchRequest } from "../../server/user/generation";
 import { getBrandConfig, type IndustryItem, type VoiceItem } from "../../server/user/config";
 import { getUsageRequest } from "../../server/user/login";
 import API_BASE_URL from "../../libs/config/api.config";
@@ -77,6 +77,10 @@ function GeneratePageContent() {
     const [completedAds, setCompletedAds] = useState([false, false, false, false, false, false]);
     const [savedAds, setSavedAds] = useState([false, false, false, false, false, false]);
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+    // Track active batch so we can cancel it if user leaves
+    const activeBatchIdRef = useRef<string | null>(null);
+    const generationInProgressRef = useRef(false);
+
     const [ratioModal, setRatioModal] = useState<{
         adId: string;
         adName: string | null;
@@ -141,6 +145,23 @@ function GeneratePageContent() {
         }
     }, [brand._id]);
 
+    // Cancel active batch if user refreshes or navigates away mid-generation
+    useEffect(() => {
+        const handleUnload = () => {
+            if (generationInProgressRef.current && activeBatchIdRef.current) {
+                cancelBatchRequest(activeBatchIdRef.current);
+            }
+        };
+        window.addEventListener("beforeunload", handleUnload);
+        return () => {
+            window.removeEventListener("beforeunload", handleUnload);
+            // Also cancel on React unmount (SPA navigation)
+            if (generationInProgressRef.current && activeBatchIdRef.current) {
+                cancelBatchRequest(activeBatchIdRef.current);
+            }
+        };
+    }, []);
+
     useEffect(() => {
         if (!isAnalyzing) { setAnalyzingStep(0); return; }
         const timer = setInterval(() => {
@@ -176,6 +197,10 @@ function GeneratePageContent() {
 
             const jobId = result.job_id;
             const batchId = result.batch_id || jobId; // Fallback to jobId if batch_id is missing (backward compat)
+
+            // Track for cancellation if user leaves
+            activeBatchIdRef.current = batchId;
+            generationInProgressRef.current = true;
 
             // Increment usage count now that generation is confirmed
             if (selectedConcept) {
@@ -233,6 +258,8 @@ function GeneratePageContent() {
                     // Check Overall Status
                     if (batchStatus.status === "completed" || batchStatus.status === "failed") {
                         clearInterval(pollInterval);
+                        generationInProgressRef.current = false;
+                        activeBatchIdRef.current = null;
 
                         if (batchStatus.status === "completed") {
                             // Success!
