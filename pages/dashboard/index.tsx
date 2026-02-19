@@ -841,12 +841,20 @@ function DashboardPage() {
                                                         {!ad.image_url && <span className="ad-card__placeholder">AD</span>}
                                                         <div className="ad-card__overlay">
                                                             <button className="btn-view-ad" onClick={() => ad.image_url && setLightboxImage(ad.image_url)}>View</button>
-                                                            <button className="btn-dl" onClick={() => {
+                                                            <button className="btn-dl" onClick={async () => {
                                                                 if (!ad.image_url) return;
-                                                                const a = document.createElement("a");
-                                                                a.href = ad.image_url;
-                                                                a.download = `${ad.ad_name || "ad"}.png`;
-                                                                a.click();
+                                                                try {
+                                                                    const res = await fetch(ad.image_url);
+                                                                    const blob = await res.blob();
+                                                                    const blobUrl = URL.createObjectURL(blob);
+                                                                    const a = document.createElement("a");
+                                                                    a.href = blobUrl;
+                                                                    a.download = `${ad.ad_name || "ad"}_1x1.png`;
+                                                                    a.click();
+                                                                    URL.revokeObjectURL(blobUrl);
+                                                                } catch {
+                                                                    window.open(ad.image_url, "_blank");
+                                                                }
                                                             }}>DL</button>
                                                         </div>
                                                     </div>

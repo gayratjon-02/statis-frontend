@@ -1018,13 +1018,19 @@ function GeneratePageContent() {
                                                 <button className="gen-ad-btn">Fix Errors</button>
                                                 <button className="gen-ad-btn">↻ Redo</button>
                                                 <button className="gen-ad-btn"
-                                                    onClick={() => {
-                                                        if (result.image_url_1x1) {
+                                                    onClick={async () => {
+                                                        if (!result.image_url_1x1) return;
+                                                        try {
+                                                            const res = await fetch(result.image_url_1x1);
+                                                            const blob = await res.blob();
+                                                            const blobUrl = URL.createObjectURL(blob);
                                                             const a = document.createElement("a");
-                                                            a.href = result.image_url_1x1;
-                                                            a.download = `${result.ad_name || "ad"} _1x1.png`;
-                                                            a.target = "_blank";
+                                                            a.href = blobUrl;
+                                                            a.download = `${result.ad_name || "ad"}_1x1.png`;
                                                             a.click();
+                                                            URL.revokeObjectURL(blobUrl);
+                                                        } catch {
+                                                            window.open(result.image_url_1x1, "_blank");
                                                         }
                                                     }}>⤓ Download</button>
                                             </div>
@@ -1098,9 +1104,22 @@ function GeneratePageContent() {
                                         <div style={{ color: "#8b949e", fontSize: 12 }}>{size}</div>
                                     </div>
                                     {url ? (
-                                        <a href={url} download target="_blank" rel="noreferrer" style={{ background: "#238636", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", textDecoration: "none", whiteSpace: "nowrap" }}>
+                                        <button onClick={async () => {
+                                            try {
+                                                const res = await fetch(url);
+                                                const blob = await res.blob();
+                                                const blobUrl = URL.createObjectURL(blob);
+                                                const a = document.createElement("a");
+                                                a.href = blobUrl;
+                                                a.download = `${ratioModal?.adName || "ad"}_${label.split(" ")[0].replace(":", "x")}.png`;
+                                                a.click();
+                                                URL.revokeObjectURL(blobUrl);
+                                            } catch {
+                                                window.open(url, "_blank");
+                                            }
+                                        }} style={{ background: "#238636", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
                                             ⤓ Download
-                                        </a>
+                                        </button>
                                     ) : (
                                         <span style={{ color: "#6e7681", fontSize: 13 }}>Not available</span>
                                     )}
