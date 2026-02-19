@@ -28,20 +28,41 @@ export async function uploadBrandLogo(file: File): Promise<{ logo_url: string }>
     const formData = new FormData();
     formData.append("logo", file);
 
+    console.log('\n━━━ uploadBrandLogo ━━━');
+    console.log('  file.name:', file.name);
+    console.log('  file.size:', file.size, 'bytes', `(${(file.size / 1024).toFixed(1)} KB)`);
+    console.log('  file.type:', file.type);
+    console.log('  API URL:', `${BRAND_API}/uploadLogo`);
+    console.log('  token exists:', !!token);
+
     const res = await fetch(`${BRAND_API}/uploadLogo`, {
         method: "POST",
         headers: {
             Authorization: `Bearer ${token}`,
+            // Note: Do NOT set Content-Type for FormData — browser sets it with boundary
         },
         body: formData,
     });
 
+    console.log('  response status:', res.status, res.statusText);
+    console.log('  response headers:', Object.fromEntries(res.headers.entries()));
+
     if (!res.ok) {
-        const error = await res.json().catch(() => ({ message: "Failed to upload logo" }));
-        throw new Error(error.message || `Upload failed (${res.status})`);
+        let errorMsg = `Upload failed (${res.status})`;
+        try {
+            const errorBody = await res.text();
+            console.error('  ❌ Error body:', errorBody);
+            const parsed = JSON.parse(errorBody);
+            errorMsg = parsed.message || errorMsg;
+        } catch {
+            console.error('  ❌ Could not parse error body');
+        }
+        throw new Error(errorMsg);
     }
 
-    return res.json();
+    const result = await res.json();
+    console.log('  ✅ Upload result:', result);
+    return result;
 }
 
 // ---- CREATE ----
