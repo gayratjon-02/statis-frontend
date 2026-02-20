@@ -6,7 +6,8 @@ WORKDIR /usr/src/app
 # Copy package files first for better caching
 COPY package.json yarn.lock* ./
 
-RUN yarn install
+# Install ALL dependencies (with extended timeout for slow registry)
+RUN yarn install --network-timeout 600000 --frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -29,8 +30,8 @@ WORKDIR /usr/src/app
 # Copy package files
 COPY package.json yarn.lock* ./
 
-# Install only production dependencies
-RUN yarn install --production
+# ✅ Copy node_modules directly from builder — no network needed
+COPY --from=builder /usr/src/app/node_modules ./node_modules
 
 # Copy built app from builder
 COPY --from=builder /usr/src/app/.next ./.next
