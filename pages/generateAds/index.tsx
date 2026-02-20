@@ -89,6 +89,7 @@ function GeneratePageContent() {
         image_url_16x9: string | null;
     } | null>(null);
     const [ratioModalLoading, setRatioModalLoading] = useState(false);
+    const [zipDownloading, setZipDownloading] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analyzingStep, setAnalyzingStep] = useState(0);
     const analyzingSteps = ["Analyzing brand identity", "Crafting ad copy", "Preparing image prompts"];
@@ -169,6 +170,118 @@ function GeneratePageContent() {
         }, 3000);
         return () => clearInterval(timer);
     }, [isAnalyzing]);
+
+    /** Fetch image blob via backend proxy */
+    const fetchRatioBlob = async (adId: string, ratio: string): Promise<Blob | null> => {
+        const token = localStorage.getItem("se_access_token");
+        try {
+            const res = await fetch(`${API_BASE_URL}/generation/download/${adId}/${ratio}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) return null;
+            return await res.blob();
+        } catch {
+            return null;
+        }
+    };
+
+    /** Download all 3 ratios as a ZIP file (browser-side) */
+    const downloadAllAsZip = async () => {
+        if (!ratioModal || zipDownloading) return;
+        setZipDownloading(true);
+        try {
+            const JSZip = (await import("jszip")).default;
+            const zip = new JSZip();
+            const adName = (ratioModal.adName || "ad").replace(/[^a-zA-Z0-9_-]/g, "_");
+            const entries = [
+                { ratio: "1x1", url: ratioModal.image_url_1x1 },
+                { ratio: "9x16", url: ratioModal.image_url_9x16 },
+                { ratio: "16x9", url: ratioModal.image_url_16x9 },
+            ];
+            for (const { ratio, url } of entries) {
+                if (!url) continue;
+                const blob = await fetchRatioBlob(ratioModal.adId, ratio);
+                if (blob) zip.file(`${adName}_${ratio}.png`, blob);
+            }
+            const zipBlob = await zip.generateAsync({ type: "blob" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(zipBlob);
+            a.download = `${adName}_all_ratios.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } catch (e) {
+            console.error("ZIP download failed", e);
+            alert("Failed to create ZIP");
+        } finally {
+            setZipDownloading(false);
+        }
+    };
+
+    /** Download image as JPG at 85% quality using Canvas */
+    const downloadAsJpg = async (adId: string, ratio: string, adName: string | null) => {
+        const blob = await fetchRatioBlob(adId, ratio);
+        if (!blob) { alert("Image not available"); return; }
+        const blobUrl = URL.createObjectURL(blob);
+        await new Promise<void>((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                canvas.getContext("2d")!.drawImage(img, 0, 0);
+                canvas.toBlob((jpgBlob) => {
+                    if (jpgBlob) {
+                        const safeName = (adName || "ad").replace(/[^a-zA-Z0-9_-]/g, "_");
+                        const a = document.createElement("a");
+                        a.href = URL.createObjectURL(jpgBlob);
+                        a.download = `${safeName}_${ratio}.jpg`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }
+                    URL.revokeObjectURL(blobUrl);
+                    resolve();
+                }, "image/jpeg", 0.85);
+            };
+            img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(); };
+            img.src = blobUrl;
+        });
+    };
+
+    /** Download image at 2x resolution using Canvas upscale */
+    const downloadAs2x = async (adId: string, ratio: string, adName: string | null) => {
+        const blob = await fetchRatioBlob(adId, ratio);
+        if (!blob) { alert("Image not available"); return; }
+        const blobUrl = URL.createObjectURL(blob);
+        await new Promise<void>((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                canvas.width = img.width * 2;
+                canvas.height = img.height * 2;
+                const ctx = canvas.getContext("2d")!;
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = "high";
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob((pngBlob) => {
+                    if (pngBlob) {
+                        const safeName = (adName || "ad").replace(/[^a-zA-Z0-9_-]/g, "_");
+                        const a = document.createElement("a");
+                        a.href = URL.createObjectURL(pngBlob);
+                        a.download = `${safeName}_${ratio}@2x.png`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }
+                    URL.revokeObjectURL(blobUrl);
+                    resolve();
+                }, "image/png");
+            };
+            img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(); };
+            img.src = blobUrl;
+        });
+    };
 
     const startGeneration = async () => {
         if (!brand._id || !product._id || !selectedConcept) return;
@@ -1109,46 +1222,86 @@ function GeneratePageContent() {
             {/* ===== RATIO MODAL ===== */}
             {ratioModal && (
                 <div className="gen-lightbox" onClick={() => setRatioModal(null)}>
-                    <div onClick={(e) => e.stopPropagation()} style={{ background: "#0d1117", border: "1px solid #30363d", borderRadius: 12, padding: 32, maxWidth: 640, width: "90%", position: "relative" }}>
+                    <div onClick={(e) => e.stopPropagation()} style={{ background: "#0d1117", border: "1px solid #30363d", borderRadius: 12, padding: 28, maxWidth: 900, width: "95%", position: "relative", maxHeight: "90vh", overflowY: "auto" }}>
                         <div className="gen-lightbox__close" onClick={() => setRatioModal(null)}>×</div>
-                        <h3 style={{ color: "#e6edf3", marginBottom: 8, fontSize: 18 }}>All Ratios — {ratioModal.adName || "Ad"}</h3>
-                        <p style={{ color: "#8b949e", marginBottom: 24, fontSize: 13 }}>Download each format for different platforms</p>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        <h3 style={{ color: "#e6edf3", marginBottom: 4, fontSize: 18 }}>All Ratios — {ratioModal.adName || "Ad"}</h3>
+                        <p style={{ color: "#8b949e", marginBottom: 20, fontSize: 13 }}>Preview and export for every platform</p>
+
+                        {/* Download All ZIP button */}
+                        <div style={{ marginBottom: 24 }}>
+                            <button
+                                onClick={downloadAllAsZip}
+                                disabled={zipDownloading}
+                                style={{ background: zipDownloading ? "#30363d" : "linear-gradient(135deg, #3ECFCF, #3B82F6)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 14, fontWeight: 600, cursor: zipDownloading ? "not-allowed" : "pointer", opacity: zipDownloading ? 0.7 : 1 }}>
+                                {zipDownloading ? "⏳ Creating ZIP..." : "⤓ Download All (ZIP)"}
+                            </button>
+                            <span style={{ color: "#6e7681", fontSize: 12, marginLeft: 12 }}>All 3 formats in one file</span>
+                        </div>
+
+                        {/* 3 Ratio Comparison View */}
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
                             {[
-                                { label: "1:1 — Instagram / Facebook", ratio: "1x1", url: ratioModal.image_url_1x1, size: "1080×1080" },
-                                { label: "9:16 — Stories / Reels / TikTok", ratio: "9x16", url: ratioModal.image_url_9x16, size: "1080×1920" },
-                                { label: "16:9 — YouTube / Twitter / LinkedIn", ratio: "16x9", url: ratioModal.image_url_16x9, size: "1920×1080" },
-                            ].map(({ label, ratio, url, size }) => (
-                                <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#161b22", border: "1px solid #21262d", borderRadius: 8, padding: "12px 16px" }}>
-                                    <div>
-                                        <div style={{ color: "#e6edf3", fontSize: 14, fontWeight: 500 }}>{label}</div>
-                                        <div style={{ color: "#8b949e", fontSize: 12 }}>{size}</div>
+                                { label: "1:1", sublabel: "Instagram / Facebook", ratio: "1x1", url: ratioModal.image_url_1x1, size: "1080×1080", aspect: "1/1" },
+                                { label: "9:16", sublabel: "Stories / Reels / TikTok", ratio: "9x16", url: ratioModal.image_url_9x16, size: "1080×1920", aspect: "9/16" },
+                                { label: "16:9", sublabel: "YouTube / LinkedIn", ratio: "16x9", url: ratioModal.image_url_16x9, size: "1920×1080", aspect: "16/9" },
+                            ].map(({ label, sublabel, ratio, url, size, aspect }) => (
+                                <div key={ratio} style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 10, overflow: "hidden" }}>
+                                    {/* Thumbnail preview */}
+                                    <div style={{ position: "relative", background: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", padding: "12px", minHeight: 140 }}>
+                                        {url ? (
+                                            <img
+                                                src={url}
+                                                alt={`${label} preview`}
+                                                style={{ maxWidth: "100%", maxHeight: 180, objectFit: "contain", borderRadius: 6, cursor: "pointer" }}
+                                                onClick={() => setLightboxImage(url)}
+                                            />
+                                        ) : (
+                                            <div style={{ color: "#6e7681", fontSize: 12, textAlign: "center" }}>
+                                                <div style={{ fontSize: 28, marginBottom: 6 }}>🖼</div>
+                                                Not generated
+                                            </div>
+                                        )}
                                     </div>
+
+                                    {/* Info */}
+                                    <div style={{ padding: "10px 12px 6px" }}>
+                                        <div style={{ color: "#e6edf3", fontSize: 13, fontWeight: 600 }}>{label}</div>
+                                        <div style={{ color: "#8b949e", fontSize: 11, marginBottom: 4 }}>{sublabel}</div>
+                                        <div style={{ color: "#6e7681", fontSize: 11, fontFamily: "monospace" }}>{size}</div>
+                                    </div>
+
+                                    {/* Download buttons */}
                                     {url ? (
-                                        <button onClick={async () => {
-                                            const token = localStorage.getItem("se_access_token");
-                                            try {
-                                                const res = await fetch(`${API_BASE_URL}/generation/download/${ratioModal!.adId}/${ratio}`, {
-                                                    headers: { Authorization: `Bearer ${token}` },
-                                                });
-                                                if (!res.ok) throw new Error("Download failed");
-                                                const blob = await res.blob();
-                                                const blobUrl = URL.createObjectURL(blob);
-                                                const a = document.createElement("a");
-                                                a.href = blobUrl;
-                                                a.download = `${ratioModal?.adName || "ad"}_${ratio}.png`;
-                                                document.body.appendChild(a);
-                                                a.click();
-                                                document.body.removeChild(a);
-                                                URL.revokeObjectURL(blobUrl);
-                                            } catch {
-                                                window.open(url, "_blank");
-                                            }
-                                        }} style={{ background: "#238636", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
-                                            ⤓ Download
-                                        </button>
+                                        <div style={{ padding: "6px 12px 12px", display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                            <button
+                                                onClick={async () => {
+                                                    const blob = await fetchRatioBlob(ratioModal.adId, ratio);
+                                                    if (!blob) return;
+                                                    const blobUrl = URL.createObjectURL(blob);
+                                                    const a = document.createElement("a");
+                                                    a.href = blobUrl;
+                                                    a.download = `${(ratioModal.adName || "ad").replace(/[^a-zA-Z0-9_-]/g, "_")}_${ratio}.png`;
+                                                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                                                    URL.revokeObjectURL(blobUrl);
+                                                }}
+                                                style={{ flex: 1, background: "#238636", color: "#fff", border: "none", borderRadius: 5, padding: "5px 0", fontSize: 12, cursor: "pointer" }}>
+                                                PNG
+                                            </button>
+                                            <button
+                                                onClick={() => downloadAsJpg(ratioModal.adId, ratio, ratioModal.adName)}
+                                                style={{ flex: 1, background: "#1f6feb", color: "#fff", border: "none", borderRadius: 5, padding: "5px 0", fontSize: 12, cursor: "pointer" }}>
+                                                JPG 85%
+                                            </button>
+                                            <button
+                                                onClick={() => downloadAs2x(ratioModal.adId, ratio, ratioModal.adName)}
+                                                style={{ flex: 1, background: "#6e40c9", color: "#fff", border: "none", borderRadius: 5, padding: "5px 0", fontSize: 12, cursor: "pointer" }}>
+                                                @2x
+                                            </button>
+                                        </div>
                                     ) : (
-                                        <span style={{ color: "#6e7681", fontSize: 13 }}>Not available</span>
+                                        <div style={{ padding: "6px 12px 12px" }}>
+                                            <span style={{ color: "#6e7681", fontSize: 12 }}>Not available</span>
+                                        </div>
                                     )}
                                 </div>
                             ))}
