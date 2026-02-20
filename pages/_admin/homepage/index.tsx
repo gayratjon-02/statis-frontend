@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import AdminGuard from "../../../libs/auth/AdminGuard";
 import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
-import { getConcepts, getRecommendedConcepts, getCategories } from "../../../server/admin/admnGetApis";
-import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, reorderConcepts } from "../../../server/admin/adminPostApis";
+import { getConcepts, getRecommendedConcepts, getCategories, getAdminUsers, getAdminStats } from "../../../server/admin/admnGetApis";
+import type { AdminUser, AdminPlatformStats } from "../../../server/admin/admnGetApis";
+import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, reorderConcepts, blockUser, unblockUser } from "../../../server/admin/adminPostApis";
 import type { AdConcept, ConceptCategoryItem } from "../../../libs/types/concept.type";
 import API_BASE_URL from "../../../libs/config/api.config";
 
@@ -17,6 +18,7 @@ function resolveImageUrl(url?: string): string {
 // ── Nav items ──
 const NAV_ITEMS = [
     { icon: "📊", label: "Dashboard", id: "dashboard" },
+    { icon: "👥", label: "Users", id: "users" },
     { icon: "🎨", label: "Concepts", id: "concepts" },
     { icon: "⭐", label: "Recommended", id: "recommended" },
     { icon: "🏷️", label: "Categories", id: "categories" },
@@ -37,6 +39,16 @@ function AdminDashboard() {
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("");
     const [page, setPage] = useState(1);
+
+    // ── Users tab state ──
+    const [users, setUsers] = useState<AdminUser[]>([]);
+    const [usersTotal, setUsersTotal] = useState(0);
+    const [usersPage, setUsersPage] = useState(1);
+    const [userSearch, setUserSearch] = useState("");
+    const [userTierFilter, setUserTierFilter] = useState("");
+    const [userStatusFilter, setUserStatusFilter] = useState("");
+    const [usersLoading, setUsersLoading] = useState(false);
+    const [platformStats, setPlatformStats] = useState<AdminPlatformStats | null>(null);
 
     // ── Drag & Drop ──
     const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -374,6 +386,60 @@ function AdminDashboard() {
         }
     };
 
+    // ── Fetch users ──
+    const fetchUsers = useCallback(async () => {
+        setUsersLoading(true);
+        try {
+            const res = await getAdminUsers({
+                search: userSearch || undefined,
+                tier: userTierFilter || undefined,
+                status: userStatusFilter || undefined,
+                page: usersPage,
+                limit: 20,
+            });
+            setUsers(res.list);
+            setUsersTotal(res.total);
+        } catch (err: any) {
+            console.error("Failed to fetch users:", err.message);
+        } finally {
+            setUsersLoading(false);
+        }
+    }, [userSearch, userTierFilter, userStatusFilter, usersPage]);
+
+    // ── Fetch platform stats ──
+    const fetchPlatformStats = useCallback(async () => {
+        try {
+            const stats = await getAdminStats();
+            setPlatformStats(stats);
+        } catch {
+            // non-critical
+        }
+    }, []);
+
+    useEffect(() => {
+        if (activeNav === "users") fetchUsers();
+    }, [activeNav, fetchUsers]);
+
+    useEffect(() => {
+        if (activeNav === "dashboard") fetchPlatformStats();
+    }, [activeNav, fetchPlatformStats]);
+
+    // ── Block / Unblock user ──
+    const handleBlockUser = async (user: AdminUser) => {
+        const action = user.member_status === "suspended" ? "unblock" : "block";
+        if (!confirm(`${action === "block" ? "Suspend" : "Reactivate"} user ${user.email}?`)) return;
+        try {
+            if (action === "block") {
+                await blockUser(user._id);
+            } else {
+                await unblockUser(user._id);
+            }
+            fetchUsers();
+        } catch (err: any) {
+            alert(err.message || "Action failed");
+        }
+    };
+
     // ── Logout ──
     const handleLogout = () => {
         logout();
@@ -442,12 +508,14 @@ function AdminDashboard() {
                     <div>
                         <h1 className="admin-dash__title">
                             {activeNav === "dashboard" && "Dashboard"}
+                            {activeNav === "users" && "User Management"}
                             {activeNav === "concepts" && "Concept Library"}
                             {activeNav === "recommended" && "Recommended Concepts"}
                             {activeNav === "categories" && "Category Management"}
                         </h1>
                         <p className="admin-dash__subtitle">
-                            {activeNav === "dashboard" && "Overview of your concept library and platform"}
+                            {activeNav === "dashboard" && "Platform overview — users, generations, and activity"}
+                            {activeNav === "users" && "Search, filter, block or reactivate user accounts"}
                             {activeNav === "concepts" && "Manage, search, and organize ad concepts"}
                             {activeNav === "recommended" && "Top performing concepts by usage"}
                             {activeNav === "categories" && "Create and manage concept categories"}
@@ -458,7 +526,58 @@ function AdminDashboard() {
                 {/* ── Dashboard View ── */}
                 {activeNav === "dashboard" && (
                     <>
-                        {/* Stats */}
+                        {/* Platform Stats */}
+                        {platformStats && (
+                            <div className="admin-dash__stats" style={{ marginBottom: 12 }}>
+                                <div className="admin-dash__stat-card">
+                                    <div className="admin-dash__stat-top">
+                                        <div className="admin-dash__stat-icon admin-dash__stat-icon--blue">👥</div>
+                                        <span className="admin-dash__stat-trend admin-dash__stat-trend--neutral">users</span>
+                                    </div>
+                                    <div className="admin-dash__stat-value">{platformStats.users.total}</div>
+                                    <div className="admin-dash__stat-label">Total Users</div>
+                                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                                        {platformStats.users.paid} paid · {platformStats.users.active} active
+                                    </div>
+                                </div>
+                                <div className="admin-dash__stat-card">
+                                    <div className="admin-dash__stat-top">
+                                        <div className="admin-dash__stat-icon admin-dash__stat-icon--green">⚡</div>
+                                        <span className="admin-dash__stat-trend admin-dash__stat-trend--up">today</span>
+                                    </div>
+                                    <div className="admin-dash__stat-value">{platformStats.generations.today}</div>
+                                    <div className="admin-dash__stat-label">Generations Today</div>
+                                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                                        {platformStats.generations.this_week} this week
+                                    </div>
+                                </div>
+                                <div className="admin-dash__stat-card">
+                                    <div className="admin-dash__stat-top">
+                                        <div className="admin-dash__stat-icon admin-dash__stat-icon--purple">🎨</div>
+                                        <span className="admin-dash__stat-trend admin-dash__stat-trend--neutral">all time</span>
+                                    </div>
+                                    <div className="admin-dash__stat-value">{platformStats.generations.total}</div>
+                                    <div className="admin-dash__stat-label">Total Generations</div>
+                                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                                        {platformStats.generations.completed} completed · {platformStats.generations.failed} failed
+                                    </div>
+                                </div>
+                                <div className="admin-dash__stat-card">
+                                    <div className="admin-dash__stat-top">
+                                        <div className="admin-dash__stat-icon admin-dash__stat-icon--amber">📦</div>
+                                        <span className="admin-dash__stat-trend admin-dash__stat-trend--neutral">library</span>
+                                    </div>
+                                    <div className="admin-dash__stat-value">{total}</div>
+                                    <div className="admin-dash__stat-label">Total Concepts</div>
+                                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                                        {activeCount} active · {categories.length} categories
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Concept-only stats (fallback if platform stats not loaded) */}
+                        {!platformStats && (
                         <div className="admin-dash__stats">
                             <div className="admin-dash__stat-card">
                                 <div className="admin-dash__stat-top">
@@ -495,6 +614,7 @@ function AdminDashboard() {
                                 <div className="admin-dash__stat-label">Top Category</div>
                             </div>
                         </div>
+                        )}
 
                         {/* Recommended */}
                         <div className="admin-dash__section">
@@ -557,6 +677,142 @@ function AdminDashboard() {
                             {renderConceptGrid(false)}
                         </div>
                     </>
+                )}
+
+                {/* ── Users View ── */}
+                {activeNav === "users" && (
+                    <div className="admin-dash__section">
+                        {/* Search & Filter Bar */}
+                        <div className="admin-dash__search" style={{ marginBottom: 16 }}>
+                            <input
+                                className="admin-dash__search-input"
+                                placeholder="Search by email or name..."
+                                value={userSearch}
+                                onChange={(e) => { setUserSearch(e.target.value); setUsersPage(1); }}
+                            />
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                {[
+                                    { label: "All Tiers", value: "" },
+                                    { label: "Free", value: "free" },
+                                    { label: "Starter", value: "starter" },
+                                    { label: "Pro", value: "pro" },
+                                    { label: "Growth", value: "growth" },
+                                ].map((opt) => (
+                                    <button key={opt.value}
+                                        className={`admin-dash__filter-btn ${userTierFilter === opt.value ? "admin-dash__filter-btn--active" : ""}`}
+                                        onClick={() => { setUserTierFilter(opt.value); setUsersPage(1); }}>
+                                        {opt.label}
+                                    </button>
+                                ))}
+                                <span style={{ width: 1, background: "var(--border)", margin: "0 4px" }} />
+                                {[
+                                    { label: "All Status", value: "" },
+                                    { label: "Active", value: "active" },
+                                    { label: "Suspended", value: "suspended" },
+                                ].map((opt) => (
+                                    <button key={opt.value}
+                                        className={`admin-dash__filter-btn ${userStatusFilter === opt.value ? "admin-dash__filter-btn--active" : ""}`}
+                                        onClick={() => { setUserStatusFilter(opt.value); setUsersPage(1); }}>
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Users Table */}
+                        {usersLoading ? (
+                            <div className="admin-dash__empty">
+                                <div className="admin-dash__spinner" style={{ width: 32, height: 32 }} />
+                            </div>
+                        ) : users.length === 0 ? (
+                            <div className="admin-dash__empty">
+                                <div className="admin-dash__empty-icon">👥</div>
+                                <div className="admin-dash__empty-text">No users found</div>
+                            </div>
+                        ) : (
+                            <div style={{ overflowX: "auto" }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", textAlign: "left" }}>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>User</th>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Tier</th>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Status</th>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Credits</th>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Joined</th>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map((user) => (
+                                            <tr key={user._id} style={{ borderBottom: "1px solid var(--border-subtle, #21262d)" }}>
+                                                <td style={{ padding: "10px 12px" }}>
+                                                    <div style={{ fontWeight: 500, color: "var(--text)" }}>{user.full_name || "—"}</div>
+                                                    <div style={{ color: "var(--muted)", fontSize: 12 }}>{user.email}</div>
+                                                </td>
+                                                <td style={{ padding: "10px 12px" }}>
+                                                    <span style={{
+                                                        background: user.subscription_tier === "free" ? "#21262d" : user.subscription_tier === "pro" ? "#1f3a5f" : user.subscription_tier === "growth" ? "#2d1f5f" : "#1f3a2f",
+                                                        color: user.subscription_tier === "free" ? "var(--muted)" : user.subscription_tier === "pro" ? "#58a6ff" : user.subscription_tier === "growth" ? "#a371f7" : "#3fb950",
+                                                        padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, textTransform: "uppercase"
+                                                    }}>
+                                                        {user.subscription_tier}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: "10px 12px" }}>
+                                                    <span style={{
+                                                        display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12,
+                                                        color: user.member_status === "active" ? "#3fb950" : user.member_status === "suspended" ? "#f85149" : "var(--muted)"
+                                                    }}>
+                                                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
+                                                        {user.member_status}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: "10px 12px", color: "var(--muted)" }}>
+                                                    {user.credits_used} / {user.credits_limit}
+                                                </td>
+                                                <td style={{ padding: "10px 12px", color: "var(--muted)", fontSize: 12 }}>
+                                                    {new Date(user.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td style={{ padding: "10px 12px" }}>
+                                                    {user.member_status !== "deleted" && (
+                                                        <button
+                                                            onClick={() => handleBlockUser(user)}
+                                                            style={{
+                                                                background: user.member_status === "suspended" ? "#1a3a2a" : "#3a1a1a",
+                                                                color: user.member_status === "suspended" ? "#3fb950" : "#f85149",
+                                                                border: "1px solid currentColor", borderRadius: 5,
+                                                                padding: "4px 10px", fontSize: 12, cursor: "pointer"
+                                                            }}>
+                                                            {user.member_status === "suspended" ? "Reactivate" : "Suspend"}
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* Pagination */}
+                        {usersTotal > 20 && (
+                            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, padding: "16px 0" }}>
+                                <button className="admin-dash__btn admin-dash__btn--ghost"
+                                    disabled={usersPage <= 1}
+                                    onClick={() => setUsersPage((p) => Math.max(1, p - 1))}>
+                                    ← Previous
+                                </button>
+                                <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                                    {usersTotal} users · Page {usersPage} of {Math.ceil(usersTotal / 20)}
+                                </span>
+                                <button className="admin-dash__btn admin-dash__btn--ghost"
+                                    disabled={usersPage >= Math.ceil(usersTotal / 20)}
+                                    onClick={() => setUsersPage((p) => p + 1)}>
+                                    Next →
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 {/* ── Concepts View ── */}

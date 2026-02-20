@@ -139,3 +139,24 @@ export async function deleteConcept(id: string): Promise<{ message: string }> {
 export async function reorderConcepts(input: ReorderConceptsInput): Promise<{ message: string }> {
     return postRequest<{ message: string }>(`${CONCEPT_API}/reorderConceptsByAdmin`, input);
 }
+
+// =============================================
+// ADMIN — USER MANAGEMENT
+// =============================================
+
+/**
+ * POST /member/adminBlock/:id
+ * Suspend a user account (admin only).
+ */
+export async function blockUser(id: string): Promise<{ _id: string; email: string; member_status: string }> {
+    return postRequest(`${MEMBER_API}/adminBlock/${id}`, {});
+}
+
+/**
+ * POST /member/adminUnblock/:id
+ * Reactivate a suspended user (admin only).
+ */
+export async function unblockUser(id: string): Promise<{ _id: string; email: string; member_status: string }> {
+    return postRequest(`${MEMBER_API}/adminUnblock/${id}`, {});
+}
+

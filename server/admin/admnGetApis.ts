@@ -80,3 +80,61 @@ export async function getConcepts(
 export async function getRecommendedConcepts(): Promise<{ list: AdConcept[] }> {
     return getRequest<{ list: AdConcept[] }>(`${CONCEPT_API}/getRecommended`);
 }
+
+// =============================================
+// ADMIN — USER MANAGEMENT & PLATFORM STATS
+// =============================================
+
+const MEMBER_API = `${API_BASE_URL}/member`;
+
+export interface AdminUser {
+    _id: string;
+    email: string;
+    full_name: string;
+    member_status: string;
+    subscription_tier: string;
+    subscription_status: string;
+    credits_used: number;
+    credits_limit: number;
+    created_at: string;
+}
+
+export interface AdminUsersResponse {
+    list: AdminUser[];
+    total: number;
+    page: number;
+    limit: number;
+}
+
+export interface AdminPlatformStats {
+    users: { total: number; active: number; paid: number };
+    generations: { total: number; today: number; this_week: number; completed: number; failed: number };
+}
+
+/**
+ * GET /member/adminUsers
+ * Returns paginated list of all users (admin only).
+ */
+export async function getAdminUsers(params: {
+    search?: string;
+    tier?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+} = {}): Promise<AdminUsersResponse> {
+    const query = new URLSearchParams();
+    if (params.search) query.set("search", params.search);
+    if (params.tier) query.set("tier", params.tier);
+    if (params.status) query.set("status", params.status);
+    query.set("page", String(params.page ?? 1));
+    query.set("limit", String(params.limit ?? 20));
+    return getRequest<AdminUsersResponse>(`${MEMBER_API}/adminUsers?${query.toString()}`);
+}
+
+/**
+ * GET /member/adminStats
+ * Returns platform-wide statistics (admin only).
+ */
+export async function getAdminStats(): Promise<AdminPlatformStats> {
+    return getRequest<AdminPlatformStats>(`${MEMBER_API}/adminStats`);
+}
