@@ -4,7 +4,7 @@ import AuthGuard from "../../libs/auth/AuthGuard";
 import { getBrands, createBrand, uploadBrandLogo } from "../../server/user/brand";
 import { getProducts, createProduct, uploadProductPhoto } from "../../server/user/product";
 import { getConcepts, getCategories, getRecommendedConcepts, getConceptConfig, incrementUsage } from "../../server/user/concept";
-import { createGeneration, getGenerationStatus, getGenerationBatchStatus, exportRatiosRequest, cancelBatchRequest } from "../../server/user/generation";
+import { createGeneration, getGenerationStatus, getGenerationBatchStatus, exportRatiosRequest, cancelBatchRequest, downloadAdImage } from "../../server/user/generation";
 import { getBrandConfig, type IndustryItem, type VoiceItem } from "../../server/user/config";
 import { getUsageRequest } from "../../server/user/login";
 import API_BASE_URL from "../../libs/config/api.config";
@@ -1046,18 +1046,12 @@ function GeneratePageContent() {
                                                 <button className="gen-ad-btn">↻ Redo</button>
                                                 <button className="gen-ad-btn"
                                                     onClick={async () => {
-                                                        if (!result.image_url_1x1) return;
+                                                        if (!result._id) return;
                                                         try {
-                                                            const res = await fetch(result.image_url_1x1);
-                                                            const blob = await res.blob();
-                                                            const blobUrl = URL.createObjectURL(blob);
-                                                            const a = document.createElement("a");
-                                                            a.href = blobUrl;
-                                                            a.download = `${result.ad_name || "ad"}_1x1.png`;
-                                                            a.click();
-                                                            URL.revokeObjectURL(blobUrl);
+                                                            await downloadAdImage(result._id, `${result.ad_name || "ad"}_1x1.png`);
                                                         } catch {
-                                                            window.open(result.image_url_1x1, "_blank");
+                                                            // Fallback: open image in new tab
+                                                            if (result.image_url_1x1) window.open(result.image_url_1x1, "_blank");
                                                         }
                                                     }}>⤓ Download</button>
                                             </div>

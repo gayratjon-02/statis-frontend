@@ -181,3 +181,31 @@ export async function getGenerationBatchStatus(batchId: string): Promise<Generat
 
     return res.json();
 }
+
+/**
+ * GET /generation/download/:adId
+ * Download the generated ad image via backend proxy.
+ * The backend streams the S3 image with Content-Disposition: attachment.
+ */
+export async function downloadAdImage(adId: string, filename?: string): Promise<void> {
+    const res = await fetch(`${GENERATION_API}/download/${adId}`, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem("se_access_token")}`,
+        },
+    });
+
+    if (!res.ok) {
+        throw new Error("Download failed");
+    }
+
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || `${adId}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+}
