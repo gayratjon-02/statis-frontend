@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/router";
 import AuthGuard from "../../libs/auth/AuthGuard";
 import { getBrands, createBrand, uploadBrandLogo, importBrandFromUrl } from "../../server/user/brand";
-import { getProducts, createProduct, uploadProductPhoto } from "../../server/user/product";
+import { getProducts, createProduct, uploadProductPhoto, importProductFromUrl, removeProductBackground } from "../../server/user/product";
 import { getConcepts, getCategories, getRecommendedConcepts, getConceptConfig, incrementUsage } from "../../server/user/concept";
 import { createGeneration, getGenerationStatus, getGenerationBatchStatus, exportRatiosRequest, cancelBatchRequest, downloadAdImage } from "../../server/user/generation";
 import { getBrandConfig, type IndustryItem, type VoiceItem } from "../../server/user/config";
@@ -129,6 +129,48 @@ function GeneratePageContent() {
             setImportError(err.message || "Import failed");
         } finally {
             setImportLoading(false);
+        }
+    };
+
+    // Product URL Import State
+    const [productImportUrl, setProductImportUrl] = useState("");
+    const [productImportLoading, setProductImportLoading] = useState(false);
+    const [productImportError, setProductImportError] = useState<string | null>(null);
+
+    const handleProductImportUrl = async () => {
+        if (!productImportUrl.trim()) return;
+        setProductImportLoading(true);
+        setProductImportError(null);
+        try {
+            const data = await importProductFromUrl(productImportUrl.trim());
+            setProduct((prev) => ({
+                ...prev,
+                name: data.name || prev.name,
+                description: data.description || prev.description,
+                productUrl: data.product_url || prev.productUrl,
+                price: data.price_text || prev.price,
+                photoPreview: data.photo_url ? resolveImageUrl(data.photo_url) : prev.photoPreview,
+                noPhysicalProduct: data.photo_url ? false : prev.noPhysicalProduct,
+            }));
+        } catch (err: any) {
+            setProductImportError(err.message || "Import failed");
+        } finally {
+            setProductImportLoading(false);
+        }
+    };
+
+    const [bgRemoving, setBgRemoving] = useState(false);
+    const handleRemoveBg = async (e: React.MouseEvent) => {
+        e.stopPropagation(); // prevent triggering the file input click
+        if (!product._id || bgRemoving) return;
+        setBgRemoving(true);
+        try {
+            const data = await removeProductBackground(product._id);
+            setProduct(prev => ({ ...prev, photoPreview: resolveImageUrl(data.photo_url) }));
+        } catch (err: any) {
+            alert(err.message || "Failed to remove background");
+        } finally {
+            setBgRemoving(false);
         }
     };
 
@@ -882,14 +924,36 @@ function GeneratePageContent() {
                                 <div className="gen-or-divider__line" />
                             </div>
 
+                            {/* URL Import UI for Product */}
+                            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed #30363d", padding: 16, borderRadius: 8, marginBottom: 20 }}>
+                                <div style={{ fontSize: 13, color: "#8b949e", marginBottom: 8 }}>Auto-fill from website URL</div>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                    <input
+                                        className="gen-input"
+                                        placeholder="https://yourbrand.com/products/bron-deodorant"
+                                        value={productImportUrl}
+                                        onChange={(e) => setProductImportUrl(e.target.value)}
+                                        onKeyDown={(e) => e.key === "Enter" && handleProductImportUrl()}
+                                    />
+                                    <button
+                                        onClick={handleProductImportUrl}
+                                        disabled={productImportLoading || !productImportUrl.trim()}
+                                        style={{ background: "#238636", color: "#fff", border: "none", borderRadius: 8, padding: "0 16px", cursor: productImportLoading ? "not-allowed" : "pointer", fontWeight: 500, whiteSpace: "nowrap" }}
+                                    >
+                                        {productImportLoading ? "..." : "Import"}
+                                    </button>
+                                </div>
+                                {productImportError && <div style={{ color: "#f85149", fontSize: 12, marginTop: 6 }}>{productImportError}</div>}
+                            </div>
+
                             <div className="gen-toggle-row">
                                 <div className="gen-toggle"
                                     onClick={() => setProduct((p) => ({ ...p, noPhysicalProduct: !p.noPhysicalProduct }))}
-                                    style={{ background: product.noPhysicalProduct ? "var(--accent)" : "var(--border)" }}>
+                                    style={{ background: product.noPhysicalProduct ? "#3B82F6" : "var(--border)" }}>
                                     <div className="gen-toggle__knob"
                                         style={{ transform: product.noPhysicalProduct ? "translateX(20px)" : "translateX(0)" }} />
                                 </div>
-                                <span style={{ fontSize: 14, color: "var(--muted)" }}>No physical product (SaaS, service, digital product)</span>
+                                <span style={{ fontSize: 14, color: product.noPhysicalProduct ? "#fff" : "var(--muted)", fontWeight: product.noPhysicalProduct ? 500 : 400 }}>No physical product (SaaS, service, digital product)</span>
                             </div>
 
                             <div className="gen-grid-2">
@@ -934,7 +998,9 @@ function GeneratePageContent() {
                             <div className="gen-mb-20">
                                 <label className="gen-label">{product.noPhysicalProduct ? "Hero Image (Optional)" : "Product Photo *"}</label>
                                 <div className="gen-upload" onClick={() => productFileRef.current?.click()}
-                                    style={product.photoPreview ? { backgroundImage: `url(${product.photoPreview})`, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat", minHeight: 160 } : {}}>
+                                    style={{
+                                        ...(product.photoPreview ? { backgroundImage: `url(${product.photoPreview})`, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat", minHeight: 160, position: "relative" } : {})
+                                    }}>
                                     {!product.photoPreview && (
                                         <>
                                             <div className="gen-upload__icon">📷</div>
@@ -943,6 +1009,21 @@ function GeneratePageContent() {
                                             </div>
                                             <div className="gen-upload__hint">PNG or JPG · Max 10MB</div>
                                         </>
+                                    )}
+                                    {product.photoPreview && product._id && !product.noPhysicalProduct && (
+                                        <button
+                                            onClick={handleRemoveBg}
+                                            disabled={bgRemoving}
+                                            style={{
+                                                position: "absolute", bottom: 12, right: 12, background: "rgba(0,0,0,0.7)",
+                                                color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6,
+                                                padding: "6px 12px", fontSize: 12, cursor: bgRemoving ? "not-allowed" : "pointer",
+                                                backdropFilter: "blur(4px)", display: "flex", alignItems: "center", gap: 6
+                                            }}
+                                        >
+                                            {bgRemoving ? <span className="gen-loading-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : "✨"}
+                                            {bgRemoving ? "Removing..." : "Remove Background"}
+                                        </button>
                                     )}
                                 </div>
                                 <input ref={productFileRef} type="file" accept=".png,.jpg,.jpeg" style={{ display: "none" }}

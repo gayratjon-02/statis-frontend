@@ -150,3 +150,46 @@ export async function deleteProduct(id: string): Promise<{ message: string }> {
 
     return res.json();
 }
+
+/**
+ * POST /product/importFromUrl
+ * Scrapes a website URL and returns pre-filled product data.
+ */
+export async function importProductFromUrl(url: string): Promise<{
+    name: string;
+    description: string;
+    product_url: string;
+    photo_url: string;
+    price_text: string;
+}> {
+    const res = await fetch(`${PRODUCT_API}/importFromUrl`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ url }),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Failed to import product" }));
+        throw new Error(error.message || `Import failed (${res.status})`);
+    }
+
+    return res.json();
+}
+
+/**
+ * POST /product/removeBackground/:id
+ * Removes background from product photo via API.
+ */
+export async function removeProductBackground(id: string): Promise<{ photo_url: string }> {
+    const res = await fetch(`${PRODUCT_API}/removeBackground/${id}`, {
+        method: "POST",
+        headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Failed to remove background" }));
+        throw new Error(error.message || `Background removal failed (${res.status})`);
+    }
+
+    return res.json();
+}
