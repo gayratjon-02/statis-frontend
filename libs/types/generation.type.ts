@@ -86,6 +86,8 @@ export interface AdLibraryItem {
     concept_name: string;
     ratios: string[];
     canva_status: string;
+    is_favorite: boolean;
+    is_saved: boolean;
 }
 
 export interface LibraryCounts {

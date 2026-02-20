@@ -220,3 +220,54 @@ export async function downloadAdImage(adId: string, filename?: string): Promise<
     document.body.removeChild(a);
     URL.revokeObjectURL(blobUrl);
 }
+
+/** POST /generation/toggleFavorite/:adId */
+export async function toggleFavoriteRequest(adId: string): Promise<{ is_favorite: boolean }> {
+    const res = await fetch(`${GENERATION_API}/toggleFavorite/${adId}`, {
+        method: "POST",
+        headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to toggle favorite");
+    return res.json();
+}
+
+/** POST /generation/rename/:adId */
+export async function renameAdRequest(adId: string, name: string): Promise<{ ad_name: string }> {
+    const res = await fetch(`${GENERATION_API}/rename/${adId}`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error("Failed to rename ad");
+    return res.json();
+}
+
+/** POST /generation/deleteMany */
+export async function deleteAdsRequest(ids: string[]): Promise<{ deleted: number }> {
+    const res = await fetch(`${GENERATION_API}/deleteMany`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) throw new Error("Failed to delete ads");
+    return res.json();
+}
+
+/** GET /generation/download/:adId/:ratio — proxy download for a specific ratio */
+export async function downloadAdImageByRatio(adId: string, ratio: string, filename?: string): Promise<void> {
+    const safeRatio = ratio.replace(":", "x");
+    const res = await fetch(`${GENERATION_API}/download/${adId}/${ratio}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${localStorage.getItem("se_access_token")}` },
+    });
+    if (!res.ok) throw new Error("Download failed");
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || `${adId}_${safeRatio}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+}

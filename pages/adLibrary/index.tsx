@@ -1,19 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import AuthGuard from "../../libs/auth/AuthGuard";
-import { getLibraryAdsRequest, getLibraryCountsRequest, downloadAdImage } from "../../server/user/generation";
+import {
+    getLibraryAdsRequest,
+    getLibraryCountsRequest,
+    downloadAdImage,
+    downloadAdImageByRatio,
+    toggleFavoriteRequest,
+    renameAdRequest,
+    deleteAdsRequest,
+} from "../../server/user/generation";
 import type { AdLibraryItem, LibraryCounts } from "../../libs/types/generation.type";
 
 const BG = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
-
-const CONCEPTS = ["All", "Feature Pointers", "Testimonial", "Before & After", "Us vs Them", "Social Proof", "Stat Callout"];
+const CONCEPTS = ["All", "⭐ Favorites", "Feature Pointers", "Testimonial", "Before & After", "Us vs Them", "Social Proof", "Stat Callout"];
 
 function timeAgo(dateStr: string) {
     if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
+    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
     let interval = seconds / 31536000;
     if (interval > 1) return Math.floor(interval) + " years ago";
     interval = seconds / 2592000;
@@ -29,9 +33,8 @@ function timeAgo(dateStr: string) {
 
 function LibraryPage() {
     const router = useRouter();
-    // Filters & UI State
     const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-    const [selectedFolder, setSelectedFolder] = useState<string | null>(null); // Product ID
+    const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
     const [conceptFilter, setConceptFilter] = useState("All");
     const [search, setSearch] = useState("");
     const [sortBy, setSortBy] = useState("newest");
@@ -39,49 +42,37 @@ function LibraryPage() {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [detailId, setDetailId] = useState<string | null>(null);
 
+    // Inline rename state
+    const [renamingId, setRenamingId] = useState<string | null>(null);
+    const [renameValue, setRenameValue] = useState("");
+    const renameInputRef = useRef<HTMLInputElement>(null);
+
+    // Bulk action state
+    const [bulkLoading, setBulkLoading] = useState<string | null>(null);
+
     // Data State
     const [ads, setAds] = useState<AdLibraryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [counts, setCounts] = useState<LibraryCounts>({ brands: [], products: [], total_ads: 0 });
 
-    // Fetch Counts on Mount
     useEffect(() => {
-        getLibraryCountsRequest()
-            .then(setCounts)
-            .catch(console.error);
+        getLibraryCountsRequest().then(setCounts).catch(console.error);
     }, []);
 
-    // Fetch Ads on Filter Change
     useEffect(() => {
         setLoading(true);
-        const query: any = {
-            limit: 50,
-            sort_by: sortBy,
-        };
-
+        const query: any = { limit: 50, sort_by: sortBy };
         if (selectedBrand) query.brand_id = selectedBrand;
         if (selectedFolder) query.product_id = selectedFolder;
-        if (conceptFilter !== "All") {
-            // Map "All" to undefined/null or backend handles it?
-            // Backend expects concept_id. But frontend concept names map to IDs?
-            // Wait, conceptFilter is name string, checking backend mapping.
-            // Requirement was backend returns concept_name. 
-            // Filtering by Concept NAME is tricky if we don't have IDs.
-            // For now, let's assume we filter by ID if we had them or skip if just string.
-            // Actually, let's filter in frontend if needed OR update backend to filter by label OR fetch concepts to map label->id.
-            // Given time constraints, I'll filter by concept_id if I can find it, 
-            // OR I will just pass it, assuming backend might handle it or I'll fix later.
-            // Let's rely on backend filtering by ID. But UI shows Names. 
-            // I'll skip concept filtering for API call for now unless I fetch concepts first.
-        }
         if (search) query.search = search;
 
         getLibraryAdsRequest(query)
             .then((res) => {
-                let filtered = res.list;
-                // Client-side Concept Filter (TEMPORARY until full concept ID mapping)
-                if (conceptFilter !== "All") {
-                    filtered = filtered.filter(a => a.concept_name === conceptFilter);
+                let filtered = res.list as AdLibraryItem[];
+                if (conceptFilter === "⭐ Favorites") {
+                    filtered = filtered.filter((a) => a.is_favorite);
+                } else if (conceptFilter !== "All") {
+                    filtered = filtered.filter((a) => a.concept_name === conceptFilter);
                 }
                 setAds(filtered);
             })
@@ -89,39 +80,100 @@ function LibraryPage() {
             .finally(() => setLoading(false));
     }, [selectedBrand, selectedFolder, conceptFilter, search, sortBy]);
 
+    // Focus rename input when it appears
+    useEffect(() => {
+        if (renamingId && renameInputRef.current) renameInputRef.current.focus();
+    }, [renamingId]);
 
-    const toggleSelect = (id: string) => {
+    const toggleSelect = (id: string) =>
         setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+    // ⭐ Toggle favorite — optimistic update
+    const handleToggleFavorite = async (e: React.MouseEvent, adId: string) => {
+        e.stopPropagation();
+        setAds((prev) =>
+            prev.map((a) => (a._id === adId ? { ...a, is_favorite: !a.is_favorite } : a))
+        );
+        try {
+            await toggleFavoriteRequest(adId);
+        } catch {
+            // Revert on failure
+            setAds((prev) =>
+                prev.map((a) => (a._id === adId ? { ...a, is_favorite: !a.is_favorite } : a))
+            );
+        }
+    };
+
+    // ✏️ Rename — double-click to start
+    const startRename = (e: React.MouseEvent, ad: AdLibraryItem) => {
+        e.stopPropagation();
+        setRenamingId(ad._id);
+        setRenameValue(ad.name);
+    };
+
+    const commitRename = async (adId: string) => {
+        if (!renameValue.trim()) { setRenamingId(null); return; }
+        setAds((prev) =>
+            prev.map((a) => (a._id === adId ? { ...a, name: renameValue.trim() } : a))
+        );
+        setRenamingId(null);
+        try {
+            await renameAdRequest(adId, renameValue.trim());
+        } catch {
+            console.error("Rename failed");
+        }
+    };
+
+    // 🗑️ Bulk delete
+    const handleBulkDelete = async () => {
+        if (!selectedIds.length) return;
+        if (!confirm(`Delete ${selectedIds.length} ad(s)? This cannot be undone.`)) return;
+        setBulkLoading("delete");
+        try {
+            await deleteAdsRequest(selectedIds);
+            setAds((prev) => prev.filter((a) => !selectedIds.includes(a._id)));
+            setSelectedIds([]);
+        } catch (e: any) {
+            alert(e.message || "Delete failed");
+        } finally {
+            setBulkLoading(null);
+        }
+    };
+
+    // ⤓ Bulk download — sequential
+    const handleBulkDownload = async () => {
+        if (!selectedIds.length) return;
+        setBulkLoading("download");
+        for (const id of selectedIds) {
+            const ad = ads.find((a) => a._id === id);
+            try {
+                await downloadAdImage(id, `${ad?.name || id}_1x1.png`);
+                await new Promise((r) => setTimeout(r, 600)); // small delay between downloads
+            } catch { /* skip */ }
+        }
+        setBulkLoading(null);
     };
 
     const detailAd = detailId ? ads.find((a) => a._id === detailId) : null;
 
     return (
         <div className="library-page">
-            {/* ===== MAIN CONTENT (Full Width, Centered) ===== */}
             <div className="lib-main lib-main--full">
+
                 {/* Top Bar */}
                 <div className="lib-topbar">
                     <div className="lib-topbar__title-area">
                         <button
                             onClick={() => router.push("/dashboard")}
                             style={{
-                                padding: "6px 14px",
-                                fontSize: 13,
-                                fontWeight: 500,
-                                color: "var(--muted)",
-                                background: "rgba(255,255,255,0.06)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                borderRadius: 8,
-                                cursor: "pointer",
-                                marginBottom: 8,
-                                transition: "all 0.2s",
+                                padding: "6px 14px", fontSize: 13, fontWeight: 500,
+                                color: "var(--muted)", background: "rgba(255,255,255,0.06)",
+                                border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+                                cursor: "pointer", marginBottom: 8, transition: "all 0.2s",
                             }}
                             onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "var(--text)"; }}
                             onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "var(--muted)"; }}
-                        >
-                            ← Dashboard
-                        </button>
+                        >← Dashboard</button>
                         <div className="lib-topbar__title">
                             {selectedBrand ? counts.brands.find((b) => b._id === selectedBrand)?.name : "All"} Ads
                         </div>
@@ -147,18 +199,8 @@ function LibraryPage() {
                             <option value="oldest">Oldest</option>
                             <option value="brand">Brand</option>
                         </select>
-                        <button
-                            className={`lib-btn ${viewMode === "grid" ? "lib-btn--active" : ""}`}
-                            onClick={() => setViewMode("grid")}
-                        >
-                            ⊞ Grid
-                        </button>
-                        <button
-                            className={`lib-btn ${viewMode === "list" ? "lib-btn--active" : ""}`}
-                            onClick={() => setViewMode("list")}
-                        >
-                            ☰ List
-                        </button>
+                        <button className={`lib-btn ${viewMode === "grid" ? "lib-btn--active" : ""}`} onClick={() => setViewMode("grid")}>⊞ Grid</button>
+                        <button className={`lib-btn ${viewMode === "list" ? "lib-btn--active" : ""}`} onClick={() => setViewMode("list")}>☰ List</button>
                     </div>
                 </div>
 
@@ -168,9 +210,7 @@ function LibraryPage() {
                         className={`lib-filter-btn ${!selectedBrand ? "lib-filter-btn--active" : ""}`}
                         onClick={() => { setSelectedBrand(null); setSelectedFolder(null); }}
                         style={{ cursor: "pointer" }}
-                    >
-                        All Brands ({counts.total_ads})
-                    </div>
+                    >All Brands ({counts.total_ads})</div>
                     {counts.brands.map((b) => (
                         <div
                             key={b._id}
@@ -184,41 +224,40 @@ function LibraryPage() {
                     ))}
                 </div>
 
-                {/* Product Filter Chips (filtered by selected brand) */}
-                {counts.products.filter(p => !selectedBrand || p.brand_id === selectedBrand).length > 0 && (
+                {/* Product Filter */}
+                {counts.products.filter((p) => !selectedBrand || p.brand_id === selectedBrand).length > 0 && (
                     <div className="lib-filters" style={{ marginTop: -8 }}>
                         <div
                             className={`lib-filter-btn ${!selectedFolder ? "lib-filter-btn--active" : ""}`}
                             onClick={() => setSelectedFolder(null)}
                             style={{ cursor: "pointer", fontSize: 12 }}
-                        >
-                            All Products
-                        </div>
+                        >All Products</div>
                         {counts.products
-                            .filter(p => !selectedBrand || p.brand_id === selectedBrand)
+                            .filter((p) => !selectedBrand || p.brand_id === selectedBrand)
                             .map((f) => (
                                 <div
                                     key={f._id}
                                     className={`lib-filter-btn ${selectedFolder === f._id ? "lib-filter-btn--active" : ""}`}
                                     onClick={() => setSelectedFolder(selectedFolder === f._id ? null : f._id)}
                                     style={{ cursor: "pointer", fontSize: 12 }}
-                                >
-                                    📁 {f.name} ({f.count})
-                                </div>
+                                >📁 {f.name} ({f.count})</div>
                             ))}
                     </div>
                 )}
 
-                {/* Concept Filter */}
+                {/* Concept / Favorites Filter */}
                 <div className="lib-filters">
                     {CONCEPTS.map((cat) => (
                         <button
                             key={cat}
                             className={`lib-filter-btn ${conceptFilter === cat ? "lib-filter-btn--active" : ""}`}
                             onClick={() => setConceptFilter(cat)}
-                        >
-                            {cat}
-                        </button>
+                            style={cat === "⭐ Favorites" ? {
+                                borderColor: conceptFilter === cat ? "rgba(251,191,36,0.6)" : "rgba(251,191,36,0.2)",
+                                color: conceptFilter === cat ? "#FBBF24" : "rgba(251,191,36,0.7)",
+                                background: conceptFilter === cat ? "rgba(251,191,36,0.12)" : undefined,
+                            } : {}}
+                        >{cat}</button>
                     ))}
                 </div>
 
@@ -226,15 +265,27 @@ function LibraryPage() {
                 {selectedIds.length > 0 && (
                     <div className="lib-bulk">
                         <span className="lib-bulk__count">{selectedIds.length} selected</span>
-                        <button className="lib-bulk__btn">⤓ Download All</button>
-                        <button className="lib-bulk__btn">📋 Export</button>
-                        <button className="lib-bulk__clear" onClick={() => setSelectedIds([])}>
-                            Clear
+                        <button
+                            className="lib-bulk__btn"
+                            onClick={handleBulkDownload}
+                            disabled={bulkLoading === "download"}
+                            style={{ opacity: bulkLoading === "download" ? 0.6 : 1 }}
+                        >
+                            {bulkLoading === "download" ? "Downloading..." : "⤓ Download All"}
                         </button>
+                        <button
+                            className="lib-bulk__btn"
+                            onClick={handleBulkDelete}
+                            disabled={bulkLoading === "delete"}
+                            style={{ color: "#EF4444", borderColor: "rgba(239,68,68,0.4)", opacity: bulkLoading === "delete" ? 0.6 : 1 }}
+                        >
+                            {bulkLoading === "delete" ? "Deleting..." : "🗑 Delete"}
+                        </button>
+                        <button className="lib-bulk__clear" onClick={() => setSelectedIds([])}>Clear</button>
                     </div>
                 )}
 
-                {/* Grid View */}
+                {/* ===== GRID VIEW ===== */}
                 {viewMode === "grid" && (
                     <div className="lib-ads-grid">
                         {ads.map((ad, i) => (
@@ -246,30 +297,70 @@ function LibraryPage() {
                                 <div
                                     className="lib-ad-card__image"
                                     style={{
-                                        background: ad.image ? `url(${ad.image}) center/cover` : `linear-gradient(135deg, ${BG[i % 6]}dd, ${BG[(i + 3) % 6]}aa)`,
+                                        background: ad.image
+                                            ? `url(${ad.image}) center/cover`
+                                            : `linear-gradient(135deg, ${BG[i % 6]}dd, ${BG[(i + 3) % 6]}aa)`,
+                                        position: "relative",
                                     }}
                                 >
                                     {!ad.image && <span className="lib-ad-card__placeholder">AD</span>}
+
+                                    {/* Select checkbox */}
                                     <div
                                         className={`lib-ad-card__select ${selectedIds.includes(ad._id) ? "lib-ad-card__select--checked" : ""}`}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleSelect(ad._id);
+                                        onClick={(e) => { e.stopPropagation(); toggleSelect(ad._id); }}
+                                    >{selectedIds.includes(ad._id) ? "✓" : ""}</div>
+
+                                    {/* ⭐ Favorite button */}
+                                    <button
+                                        onClick={(e) => handleToggleFavorite(e, ad._id)}
+                                        style={{
+                                            position: "absolute", bottom: 8, right: 8,
+                                            background: ad.is_favorite ? "rgba(251,191,36,0.9)" : "rgba(0,0,0,0.5)",
+                                            border: "none", borderRadius: "50%",
+                                            width: 30, height: 30, cursor: "pointer",
+                                            fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center",
+                                            transition: "all 0.2s",
+                                            transform: ad.is_favorite ? "scale(1.1)" : "scale(1)",
                                         }}
-                                    >
-                                        {selectedIds.includes(ad._id) ? "✓" : ""}
-                                    </div>
+                                        title={ad.is_favorite ? "Remove from favorites" : "Add to favorites"}
+                                    >{ad.is_favorite ? "⭐" : "☆"}</button>
                                 </div>
+
                                 <div className="lib-ad-card__info">
-                                    <div className="lib-ad-card__name">{ad.name}</div>
+                                    {/* Inline rename on double-click */}
+                                    {renamingId === ad._id ? (
+                                        <input
+                                            ref={renameInputRef}
+                                            value={renameValue}
+                                            onChange={(e) => setRenameValue(e.target.value)}
+                                            onBlur={() => commitRename(ad._id)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") commitRename(ad._id);
+                                                if (e.key === "Escape") setRenamingId(null);
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            style={{
+                                                width: "100%", background: "rgba(255,255,255,0.08)",
+                                                border: "1px solid var(--accent)", borderRadius: 6,
+                                                color: "var(--text)", fontSize: 13, padding: "3px 8px",
+                                                outline: "none",
+                                            }}
+                                        />
+                                    ) : (
+                                        <div
+                                            className="lib-ad-card__name"
+                                            onDoubleClick={(e) => startRename(e, ad)}
+                                            title="Double-click to rename"
+                                            style={{ cursor: "text" }}
+                                        >{ad.name}</div>
+                                    )}
                                     <div className="lib-ad-card__meta">
                                         <span className="lib-ad-card__date">{timeAgo(ad.created_at)}</span>
                                         <span
                                             className="lib-ad-card__brand"
                                             style={{ background: `${ad.brand_color}18`, color: ad.brand_color }}
-                                        >
-                                            {ad.brand_name}
-                                        </span>
+                                        >{ad.brand_name}</span>
                                     </div>
                                 </div>
                             </div>
@@ -277,7 +368,7 @@ function LibraryPage() {
                     </div>
                 )}
 
-                {/* List View */}
+                {/* ===== LIST VIEW ===== */}
                 {viewMode === "list" && (
                     <div className="lib-ads-list">
                         {ads.map((ad, i) => (
@@ -288,52 +379,87 @@ function LibraryPage() {
                             >
                                 <div
                                     className={`lib-list-item__select ${selectedIds.includes(ad._id) ? "lib-list-item__select--checked" : ""}`}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleSelect(ad._id);
-                                    }}
-                                >
-                                    {selectedIds.includes(ad._id) ? "✓" : ""}
-                                </div>
+                                    onClick={(e) => { e.stopPropagation(); toggleSelect(ad._id); }}
+                                >{selectedIds.includes(ad._id) ? "✓" : ""}</div>
+
                                 <div
                                     className="lib-list-item__thumb"
                                     style={{
-                                        background: ad.image ? `url(${ad.image}) center/cover` : `linear-gradient(135deg, ${BG[i % 6]}cc, ${BG[(i + 3) % 6]}88)`,
+                                        background: ad.image
+                                            ? `url(${ad.image}) center/cover`
+                                            : `linear-gradient(135deg, ${BG[i % 6]}cc, ${BG[(i + 3) % 6]}88)`,
                                     }}
-                                >
-                                    {!ad.image && <span>AD</span>}
-                                </div>
+                                >{!ad.image && <span>AD</span>}</div>
+
                                 <div className="lib-list-item__info">
-                                    <div className="lib-list-item__name">{ad.name}</div>
+                                    {renamingId === ad._id ? (
+                                        <input
+                                            ref={renameInputRef}
+                                            value={renameValue}
+                                            onChange={(e) => setRenameValue(e.target.value)}
+                                            onBlur={() => commitRename(ad._id)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") commitRename(ad._id);
+                                                if (e.key === "Escape") setRenamingId(null);
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            style={{
+                                                background: "rgba(255,255,255,0.08)",
+                                                border: "1px solid var(--accent)", borderRadius: 6,
+                                                color: "var(--text)", fontSize: 13, padding: "3px 8px", outline: "none",
+                                            }}
+                                        />
+                                    ) : (
+                                        <div
+                                            className="lib-list-item__name"
+                                            onDoubleClick={(e) => startRename(e, ad)}
+                                            title="Double-click to rename"
+                                            style={{ cursor: "text" }}
+                                        >{ad.name}</div>
+                                    )}
                                     <div className="lib-list-item__concept">{ad.concept_name}</div>
                                 </div>
-                                <span
-                                    className="lib-list-item__brand"
-                                    style={{ background: `${ad.brand_color}18`, color: ad.brand_color }}
-                                >
+
+                                <span className="lib-list-item__brand" style={{ background: `${ad.brand_color}18`, color: ad.brand_color }}>
                                     {ad.brand_name}
                                 </span>
                                 <span className="lib-list-item__date">{timeAgo(ad.created_at)}</span>
+
                                 <div className="lib-list-item__actions">
-                                    <button className="lib-list-item__action-btn">View</button>
-                                    <button className="lib-list-item__action-btn" onClick={(e) => {
-                                        e.stopPropagation();
-                                        downloadAdImage(ad._id, `${ad.name || "ad"}_1x1.png`).catch(() => {
-                                            if (ad.image) window.open(ad.image, "_blank");
-                                        });
-                                    }}>⤓</button>
+                                    <button
+                                        className="lib-list-item__action-btn"
+                                        onClick={(e) => { e.stopPropagation(); handleToggleFavorite(e, ad._id); }}
+                                        style={{ color: ad.is_favorite ? "#FBBF24" : undefined }}
+                                    >{ad.is_favorite ? "⭐" : "☆"}</button>
+                                    <button
+                                        className="lib-list-item__action-btn"
+                                        onClick={(e) => { e.stopPropagation(); setDetailId(ad._id); }}
+                                    >View</button>
+                                    <button
+                                        className="lib-list-item__action-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            downloadAdImage(ad._id, `${ad.name || "ad"}_1x1.png`).catch(() => {
+                                                if (ad.image) window.open(ad.image, "_blank");
+                                            });
+                                        }}
+                                    >⤓</button>
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
 
-                {/* Empty state */}
+                {/* Empty / Loading states */}
                 {!loading && ads.length === 0 && (
                     <div className="lib-empty">
-                        <div className="lib-empty__icon">🔍</div>
-                        <div className="lib-empty__title">No ads found</div>
-                        <div className="lib-empty__desc">Try adjusting your filters or search query.</div>
+                        <div className="lib-empty__icon">{conceptFilter === "⭐ Favorites" ? "⭐" : "🔍"}</div>
+                        <div className="lib-empty__title">{conceptFilter === "⭐ Favorites" ? "No favorites yet" : "No ads found"}</div>
+                        <div className="lib-empty__desc">
+                            {conceptFilter === "⭐ Favorites"
+                                ? "Star any ad to add it to your favorites."
+                                : "Try adjusting your filters or search query."}
+                        </div>
                     </div>
                 )}
                 {loading && (
@@ -347,27 +473,25 @@ function LibraryPage() {
                     <div className="lib-detail-panel" onClick={(e) => e.stopPropagation()}>
                         <div className="lib-detail-panel__header">
                             <span className="lib-detail-panel__title">{detailAd.name}</span>
-                            <button className="lib-detail-panel__close" onClick={() => setDetailId(null)}>
-                                ×
-                            </button>
+                            <button className="lib-detail-panel__close" onClick={() => setDetailId(null)}>×</button>
                         </div>
 
                         <div
                             className="lib-detail-panel__preview"
                             style={{
-                                background: detailAd.image ? `url(${detailAd.image}) center/contain no-repeat` : `linear-gradient(135deg, #eee, #ddd)`,
+                                background: detailAd.image
+                                    ? `url(${detailAd.image}) center/contain no-repeat`
+                                    : `linear-gradient(135deg, #eee, #ddd)`,
                             }}
-                        >
-                            {!detailAd.image && <span className="lib-detail-panel__preview-label">AD</span>}
-                        </div>
+                        >{!detailAd.image && <span className="lib-detail-panel__preview-label">AD</span>}</div>
 
                         <div className="lib-detail-panel__body">
                             <div className="lib-detail-panel__meta">
                                 {[
                                     { label: "Brand", value: detailAd.brand_name },
+                                    { label: "Product", value: detailAd.product_name },
                                     { label: "Concept", value: detailAd.concept_name },
                                     { label: "Date", value: timeAgo(detailAd.created_at) },
-                                    { label: "Ratios", value: detailAd.ratios.join(", ") },
                                 ].map((m) => (
                                     <div key={m.label}>
                                         <div className="detail-meta__label">{m.label}</div>
@@ -377,38 +501,53 @@ function LibraryPage() {
                             </div>
 
                             <div className="detail-actions">
+                                {/* Favorite toggle in detail */}
                                 <button
-                                    className="detail-actions__btn detail-actions__btn--primary"
-                                    onClick={() => {
-                                        if (!detailAd) return;
-                                        downloadAdImage(detailAd._id, `${detailAd.name || "ad"}_1x1.png`).catch(() => {
-                                            if (detailAd.image) window.open(detailAd.image, "_blank");
-                                        });
+                                    onClick={(e) => handleToggleFavorite(e, detailAd._id)}
+                                    style={{
+                                        width: "100%", padding: "10px 0", borderRadius: 10,
+                                        border: `1px solid ${detailAd.is_favorite ? "rgba(251,191,36,0.5)" : "var(--border)"}`,
+                                        background: detailAd.is_favorite ? "rgba(251,191,36,0.1)" : "transparent",
+                                        color: detailAd.is_favorite ? "#FBBF24" : "var(--muted)",
+                                        fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 10,
                                     }}
-                                >
-                                    ⤓ Download Ad
-                                </button>
-                                <div className="detail-actions__row">
-                                    <button className="detail-actions__btn detail-actions__btn--secondary">
-                                        Get All Ratios
-                                    </button>
-                                    <button className="detail-actions__btn detail-actions__btn--secondary">
-                                        Fix Errors
-                                    </button>
+                                >{detailAd.is_favorite ? "⭐ Remove from Favorites" : "☆ Add to Favorites"}</button>
+
+                                {/* 3-ratio download buttons */}
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+                                    {(["1:1", "9:16", "16:9"] as const).map((ratio) => (
+                                        <button
+                                            key={ratio}
+                                            className="detail-actions__btn detail-actions__btn--primary"
+                                            onClick={() => {
+                                                downloadAdImageByRatio(detailAd._id, ratio, `${detailAd.name}_${ratio.replace(":", "x")}.png`)
+                                                    .catch(() => { if (detailAd.image) window.open(detailAd.image, "_blank"); });
+                                            }}
+                                            style={{ padding: "9px 0", fontSize: 12 }}
+                                        >⤓ {ratio}</button>
+                                    ))}
                                 </div>
+
                                 <div className="detail-actions__row">
-                                    <button className="detail-actions__btn detail-actions__btn--secondary">
-                                        ↻ Regenerate
-                                    </button>
+                                    <button className="detail-actions__btn detail-actions__btn--secondary">↻ Regenerate</button>
                                     <button
                                         className="detail-actions__btn detail-actions__btn--secondary"
-                                        style={{
-                                            borderColor: "rgba(245,158,11,0.27)",
-                                            color: "var(--yellow)",
+                                        style={{ borderColor: "rgba(239,68,68,0.3)", color: "#EF4444" }}
+                                        onClick={async () => {
+                                            if (!confirm("Delete this ad?")) return;
+                                            try {
+                                                await deleteAdsRequest([detailAd._id]);
+                                                setAds((prev) => prev.filter((a) => a._id !== detailAd._id));
+                                                setDetailId(null);
+                                            } catch { alert("Delete failed"); }
                                         }}
-                                    >
-                                        Buy Canva Template
-                                    </button>
+                                    >🗑 Delete</button>
+                                </div>
+                                <div className="detail-actions__row">
+                                    <button
+                                        className="detail-actions__btn detail-actions__btn--secondary"
+                                        style={{ borderColor: "rgba(245,158,11,0.27)", color: "var(--yellow)" }}
+                                    >Buy Canva Template</button>
                                 </div>
                             </div>
                         </div>
