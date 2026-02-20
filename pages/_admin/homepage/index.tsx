@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import AdminGuard from "../../../libs/auth/AdminGuard";
 import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
-import { getConcepts, getRecommendedConcepts, getCategories, getAdminUsers, getAdminStats } from "../../../server/admin/admnGetApis";
-import type { AdminUser, AdminPlatformStats } from "../../../server/admin/admnGetApis";
-import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, reorderConcepts, blockUser, unblockUser } from "../../../server/admin/adminPostApis";
+import { getConcepts, getRecommendedConcepts, getCategories, getAdminUsers, getAdminStats, getCanvaOrdersAdmin, getPromptTemplatesAdmin } from "../../../server/admin/admnGetApis";
+import type { AdminUser, AdminPlatformStats, CanvaOrderAdmin, PromptTemplateAdmin } from "../../../server/admin/admnGetApis";
+import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, reorderConcepts, blockUser, unblockUser, fulfillCanvaOrder, updatePromptTemplateAdmin } from "../../../server/admin/adminPostApis";
 import type { AdConcept, ConceptCategoryItem } from "../../../libs/types/concept.type";
 import API_BASE_URL from "../../../libs/config/api.config";
 
@@ -22,6 +22,8 @@ const NAV_ITEMS = [
     { icon: "🎨", label: "Concepts", id: "concepts" },
     { icon: "⭐", label: "Recommended", id: "recommended" },
     { icon: "🏷️", label: "Categories", id: "categories" },
+    { icon: "📦", label: "Canva Orders", id: "canva" },
+    { icon: "📝", label: "Prompt Management", id: "prompts" },
 ];
 
 function AdminDashboard() {
@@ -86,6 +88,22 @@ function AdminDashboard() {
     const [catModalError, setCatModalError] = useState("");
     const [catName, setCatName] = useState("");
     const [catDescription, setCatDescription] = useState("");
+
+    // ── Canva Orders tab ──
+    const [canvaOrders, setCanvaOrders] = useState<CanvaOrderAdmin[]>([]);
+    const [canvaOrdersLoading, setCanvaOrdersLoading] = useState(false);
+    const [canvaFulfillId, setCanvaFulfillId] = useState<string | null>(null);
+    const [canvaFulfillLink, setCanvaFulfillLink] = useState("");
+    const [canvaFulfillError, setCanvaFulfillError] = useState("");
+
+    // ── Prompt Management tab ──
+    const [promptTemplates, setPromptTemplates] = useState<PromptTemplateAdmin[]>([]);
+    const [promptTemplatesLoading, setPromptTemplatesLoading] = useState(false);
+    const [promptEditId, setPromptEditId] = useState<string | null>(null);
+    const [promptEditContent, setPromptEditContent] = useState("");
+    const [promptEditActive, setPromptEditActive] = useState(true);
+    const [promptSaveLoading, setPromptSaveLoading] = useState(false);
+    const [promptSaveError, setPromptSaveError] = useState("");
 
     // ── Fetch categories ──
     const fetchCategories = useCallback(async () => {
@@ -406,6 +424,18 @@ function AdminDashboard() {
         }
     }, [userSearch, userTierFilter, userStatusFilter, usersPage]);
 
+    const fetchCanvaOrders = useCallback(async () => {
+        setCanvaOrdersLoading(true);
+        try {
+            const list = await getCanvaOrdersAdmin();
+            setCanvaOrders(Array.isArray(list) ? list : []);
+        } catch {
+            setCanvaOrders([]);
+        } finally {
+            setCanvaOrdersLoading(false);
+        }
+    }, []);
+
     // ── Fetch platform stats ──
     const fetchPlatformStats = useCallback(async () => {
         try {
@@ -416,9 +446,23 @@ function AdminDashboard() {
         }
     }, []);
 
+    const fetchPromptTemplates = useCallback(async () => {
+        setPromptTemplatesLoading(true);
+        try {
+            const list = await getPromptTemplatesAdmin();
+            setPromptTemplates(Array.isArray(list) ? list : []);
+        } catch {
+            setPromptTemplates([]);
+        } finally {
+            setPromptTemplatesLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         if (activeNav === "users") fetchUsers();
-    }, [activeNav, fetchUsers]);
+        if (activeNav === "canva") fetchCanvaOrders();
+        if (activeNav === "prompts") fetchPromptTemplates();
+    }, [activeNav, fetchUsers, fetchCanvaOrders, fetchPromptTemplates]);
 
     useEffect(() => {
         if (activeNav === "dashboard") fetchPlatformStats();
@@ -512,6 +556,8 @@ function AdminDashboard() {
                             {activeNav === "concepts" && "Concept Library"}
                             {activeNav === "recommended" && "Recommended Concepts"}
                             {activeNav === "categories" && "Category Management"}
+                            {activeNav === "canva" && "Canva Orders"}
+                            {activeNav === "prompts" && "Prompt Management"}
                         </h1>
                         <p className="admin-dash__subtitle">
                             {activeNav === "dashboard" && "Platform overview — users, generations, and activity"}
@@ -519,6 +565,8 @@ function AdminDashboard() {
                             {activeNav === "concepts" && "Manage, search, and organize ad concepts"}
                             {activeNav === "recommended" && "Top performing concepts by usage"}
                             {activeNav === "categories" && "Create and manage concept categories"}
+                            {activeNav === "canva" && "View and fulfill Canva template orders — set link and send email"}
+                            {activeNav === "prompts" && "Edit AI system prompts used for ad generation"}
                         </p>
                     </div>
                 </div>
@@ -932,6 +980,246 @@ function AdminDashboard() {
                                 <div className="admin-dash__empty-hint">
                                     Concepts will be ranked by usage_count
                                 </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ── Canva Orders View ── */}
+                {activeNav === "canva" && (
+                    <div className="admin-dash__section">
+                        <div className="admin-dash__section-header">
+                            <div className="admin-dash__section-title">
+                                📦 Canva Orders
+                                <span className="admin-dash__section-count">{canvaOrders.length}</span>
+                            </div>
+                            <button className="admin-dash__btn admin-dash__btn--ghost" onClick={fetchCanvaOrders} disabled={canvaOrdersLoading}>
+                                {canvaOrdersLoading ? "…" : "🔄 Refresh"}
+                            </button>
+                        </div>
+                        {canvaOrdersLoading ? (
+                            <div className="admin-dash__empty">
+                                <div className="admin-dash__spinner" style={{ width: 32, height: 32 }} />
+                                <div className="admin-dash__empty-text">Loading orders...</div>
+                            </div>
+                        ) : canvaOrders.length === 0 ? (
+                            <div className="admin-dash__empty">
+                                <div className="admin-dash__empty-icon">📦</div>
+                                <div className="admin-dash__empty-text">No Canva orders yet</div>
+                                <div className="admin-dash__empty-hint">Orders will appear here when users purchase Canva templates</div>
+                            </div>
+                        ) : (
+                            <div style={{ overflowX: "auto" }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", textAlign: "left" }}>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Order</th>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>User</th>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Ad</th>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Status</th>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Price</th>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Created</th>
+                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {canvaOrders.map((order) => {
+                                            const user = order.users ?? (order as any).users;
+                                            const ad = order.generated_ads ?? (order as any).generated_ads;
+                                            const email = typeof user === "object" && user !== null ? (user as any).email : "—";
+                                            const fullName = typeof user === "object" && user !== null ? (user as any).full_name : "—";
+                                            const adName = typeof ad === "object" && ad !== null ? (ad as any).ad_name : "—";
+                                            const isPending = order.status === "pending";
+                                            const isFulfilling = canvaFulfillId === order._id;
+                                            return (
+                                                <tr key={order._id} style={{ borderBottom: "1px solid var(--border-subtle, #21262d)" }}>
+                                                    <td style={{ padding: "10px 12px" }}><code style={{ fontSize: 11 }}>{order._id.slice(0, 8)}…</code></td>
+                                                    <td style={{ padding: "10px 12px" }}>
+                                                        <div style={{ fontWeight: 500, color: "var(--text)" }}>{fullName || "—"}</div>
+                                                        <div style={{ fontSize: 12, color: "var(--muted)" }}>{email}</div>
+                                                    </td>
+                                                    <td style={{ padding: "10px 12px" }}>{adName}</td>
+                                                    <td style={{ padding: "10px 12px" }}>
+                                                        <span className={`admin-dash__concept-status ${order.status === "fulfilled" ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"}`} style={{ marginRight: 6 }} />
+                                                        {order.status}
+                                                    </td>
+                                                    <td style={{ padding: "10px 12px" }}>{(order.price_paid_cents / 100).toFixed(2)}</td>
+                                                    <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--muted)" }}>{new Date(order.created_at).toLocaleDateString()}</td>
+                                                    <td style={{ padding: "10px 12px" }}>
+                                                        {isPending ? (
+                                                            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 280 }}>
+                                                                <input
+                                                                    type="url"
+                                                                    placeholder="Canva link"
+                                                                    value={canvaFulfillId === order._id ? canvaFulfillLink : ""}
+                                                                    onChange={(e) => { setCanvaFulfillLink(e.target.value); setCanvaFulfillId(order._id); }}
+                                                                    className="admin-dash__search-input"
+                                                                    style={{ padding: "6px 10px", fontSize: 12 }}
+                                                                />
+                                                                {canvaFulfillError && canvaFulfillId === order._id && (
+                                                                    <div style={{ fontSize: 12, color: "#f85149" }}>{canvaFulfillError}</div>
+                                                                )}
+                                                                <button
+                                                                    className="admin-dash__btn admin-dash__btn--primary"
+                                                                    style={{ fontSize: 12, padding: "6px 12px" }}
+                                                                    disabled={isFulfilling || !canvaFulfillLink.trim()}
+                                                                    onClick={async () => {
+                                                                        setCanvaFulfillError("");
+                                                                        setCanvaFulfillId(order._id);
+                                                                        try {
+                                                                            await fulfillCanvaOrder(order._id, canvaFulfillLink.trim());
+                                                                            setCanvaFulfillLink("");
+                                                                            setCanvaFulfillId(null);
+                                                                            fetchCanvaOrders();
+                                                                        } catch (err: any) {
+                                                                            setCanvaFulfillError(err.message || "Failed");
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    {isFulfilling ? "…" : "Fulfill & send email"}
+                                                                </button>
+                                                            </div>
+                                                        ) : order.canva_link ? (
+                                                            <a href={order.canva_link} target="_blank" rel="noopener noreferrer" className="admin-dash__btn admin-dash__btn--ghost" style={{ fontSize: 12 }}>
+                                                                View link
+                                                            </a>
+                                                        ) : (
+                                                            "—"
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ── Prompt Management View ── */}
+                {activeNav === "prompts" && (
+                    <div className="admin-dash__section">
+                        <div className="admin-dash__section-header">
+                            <div className="admin-dash__section-title">
+                                📝 Prompt Templates
+                                <span className="admin-dash__section-count">{promptTemplates.length}</span>
+                            </div>
+                            <button className="admin-dash__btn admin-dash__btn--ghost" onClick={fetchPromptTemplates} disabled={promptTemplatesLoading}>
+                                {promptTemplatesLoading ? "…" : "🔄 Refresh"}
+                            </button>
+                        </div>
+                        {promptTemplatesLoading ? (
+                            <div className="admin-dash__empty">
+                                <div className="admin-dash__spinner" style={{ width: 32, height: 32 }} />
+                                <div className="admin-dash__empty-text">Loading prompts...</div>
+                            </div>
+                        ) : promptTemplates.length === 0 ? (
+                            <div className="admin-dash__empty">
+                                <div className="admin-dash__empty-icon">📝</div>
+                                <div className="admin-dash__empty-text">No prompt templates found</div>
+                            </div>
+                        ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                                {promptTemplates.map((t) => {
+                                    const isEditing = promptEditId === t._id;
+                                    const content = isEditing ? promptEditContent : t.content;
+                                    const active = isEditing ? promptEditActive : t.is_active;
+                                    return (
+                                        <div
+                                            key={t._id}
+                                            style={{
+                                                background: "var(--bg-card)",
+                                                border: "1px solid var(--border)",
+                                                borderRadius: 12,
+                                                padding: 20,
+                                            }}
+                                        >
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                                                <div>
+                                                    <span style={{ fontWeight: 600, color: "var(--text)" }}>{t.name}</span>
+                                                    <span style={{ marginLeft: 10, fontSize: 12, color: "var(--muted)", textTransform: "uppercase" }}>{t.template_type}</span>
+                                                </div>
+                                                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer" }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={active}
+                                                        onChange={() => {
+                                                            if (!isEditing) {
+                                                                setPromptEditId(t._id);
+                                                                setPromptEditContent(t.content);
+                                                                setPromptEditActive(!t.is_active);
+                                                            } else {
+                                                                setPromptEditActive(!promptEditActive);
+                                                            }
+                                                        }}
+                                                    />
+                                                    Active
+                                                </label>
+                                            </div>
+                                            <textarea
+                                                value={content}
+                                                onChange={(e) => {
+                                                    if (!isEditing) {
+                                                        setPromptEditId(t._id);
+                                                        setPromptEditContent(e.target.value);
+                                                        setPromptEditActive(t.is_active);
+                                                    } else {
+                                                        setPromptEditContent(e.target.value);
+                                                    }
+                                                }}
+                                                placeholder="Prompt content..."
+                                                rows={10}
+                                                style={{
+                                                    width: "100%",
+                                                    background: "var(--bg)",
+                                                    border: "1px solid var(--border)",
+                                                    borderRadius: 8,
+                                                    color: "var(--text)",
+                                                    padding: 12,
+                                                    fontSize: 13,
+                                                    fontFamily: "monospace",
+                                                    resize: "vertical",
+                                                    boxSizing: "border-box",
+                                                }}
+                                            />
+                                            {(isEditing || content !== t.content || active !== t.is_active) && (
+                                                <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12 }}>
+                                                    <button
+                                                        className="admin-dash__btn admin-dash__btn--primary"
+                                                        disabled={promptSaveLoading}
+                                                        onClick={async () => {
+                                                            setPromptSaveError("");
+                                                            setPromptSaveLoading(true);
+                                                            try {
+                                                                await updatePromptTemplateAdmin(t._id, { content: promptEditContent, is_active: promptEditActive });
+                                                                setPromptEditId(null);
+                                                                fetchPromptTemplates();
+                                                            } catch (err: any) {
+                                                                setPromptSaveError(err.message || "Save failed");
+                                                            } finally {
+                                                                setPromptSaveLoading(false);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {promptSaveLoading ? "Saving…" : "Save changes"}
+                                                    </button>
+                                                    <button
+                                                        className="admin-dash__btn admin-dash__btn--ghost"
+                                                        onClick={() => {
+                                                            setPromptEditId(null);
+                                                            setPromptEditContent("");
+                                                            setPromptSaveError("");
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    {promptSaveError && <span style={{ fontSize: 13, color: "#f85149" }}>{promptSaveError}</span>}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

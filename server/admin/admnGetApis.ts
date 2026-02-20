@@ -138,3 +138,57 @@ export async function getAdminUsers(params: {
 export async function getAdminStats(): Promise<AdminPlatformStats> {
     return getRequest<AdminPlatformStats>(`${MEMBER_API}/adminStats`);
 }
+
+// =============================================
+// ADMIN — CANVA ORDERS
+// =============================================
+
+const CANVA_API = `${API_BASE_URL}/canva`;
+
+export interface CanvaOrderAdmin {
+    _id: string;
+    user_id: string;
+    generated_ad_id: string;
+    stripe_payment_id: string;
+    price_paid_cents: number;
+    status: string;
+    canva_link: string | null;
+    fulfilled_at: string | null;
+    fulfilled_by: string | null;
+    created_at: string;
+    users?: { email?: string; full_name?: string } | null;
+    generated_ads?: { ad_name?: string; image_url_1x1?: string; image_url_16x9?: string; image_url_9x16?: string } | null;
+}
+
+/**
+ * GET /canva/orders/all
+ * Returns all Canva orders (admin only).
+ */
+export async function getCanvaOrdersAdmin(): Promise<CanvaOrderAdmin[]> {
+    return getRequest<CanvaOrderAdmin[]>(`${CANVA_API}/orders/all`);
+}
+
+// =============================================
+// ADMIN — PROMPT TEMPLATES
+// =============================================
+
+const PROMPT_TEMPLATES_API = `${API_BASE_URL}/prompt-templates`;
+
+export interface PromptTemplateAdmin {
+    _id: string;
+    name: string;
+    template_type: string;
+    content: string;
+    version: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+/**
+ * GET /prompt-templates
+ * Returns all prompt templates (admin only).
+ */
+export async function getPromptTemplatesAdmin(): Promise<PromptTemplateAdmin[]> {
+    return getRequest<PromptTemplateAdmin[]>(`${PROMPT_TEMPLATES_API}`);
+}

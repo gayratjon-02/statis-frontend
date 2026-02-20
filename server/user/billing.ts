@@ -112,3 +112,23 @@ export async function verifyCheckoutRequest(): Promise<{
 
     return res.json();
 }
+
+/**
+ * POST /billing/create-canva-checkout/:adId
+ * Create a Stripe Checkout Session for a Canva Template.
+ */
+export async function createCanvaCheckoutRequest(
+    adId: string
+): Promise<{ checkout_url: string }> {
+    const res = await fetch(`${BILLING_API}/create-canva-checkout/${adId}`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Canva checkout failed" }));
+        throw new Error(error.message || `Canva checkout failed (${res.status})`);
+    }
+
+    return res.json();
+}

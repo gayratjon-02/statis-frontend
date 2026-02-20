@@ -160,3 +160,49 @@ export async function unblockUser(id: string): Promise<{ _id: string; email: str
     return postRequest(`${MEMBER_API}/adminUnblock/${id}`, {});
 }
 
+// =============================================
+// ADMIN — CANVA ORDERS (fulfill)
+// =============================================
+
+const CANVA_API = `${API_BASE_URL}/canva`;
+
+async function patchRequest<T>(url: string, body: unknown): Promise<T> {
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Request failed" }));
+        throw new Error(error.message || `PATCH failed (${res.status})`);
+    }
+
+    return res.json();
+}
+
+/**
+ * PATCH /canva/orders/:id/fulfill
+ * Set Canva link and send email to customer (admin only).
+ */
+export async function fulfillCanvaOrder(orderId: string, canvaLink: string): Promise<{ success: boolean }> {
+    return patchRequest<{ success: boolean }>(`${CANVA_API}/orders/${orderId}/fulfill`, { canva_link: canvaLink });
+}
+
+// =============================================
+// ADMIN — PROMPT TEMPLATES
+// =============================================
+
+const PROMPT_TEMPLATES_API = `${API_BASE_URL}/prompt-templates`;
+
+/**
+ * PATCH /prompt-templates/:id
+ * Update prompt template content or is_active (admin only).
+ */
+export async function updatePromptTemplateAdmin(
+    id: string,
+    payload: { content?: string; is_active?: boolean },
+): Promise<{ _id: string; name: string; template_type: string; content: string; version: number; is_active: boolean; updated_at: string }> {
+    return patchRequest(`${PROMPT_TEMPLATES_API}/${id}`, payload);
+}
+
