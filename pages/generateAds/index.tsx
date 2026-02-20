@@ -1115,10 +1115,10 @@ function GeneratePageContent() {
                         <p style={{ color: "#8b949e", marginBottom: 24, fontSize: 13 }}>Download each format for different platforms</p>
                         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                             {[
-                                { label: "1:1 — Instagram / Facebook", key: "image_url_1x1", url: ratioModal.image_url_1x1, size: "1080×1080" },
-                                { label: "9:16 — Stories / Reels / TikTok", key: "image_url_9x16", url: ratioModal.image_url_9x16, size: "1080×1920" },
-                                { label: "16:9 — YouTube / Twitter / LinkedIn", key: "image_url_16x9", url: ratioModal.image_url_16x9, size: "1920×1080" },
-                            ].map(({ label, url, size }) => (
+                                { label: "1:1 — Instagram / Facebook", ratio: "1x1", url: ratioModal.image_url_1x1, size: "1080×1080" },
+                                { label: "9:16 — Stories / Reels / TikTok", ratio: "9x16", url: ratioModal.image_url_9x16, size: "1080×1920" },
+                                { label: "16:9 — YouTube / Twitter / LinkedIn", ratio: "16x9", url: ratioModal.image_url_16x9, size: "1920×1080" },
+                            ].map(({ label, ratio, url, size }) => (
                                 <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#161b22", border: "1px solid #21262d", borderRadius: 8, padding: "12px 16px" }}>
                                     <div>
                                         <div style={{ color: "#e6edf3", fontSize: 14, fontWeight: 500 }}>{label}</div>
@@ -1126,14 +1126,20 @@ function GeneratePageContent() {
                                     </div>
                                     {url ? (
                                         <button onClick={async () => {
+                                            const token = localStorage.getItem("se_access_token");
                                             try {
-                                                const res = await fetch(url);
+                                                const res = await fetch(`${API_BASE_URL}/generation/download/${ratioModal!.adId}/${ratio}`, {
+                                                    headers: { Authorization: `Bearer ${token}` },
+                                                });
+                                                if (!res.ok) throw new Error("Download failed");
                                                 const blob = await res.blob();
                                                 const blobUrl = URL.createObjectURL(blob);
                                                 const a = document.createElement("a");
                                                 a.href = blobUrl;
-                                                a.download = `${ratioModal?.adName || "ad"}_${label.split(" ")[0].replace(":", "x")}.png`;
+                                                a.download = `${ratioModal?.adName || "ad"}_${ratio}.png`;
+                                                document.body.appendChild(a);
                                                 a.click();
+                                                document.body.removeChild(a);
                                                 URL.revokeObjectURL(blobUrl);
                                             } catch {
                                                 window.open(url, "_blank");
