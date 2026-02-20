@@ -149,7 +149,6 @@ export async function exportRatiosRequest(adId: string): Promise<{
     image_url_1x1: string | null;
     image_url_9x16: string | null;
     image_url_16x9: string | null;
-    generation_status: string;
 }> {
     const res = await fetch(`${GENERATION_API}/exportRatios/${adId}`, {
         method: "POST",
@@ -161,7 +160,19 @@ export async function exportRatiosRequest(adId: string): Promise<{
         throw new Error(error.message || `Export failed (${res.status})`);
     }
 
-    return res.json();
+    const data = await res.json();
+
+    // Backend returns { ratios: [{ratio, label, image_url}] } — map to flat fields
+    const findUrl = (ratio: string): string | null =>
+        data.ratios?.find((r: any) => r.ratio === ratio)?.image_url ?? data[`image_url_${ratio.replace(":", "x")}`] ?? null;
+
+    return {
+        _id: data._id,
+        ad_name: data.ad_name ?? null,
+        image_url_1x1: findUrl("1:1"),
+        image_url_9x16: findUrl("9:16"),
+        image_url_16x9: findUrl("16:9"),
+    };
 }
 
 /**
