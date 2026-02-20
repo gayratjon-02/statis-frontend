@@ -34,18 +34,18 @@ export default function UserAuth() {
 
     // ── Plan selection ──
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-    const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
+    const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("monthly");
 
     const planInfo: Record<string, { label: string; monthlyPrice: number; yearlyMonthly: number; yearlyTotal: number; credits: string; badge?: string }> = {
         starter: { label: "Starter", monthlyPrice: 39, yearlyMonthly: 33, yearlyTotal: 390, credits: "250 credits" },
-        pro:     { label: "Pro",     monthlyPrice: 99, yearlyMonthly: 83, yearlyTotal: 990, credits: "750 credits", badge: "POPULAR" },
-        growth:  { label: "Growth",  monthlyPrice: 199, yearlyMonthly: 166, yearlyTotal: 1990, credits: "2,000 credits" },
+        pro: { label: "Pro", monthlyPrice: 99, yearlyMonthly: 83, yearlyTotal: 990, credits: "750 credits", badge: "POPULAR" },
+        growth: { label: "Growth", monthlyPrice: 199, yearlyMonthly: 166, yearlyTotal: 1990, credits: "2,000 credits" },
     };
 
     const getPlanDisplay = (tier: string) => {
         const p = planInfo[tier];
         if (!p) return { price: "", sub: "" };
-        if (billingInterval === "yearly") {
+        if (billingInterval === "annual") {
             return { price: `$${p.yearlyMonthly}/mo`, sub: `$${p.yearlyTotal} billed yearly` };
         }
         return { price: `$${p.monthlyPrice}/mo`, sub: "" };
@@ -191,13 +191,13 @@ export default function UserAuth() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setBillingInterval("yearly")}
+                                        onClick={() => setBillingInterval("annual")}
                                         style={{
                                             position: "relative", zIndex: 1,
                                             background: "transparent", border: "none",
                                             padding: "4px 10px", borderRadius: 16,
                                             fontSize: 11, fontWeight: 600, cursor: "pointer",
-                                            color: billingInterval === "yearly" ? "#3ECFCF" : "var(--muted)",
+                                            color: billingInterval === "annual" ? "#3ECFCF" : "var(--muted)",
                                             transition: "color 0.15s",
                                         }}
                                     >
@@ -207,7 +207,7 @@ export default function UserAuth() {
                             </div>
 
                             {/* Save badge — faqat yearly da */}
-                            {billingInterval === "yearly" && (
+                            {billingInterval === "annual" && (
                                 <div style={{
                                     display: "inline-flex", alignItems: "center", gap: 5,
                                     background: "rgba(62,207,207,0.1)", border: "1px solid rgba(62,207,207,0.25)",
@@ -315,7 +315,7 @@ export default function UserAuth() {
                                     </div>
                                     <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 2 }}>
                                         {getPlanDisplay(selectedPlan).price} · {planInfo[selectedPlan].credits}/month
-                                        {billingInterval === "yearly" && " · billed yearly"}
+                                        {billingInterval === "annual" && " · billed yearly"}
                                     </div>
                                 </div>
                             </div>
