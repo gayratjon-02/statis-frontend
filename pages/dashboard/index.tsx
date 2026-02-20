@@ -9,6 +9,7 @@ import { getBrandConfig, type IndustryItem } from "../../server/user/config";
 import API_BASE_URL from "../../libs/config/api.config";
 import type { Brand } from "../../libs/types/brand.type";
 import type { Member } from "../../libs/types/member.type";
+import { track, identifyUser, EVENTS } from "../../libs/analytics/analytics";
 
 const ROUTES: Record<string, string> = {
     dashboard: "/dashboard",
@@ -167,6 +168,13 @@ function DashboardPage() {
                     setMember(freshMember);
                     localStorage.setItem("se_member", JSON.stringify(freshMember));
 
+                    // Identify for analytics
+                    identifyUser(freshMember._id || "", {
+                        email: freshMember.email,
+                        name: freshMember.full_name,
+                        plan: freshMember.subscription_tier,
+                    });
+
                     // Post-fetch subscription guard (catches stale localStorage)
                     const isCheckoutReturn = window.location.search.includes("checkout=success");
                     const paidTiers = ["starter", "pro", "growth"];
@@ -240,6 +248,7 @@ function DashboardPage() {
     const handleUpgrade = async (tier: string, interval: "monthly" | "annual" = "monthly") => {
         setBillingLoading(`upgrade-${tier}`);
         try {
+            track(EVENTS.CHECKOUT_STARTED, { plan: tier, billing_interval: interval, source: "dashboard" });
             const { checkout_url } = await createCheckoutRequest(tier, interval);
             window.location.href = checkout_url;
         } catch (err: any) {
@@ -252,6 +261,7 @@ function DashboardPage() {
     const handlePortal = async () => {
         setBillingLoading("portal");
         try {
+            track(EVENTS.PORTAL_OPENED, {});
             const { portal_url } = await createPortalRequest();
             window.location.href = portal_url;
         } catch (err: any) {
@@ -264,6 +274,7 @@ function DashboardPage() {
     const handleAddon = async (addon_key: string) => {
         setBillingLoading(`addon-${addon_key}`);
         try {
+            track(EVENTS.ADDON_PURCHASED, { addon: addon_key });
             const { checkout_url } = await purchaseAddonRequest(addon_key);
             window.location.href = checkout_url;
         } catch (err: any) {

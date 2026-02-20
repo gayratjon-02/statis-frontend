@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { loginRequest, signupRequest } from "../server/user/login";
 import { createCheckoutRequest } from "../server/user/billing";
 import { useAuth } from "../libs/hooks/useAuth";
+import { track, identifyUser, captureUTM, EVENTS } from "../libs/analytics/analytics";
 
 export default function UserAuth() {
     const router = useRouter();
@@ -55,6 +56,8 @@ export default function UserAuth() {
         setSelectedPlan(tier);
         setMode("signup");
         setError("");
+        track(EVENTS.PLAN_SELECTED, { plan: tier, billing_interval: billingInterval });
+        track(EVENTS.SIGNUP_STARTED, { plan: tier });
     };
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -67,7 +70,14 @@ export default function UserAuth() {
             localStorage.setItem("se_access_token", res.accessToken);
             localStorage.setItem("se_member", JSON.stringify(res.member));
 
-            // Subscription yo'q bo'lsa → plan tanlash sahifasiga
+            // Track login
+            track(EVENTS.LOGIN, { method: "email" });
+            identifyUser(res.member?._id || "", {
+                email: res.member?.email,
+                name: res.member?.full_name,
+                plan: res.member?.subscription_tier,
+            });
+
             if (res.needs_subscription) {
                 router.push("/subscribe");
             } else {
@@ -98,10 +108,26 @@ export default function UserAuth() {
             localStorage.setItem("se_access_token", res.accessToken);
             localStorage.setItem("se_member", JSON.stringify(res.member));
 
-            // Agar plan tanlangan bo'lsa → to'g'ridan-to'g'ri Stripe checkout
+            // Track signup
+            const utms = captureUTM();
+            track(EVENTS.SIGNUP_COMPLETED, {
+                method: "email",
+                plan: selectedPlan || "none",
+                billing_interval: billingInterval,
+                ...utms,
+            });
+            identifyUser(res.member?._id || "", {
+                email: res.member?.email,
+                name: res.member?.full_name,
+                signed_up_at: new Date().toISOString(),
+                signup_plan: selectedPlan,
+                ...utms,
+            });
+
             if (selectedPlan && planInfo[selectedPlan]) {
                 setLoadingStep("payment");
                 try {
+                    track(EVENTS.CHECKOUT_STARTED, { plan: selectedPlan, billing_interval: billingInterval });
                     const { checkout_url } = await createCheckoutRequest(selectedPlan, billingInterval);
                     window.location.href = checkout_url;
                 } catch (checkoutErr: any) {
@@ -110,7 +136,6 @@ export default function UserAuth() {
                     setTimeout(() => router.push("/subscribe"), 2500);
                 }
             } else {
-                // Plan tanlanmagan → subscribe sahifasiga
                 router.push("/subscribe");
             }
         } catch (err: any) {
