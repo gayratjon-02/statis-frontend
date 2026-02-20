@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import SubscriptionGuard from "../../libs/auth/SubscriptionGuard";
 import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest } from "../../server/user/login";
 import { createCheckoutRequest, createPortalRequest, purchaseAddonRequest } from "../../server/user/billing";
-import { getRecentGenerationsRequest } from "../../server/user/generation";
+import { getRecentGenerationsRequest, downloadAdImage } from "../../server/user/generation";
 import { getBrands, deleteBrand } from "../../server/user/brand";
 import { getBrandConfig, type IndustryItem } from "../../server/user/config";
 import API_BASE_URL from "../../libs/config/api.config";
@@ -842,18 +842,11 @@ function DashboardPage() {
                                                         <div className="ad-card__overlay">
                                                             <button className="btn-view-ad" onClick={() => ad.image_url && setLightboxImage(ad.image_url)}>View</button>
                                                             <button className="btn-dl" onClick={async () => {
-                                                                if (!ad.image_url) return;
+                                                                if (!ad._id) return;
                                                                 try {
-                                                                    const res = await fetch(ad.image_url);
-                                                                    const blob = await res.blob();
-                                                                    const blobUrl = URL.createObjectURL(blob);
-                                                                    const a = document.createElement("a");
-                                                                    a.href = blobUrl;
-                                                                    a.download = `${ad.ad_name || "ad"}_1x1.png`;
-                                                                    a.click();
-                                                                    URL.revokeObjectURL(blobUrl);
+                                                                    await downloadAdImage(ad._id, `${ad.ad_name || "ad"}_1x1.png`);
                                                                 } catch {
-                                                                    window.open(ad.image_url, "_blank");
+                                                                    if (ad.image_url) window.open(ad.image_url, "_blank");
                                                                 }
                                                             }}>DL</button>
                                                         </div>

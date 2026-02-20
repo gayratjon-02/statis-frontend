@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import AuthGuard from "../../libs/auth/AuthGuard";
-import { getLibraryAdsRequest, getLibraryCountsRequest } from "../../server/user/generation";
+import { getLibraryAdsRequest, getLibraryCountsRequest, downloadAdImage } from "../../server/user/generation";
 import type { AdLibraryItem, LibraryCounts } from "../../libs/types/generation.type";
 
 const BG = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
@@ -316,7 +316,12 @@ function LibraryPage() {
                                 <span className="lib-list-item__date">{timeAgo(ad.created_at)}</span>
                                 <div className="lib-list-item__actions">
                                     <button className="lib-list-item__action-btn">View</button>
-                                    <button className="lib-list-item__action-btn">⤓</button>
+                                    <button className="lib-list-item__action-btn" onClick={(e) => {
+                                        e.stopPropagation();
+                                        downloadAdImage(ad._id, `${ad.name || "ad"}_1x1.png`).catch(() => {
+                                            if (ad.image) window.open(ad.image, "_blank");
+                                        });
+                                    }}>⤓</button>
                                 </div>
                             </div>
                         ))}
@@ -372,7 +377,15 @@ function LibraryPage() {
                             </div>
 
                             <div className="detail-actions">
-                                <button className="detail-actions__btn detail-actions__btn--primary">
+                                <button
+                                    className="detail-actions__btn detail-actions__btn--primary"
+                                    onClick={() => {
+                                        if (!detailAd) return;
+                                        downloadAdImage(detailAd._id, `${detailAd.name || "ad"}_1x1.png`).catch(() => {
+                                            if (detailAd.image) window.open(detailAd.image, "_blank");
+                                        });
+                                    }}
+                                >
                                     ⤓ Download Ad
                                 </button>
                                 <div className="detail-actions__row">
