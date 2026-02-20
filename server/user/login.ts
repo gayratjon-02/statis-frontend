@@ -134,3 +134,39 @@ export async function getActivityRequest(limit = 5): Promise<any[]> {
 
     return res.json();
 }
+
+/**
+ * POST /member/updateMember
+ * Update the authenticated user's profile.
+ */
+export async function updateMemberRequest(input: { full_name?: string }): Promise<any> {
+    const token = localStorage.getItem("se_access_token");
+    const res = await fetch(`${MEMBER_API}/updateMember`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(input),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Update failed" }));
+        throw new Error(error.message || `Update failed (${res.status})`);
+    }
+    return res.json();
+}
+
+/**
+ * POST /member/forgetPassword
+ * Change the authenticated user's password.
+ */
+export async function changePasswordRequest(input: { old_password: string; new_password: string }): Promise<any> {
+    const token = localStorage.getItem("se_access_token");
+    const res = await fetch(`${MEMBER_API}/forgetPassword`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(input),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Password change failed" }));
+        throw new Error(error.message || `Password change failed (${res.status})`);
+    }
+    return res.json();
+}

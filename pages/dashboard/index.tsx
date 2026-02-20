@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import SubscriptionGuard from "../../libs/auth/SubscriptionGuard";
-import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest } from "../../server/user/login";
+import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest, updateMemberRequest, changePasswordRequest } from "../../server/user/login";
 import { createCheckoutRequest, createPortalRequest, purchaseAddonRequest } from "../../server/user/billing";
 import { getRecentGenerationsRequest, downloadAdImage } from "../../server/user/generation";
 import { getBrands, deleteBrand } from "../../server/user/brand";
@@ -130,6 +130,16 @@ function DashboardPage() {
     const [brandsLoading, setBrandsLoading] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [industryList, setIndustryList] = useState<IndustryItem[]>([]);
+
+    // Account page state
+    const [acctName, setAcctName] = useState("");
+    const [acctSaving, setAcctSaving] = useState(false);
+    const [acctMsg, setAcctMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+    const [pwOld, setPwOld] = useState("");
+    const [pwNew, setPwNew] = useState("");
+    const [pwConfirm, setPwConfirm] = useState("");
+    const [pwSaving, setPwSaving] = useState(false);
+    const [pwMsg, setPwMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
     /** Get label for industry ID from fetched config */
     const getIndustryLabel = (id: string) =>
@@ -268,6 +278,13 @@ function DashboardPage() {
             router.push(ROUTES[id]);
         } else {
             setPage(id);
+            // Reset account messages when navigating
+            if (id === "account") {
+                setAcctName(member?.full_name || "");
+                setAcctMsg(null);
+                setPwMsg(null);
+                setPwOld(""); setPwNew(""); setPwConfirm("");
+            }
         }
     };
 
@@ -476,14 +493,14 @@ function DashboardPage() {
                             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                         </div>
                         <div className="dash-header__title">
-                            {page === "brands" ? "My Brands" : page === "billing" ? "Billing & Subscription" : `Welcome back, ${userName.split(" ")[0]}`}
+                            {page === "brands" ? "My Brands" : page === "billing" ? "Billing & Subscription" : page === "account" ? "Account Settings" : `Welcome back, ${userName.split(" ")[0]}`}
                         </div>
                     </div>
                     {page === "brands" ? (
                         <button className="btn-generate" onClick={() => router.push("/generateAds")}>
                             + Create New Brand
                         </button>
-                    ) : page === "billing" ? null : (
+                    ) : page === "billing" || page === "account" ? null : (
                         <button className="btn-generate" onClick={() => router.push("/generateAds")}>+ Generate New Ad</button>
                     )}
                 </div>
@@ -601,6 +618,183 @@ function DashboardPage() {
                                 ))}
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* ===== ACCOUNT PAGE ===== */}
+                {page === "account" && (
+                    <div style={{ padding: "0 24px 40px" }}>
+                        {/* Profile header card */}
+                        <div style={{
+                            background: "var(--card)", border: "1px solid var(--border)",
+                            borderRadius: 16, padding: 28, marginBottom: 20,
+                        }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 28 }}>
+                                <div style={{
+                                    width: 64, height: 64, borderRadius: "50%",
+                                    background: "linear-gradient(135deg, var(--accent), var(--g1))",
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    fontSize: 26, fontWeight: 800, color: "#0a0a0f", flexShrink: 0,
+                                }}>
+                                    {userName.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>{userName}</div>
+                                    <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{member?.email}</div>
+                                    <div style={{
+                                        display: "inline-block", marginTop: 6,
+                                        fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                                        background: "rgba(62,207,207,0.15)", color: "var(--accent)",
+                                    }}>{tierLabel(usage?.subscription_tier || "free")} Plan</div>
+                                </div>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
+                                {[
+                                    { label: "Ads Generated", val: usage?.stats?.ads_generated || 0, color: "var(--g1)" },
+                                    { label: "Credits Left", val: usage ? usage.credits_limit - usage.credits_used : 0, color: "var(--accent)" },
+                                    { label: "Brands Created", val: brands.length, color: "#8B5CF6" },
+                                ].map((s) => (
+                                    <div key={s.label} style={{ textAlign: "center", padding: "12px 0", background: "rgba(255,255,255,0.03)", borderRadius: 10 }}>
+                                        <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.val}</div>
+                                        <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{s.label}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Two-column: Edit Profile + Change Password */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+                            {/* Edit Profile */}
+                            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 24 }}>
+                                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 20 }}>Edit Profile</div>
+                                <div style={{ marginBottom: 14 }}>
+                                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Full Name</div>
+                                    <input
+                                        value={acctName !== "" ? acctName : userName}
+                                        onChange={(e) => setAcctName(e.target.value)}
+                                        style={{
+                                            width: "100%", padding: "10px 14px", borderRadius: 10,
+                                            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+                                            color: "var(--text)", fontSize: 14, outline: "none", boxSizing: "border-box",
+                                        }}
+                                    />
+                                </div>
+                                <div style={{ marginBottom: 20 }}>
+                                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Email <span style={{ opacity: 0.5 }}>(cannot be changed)</span></div>
+                                    <input
+                                        value={member?.email || ""}
+                                        disabled
+                                        style={{
+                                            width: "100%", padding: "10px 14px", borderRadius: 10,
+                                            background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
+                                            color: "var(--dim)", fontSize: 14, outline: "none", boxSizing: "border-box",
+                                        }}
+                                    />
+                                </div>
+                                {acctMsg && (
+                                    <div style={{
+                                        padding: "8px 14px", borderRadius: 8, marginBottom: 14, fontSize: 13,
+                                        background: acctMsg.type === "ok" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+                                        color: acctMsg.type === "ok" ? "#22C55E" : "#EF4444",
+                                        border: `1px solid ${acctMsg.type === "ok" ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+                                    }}>{acctMsg.text}</div>
+                                )}
+                                <button
+                                    onClick={async () => {
+                                        setAcctSaving(true); setAcctMsg(null);
+                                        try {
+                                            const updated = await updateMemberRequest({ full_name: acctName || userName });
+                                            const newName = updated?.full_name || acctName;
+                                            setMember((prev) => prev ? { ...prev, full_name: newName } : prev);
+                                            localStorage.setItem("se_member", JSON.stringify({ ...(member || {}), full_name: newName }));
+                                            setAcctMsg({ type: "ok", text: "Profile updated successfully!" });
+                                        } catch (e: any) {
+                                            setAcctMsg({ type: "err", text: e.message || "Update failed" });
+                                        } finally { setAcctSaving(false); }
+                                    }}
+                                    disabled={acctSaving}
+                                    style={{
+                                        width: "100%", padding: "10px 0", borderRadius: 10, border: "none",
+                                        background: "linear-gradient(135deg, var(--accent), var(--g1))",
+                                        color: "#0a0a0f", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                                        opacity: acctSaving ? 0.6 : 1,
+                                    }}
+                                >{acctSaving ? "Saving..." : "Save Changes"}</button>
+                            </div>
+
+                            {/* Change Password */}
+                            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 24 }}>
+                                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 20 }}>Change Password</div>
+                                {(["Current Password", "New Password", "Confirm New Password"] as const).map((label, idx) => (
+                                    <div key={label} style={{ marginBottom: idx < 2 ? 14 : 20 }}>
+                                        <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>{label}</div>
+                                        <input
+                                            type="password"
+                                            value={idx === 0 ? pwOld : idx === 1 ? pwNew : pwConfirm}
+                                            onChange={(e) => idx === 0 ? setPwOld(e.target.value) : idx === 1 ? setPwNew(e.target.value) : setPwConfirm(e.target.value)}
+                                            placeholder={idx === 0 ? "Current password" : idx === 1 ? "Min 6 characters" : "Repeat new password"}
+                                            style={{
+                                                width: "100%", padding: "10px 14px", borderRadius: 10,
+                                                background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+                                                color: "var(--text)", fontSize: 14, outline: "none", boxSizing: "border-box",
+                                            }}
+                                        />
+                                    </div>
+                                ))}
+                                {pwMsg && (
+                                    <div style={{
+                                        padding: "8px 14px", borderRadius: 8, marginBottom: 14, fontSize: 13,
+                                        background: pwMsg.type === "ok" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+                                        color: pwMsg.type === "ok" ? "#22C55E" : "#EF4444",
+                                        border: `1px solid ${pwMsg.type === "ok" ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+                                    }}>{pwMsg.text}</div>
+                                )}
+                                <button
+                                    onClick={async () => {
+                                        if (pwNew !== pwConfirm) { setPwMsg({ type: "err", text: "Passwords do not match" }); return; }
+                                        if (pwNew.length < 6) { setPwMsg({ type: "err", text: "Password must be at least 6 characters" }); return; }
+                                        setPwSaving(true); setPwMsg(null);
+                                        try {
+                                            await changePasswordRequest({ old_password: pwOld, new_password: pwNew });
+                                            setPwMsg({ type: "ok", text: "Password changed successfully!" });
+                                            setPwOld(""); setPwNew(""); setPwConfirm("");
+                                        } catch (e: any) {
+                                            setPwMsg({ type: "err", text: e.message || "Failed to change password" });
+                                        } finally { setPwSaving(false); }
+                                    }}
+                                    disabled={pwSaving || !pwOld || !pwNew || !pwConfirm}
+                                    style={{
+                                        width: "100%", padding: "10px 0", borderRadius: 10, border: "none",
+                                        background: "rgba(255,255,255,0.08)", color: "var(--text)",
+                                        fontWeight: 700, fontSize: 13, cursor: "pointer",
+                                        opacity: (pwSaving || !pwOld || !pwNew || !pwConfirm) ? 0.5 : 1,
+                                    }}
+                                >{pwSaving ? "Changing..." : "Change Password"}</button>
+                            </div>
+                        </div>
+
+                        {/* Danger Zone */}
+                        <div style={{
+                            background: "rgba(239,68,68,0.05)",
+                            border: "1px solid rgba(239,68,68,0.2)", borderRadius: 16, padding: 24,
+                        }}>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: "#EF4444", marginBottom: 8 }}>Danger Zone</div>
+                            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
+                                Deleting your account will permanently remove all your data, brands, and generated ads. This action cannot be undone.
+                            </div>
+                            <button
+                                onClick={() => {
+                                    if (confirm("Are you sure you want to delete your account? This cannot be undone.")) {
+                                        alert("Please contact support to delete your account.");
+                                    }
+                                }}
+                                style={{
+                                    padding: "10px 24px", borderRadius: 10,
+                                    border: "1px solid rgba(239,68,68,0.4)", background: "transparent",
+                                    color: "#EF4444", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                                }}
+                            >Delete Account</button>
+                        </div>
                     </div>
                 )}
 
