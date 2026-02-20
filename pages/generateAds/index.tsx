@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/router";
 import AuthGuard from "../../libs/auth/AuthGuard";
-import { getBrands, createBrand, uploadBrandLogo } from "../../server/user/brand";
+import { getBrands, createBrand, uploadBrandLogo, importBrandFromUrl } from "../../server/user/brand";
 import { getProducts, createProduct, uploadProductPhoto } from "../../server/user/product";
 import { getConcepts, getCategories, getRecommendedConcepts, getConceptConfig, incrementUsage } from "../../server/user/concept";
 import { createGeneration, getGenerationStatus, getGenerationBatchStatus, exportRatiosRequest, cancelBatchRequest, downloadAdImage } from "../../server/user/generation";
@@ -105,6 +105,33 @@ function GeneratePageContent() {
     }
     const [generatedResults, setGeneratedResults] = useState<GeneratedResult[]>([]);
     const [showCreateBrandModal, setShowCreateBrandModal] = useState(false);
+    const [importUrl, setImportUrl] = useState("");
+    const [importLoading, setImportLoading] = useState(false);
+    const [importError, setImportError] = useState<string | null>(null);
+
+    const handleImportUrl = async () => {
+        if (!importUrl.trim()) return;
+        setImportLoading(true);
+        setImportError(null);
+        try {
+            const data = await importBrandFromUrl(importUrl.trim());
+            setBrand((prev) => ({
+                ...prev,
+                name: data.name || prev.name,
+                description: data.description || prev.description,
+                url: data.website_url || prev.url,
+                industry: data.industry || prev.industry,
+                logoPreview: data.logo_url ? resolveImageUrl(data.logo_url) : prev.logoPreview,
+                primaryColor: data.primary_color || prev.primaryColor,
+                secondaryColor: data.secondary_color || prev.secondaryColor,
+            }));
+        } catch (err: any) {
+            setImportError(err.message || "Import failed");
+        } finally {
+            setImportLoading(false);
+        }
+    };
+
     const [credits, setCredits] = useState({ used: 0, limit: 0 });
     const fileInputRef = useRef<HTMLInputElement>(null);
     const productFileRef = useRef<HTMLInputElement>(null);
@@ -589,31 +616,34 @@ function GeneratePageContent() {
             </div>
 
             {/* ===== STEP INDICATOR ===== */}
-            {step < 5 && (
-                <div className="gen-steps">
-                    {steps.map((s, i) => (
-                        <div key={i} className="gen-step">
-                            <div
-                                className={`gen-step__btn ${i === step ? "gen-step__btn--active" : ""} ${i < step ? "gen-step__btn--done" : ""}`}
-                                onClick={() => { if (i < step) setStep(i); }}
-                            >
-                                <div className={`gen-step__num ${i === step ? "gen-step__num--active" : i < step ? "gen-step__num--done" : "gen-step__num--pending"}`}>
-                                    {i < step ? "✓" : i + 1}
+            {step < 5 && (() => {
+                const generationLocked = step === 4 && (isAnalyzing || generatingAds.some(Boolean) || completedAds.some(Boolean));
+                return (
+                    <div className="gen-steps">
+                        {steps.map((s, i) => (
+                            <div key={i} className="gen-step">
+                                <div
+                                    className={`gen-step__btn ${i === step ? "gen-step__btn--active" : ""} ${i < step && !generationLocked ? "gen-step__btn--done" : ""} ${generationLocked && i < step ? "gen-step__btn--locked" : ""}`}
+                                    onClick={() => { if (!generationLocked && i < step) setStep(i); }}
+                                >
+                                    <div className={`gen-step__num ${i === step ? "gen-step__num--active" : i < step ? "gen-step__num--done" : "gen-step__num--pending"}`}>
+                                        {i < step ? "✓" : i + 1}
+                                    </div>
+                                    <span className="gen-step__label" style={{
+                                        fontWeight: i === step ? 600 : 400,
+                                        color: i === step ? "var(--text)" : i < step ? "var(--accent)" : "var(--dim)",
+                                    }}>
+                                        {s.label}
+                                    </span>
                                 </div>
-                                <span className="gen-step__label" style={{
-                                    fontWeight: i === step ? 600 : 400,
-                                    color: i === step ? "var(--text)" : i < step ? "var(--accent)" : "var(--dim)",
-                                }}>
-                                    {s.label}
-                                </span>
+                                {i < steps.length - 1 && (
+                                    <div className="gen-step__line" style={{ background: i < step ? "var(--accent)" : "var(--border)" }} />
+                                )}
                             </div>
-                            {i < steps.length - 1 && (
-                                <div className="gen-step__line" style={{ background: i < step ? "var(--accent)" : "var(--border)" }} />
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
+                        ))}
+                    </div>
+                );
+            })()}
 
             {/* ===== CONTENT ===== */}
             <div className={`gen-content ${step === 2 ? "gen-content--medium" : step >= 4 ? "gen-content--wide" : "gen-content--narrow"}`}>
@@ -667,6 +697,28 @@ function GeneratePageContent() {
                                         <div className="gen-card__desc">Your brand details power the AI to create on-brand ads.</div>
 
                                         <div className="gen-section"><span className="gen-section__num">01</span> Brand Identity</div>
+
+                                        {/* URL Import UI */}
+                                        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed #30363d", padding: 16, borderRadius: 8, marginBottom: 24 }}>
+                                            <div style={{ fontSize: 13, color: "#8b949e", marginBottom: 8 }}>Auto-fill from website URL</div>
+                                            <div style={{ display: "flex", gap: 8 }}>
+                                                <input
+                                                    className="gen-input"
+                                                    placeholder="https://yourbrand.com"
+                                                    value={importUrl}
+                                                    onChange={(e) => setImportUrl(e.target.value)}
+                                                    onKeyDown={(e) => e.key === "Enter" && handleImportUrl()}
+                                                />
+                                                <button
+                                                    onClick={handleImportUrl}
+                                                    disabled={importLoading || !importUrl.trim()}
+                                                    style={{ background: "#238636", color: "#fff", border: "none", borderRadius: 8, padding: "0 16px", cursor: importLoading ? "not-allowed" : "pointer", fontWeight: 500, whiteSpace: "nowrap" }}
+                                                >
+                                                    {importLoading ? "..." : "Import"}
+                                                </button>
+                                            </div>
+                                            {importError && <div style={{ color: "#f85149", fontSize: 12, marginTop: 6 }}>{importError}</div>}
+                                        </div>
 
                                         <div className="gen-grid-2">
                                             <div>

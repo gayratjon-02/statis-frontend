@@ -617,6 +617,13 @@ function DashboardPage() {
                                             </span>
                                             <div className="brand-card__actions">
                                                 <button
+                                                    className="brand-card__btn"
+                                                    style={{ marginRight: 8, background: "rgba(255,255,255,0.1)", border: "1px solid #30363d", fontSize: 13 }}
+                                                    onClick={() => router.push(`/brands/${brand._id}/edit`)}
+                                                >
+                                                    Tahrirlash
+                                                </button>
+                                                <button
                                                     className="brand-card__btn brand-card__btn--delete"
                                                     onClick={() => handleDeleteBrand(brand._id)}
                                                     disabled={deletingId === brand._id}

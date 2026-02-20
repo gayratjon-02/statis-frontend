@@ -164,3 +164,35 @@ export async function deleteBrand(id: string): Promise<{ message: string }> {
 
     return res.json();
 }
+
+// ---- IMPORT FROM URL ----
+
+/**
+ * POST /brand/importFromUrl
+ * Scrapes a website URL and returns pre-filled brand data.
+ * Returns: { name, description, website_url, industry, logo_url, primary_color, secondary_color, accent_color, background_color }
+ */
+export async function importBrandFromUrl(url: string): Promise<{
+    name: string;
+    description: string;
+    website_url: string;
+    industry: string;
+    logo_url: string;
+    primary_color: string;
+    secondary_color: string;
+    accent_color: string;
+    background_color: string;
+}> {
+    const res = await fetch(`${BRAND_API}/importFromUrl`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ url }),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Failed to import brand" }));
+        throw new Error(error.message || `Import failed (${res.status})`);
+    }
+
+    return res.json();
+}
