@@ -169,8 +169,8 @@ export async function deleteBrand(id: string): Promise<{ message: string }> {
 
 /**
  * POST /brand/importFromUrl
- * Scrapes a website URL and returns pre-filled brand data.
- * Returns: { name, description, website_url, industry, logo_url, primary_color, secondary_color, accent_color, background_color }
+ * Scrapes a website homepage and uses AI to extract brand-level data.
+ * Always resolves to homepage URL, even if a product page URL is given.
  */
 export async function importBrandFromUrl(url: string): Promise<{
     name: string;
@@ -182,6 +182,8 @@ export async function importBrandFromUrl(url: string): Promise<{
     secondary_color: string;
     accent_color: string;
     background_color: string;
+    confidence_score: number;
+    warnings: string[];
 }> {
     const res = await fetch(`${BRAND_API}/importFromUrl`, {
         method: "POST",

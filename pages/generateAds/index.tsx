@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/router";
+import toast from "react-hot-toast";
 import AuthGuard from "../../libs/auth/AuthGuard";
 import { getBrands, createBrand, uploadBrandLogo, importBrandFromUrl } from "../../server/user/brand";
 import { getProducts, createProduct, uploadProductPhoto, importProductFromUrl, removeProductBackground } from "../../server/user/product";
@@ -92,6 +93,7 @@ function GeneratePageContent() {
     const [zipDownloading, setZipDownloading] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analyzingStep, setAnalyzingStep] = useState(0);
+    const [analyzingPercent, setAnalyzingPercent] = useState(0);
     const analyzingSteps = ["Analyzing brand identity", "Crafting ad copy", "Preparing image prompts"];
 
     // Real generation results from backend
@@ -109,6 +111,10 @@ function GeneratePageContent() {
     const [importLoading, setImportLoading] = useState(false);
     const [importError, setImportError] = useState<string | null>(null);
 
+    // Inline field validation errors
+    const [brandErrors, setBrandErrors] = useState<Record<string, string>>({});
+    const [productErrors, setProductErrors] = useState<Record<string, string>>({});
+
     const handleImportUrl = async () => {
         if (!importUrl.trim()) return;
         setImportLoading(true);
@@ -125,6 +131,23 @@ function GeneratePageContent() {
                 primaryColor: data.primary_color || prev.primaryColor,
                 secondaryColor: data.secondary_color || prev.secondaryColor,
             }));
+
+            // FIX: Convert imported logo URL to File object so form validation passes
+            if (data.logo_url) {
+                const logoUrl = resolveImageUrl(data.logo_url);
+                try {
+                    const response = await fetch(logoUrl);
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const extension = blob.type.split("/")[1] || "png";
+                        const logoFile = new File([blob], `brand-logo.${extension}`, { type: blob.type });
+                        setBrand((prev) => ({ ...prev, logo: logoFile }));
+                    }
+                } catch {
+                    // Logo preview is still set, user can upload manually
+                    console.warn("Could not convert imported logo to File, user can upload manually");
+                }
+            }
         } catch (err: any) {
             setImportError(err.message || "Import failed");
         } finally {
@@ -152,6 +175,24 @@ function GeneratePageContent() {
                 photoPreview: data.photo_url ? resolveImageUrl(data.photo_url) : prev.photoPreview,
                 noPhysicalProduct: data.photo_url ? false : prev.noPhysicalProduct,
             }));
+
+            // FIX: Convert imported photo URL to File object so form validation passes
+            if (data.photo_url) {
+                const photoUrl = resolveImageUrl(data.photo_url);
+                try {
+                    const response = await fetch(photoUrl);
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        if (blob.type.startsWith("image/")) {
+                            const extension = blob.type.split("/")[1] || "png";
+                            const photoFile = new File([blob], `product-photo.${extension}`, { type: blob.type });
+                            setProduct((prev) => ({ ...prev, photo: photoFile }));
+                        }
+                    }
+                } catch {
+                    console.warn("Could not convert imported product photo to File, user can upload manually");
+                }
+            }
         } catch (err: any) {
             setProductImportError(err.message || "Import failed");
         } finally {
@@ -168,7 +209,7 @@ function GeneratePageContent() {
             const data = await removeProductBackground(product._id);
             setProduct(prev => ({ ...prev, photoPreview: resolveImageUrl(data.photo_url) }));
         } catch (err: any) {
-            alert(err.message || "Failed to remove background");
+            toast.error(err.message || "Failed to remove background");
         } finally {
             setBgRemoving(false);
         }
@@ -233,11 +274,15 @@ function GeneratePageContent() {
     }, []);
 
     useEffect(() => {
-        if (!isAnalyzing) { setAnalyzingStep(0); return; }
-        const timer = setInterval(() => {
+        if (!isAnalyzing) { setAnalyzingStep(0); setAnalyzingPercent(0); return; }
+        const stepTimer = setInterval(() => {
             setAnalyzingStep((prev) => (prev < analyzingSteps.length - 1 ? prev + 1 : prev));
         }, 3000);
-        return () => clearInterval(timer);
+        // Smooth percentage animation: 0→30% over ~10s during analyzing phase
+        const percentTimer = setInterval(() => {
+            setAnalyzingPercent((prev) => (prev < 30 ? prev + 1 : prev));
+        }, 333);
+        return () => { clearInterval(stepTimer); clearInterval(percentTimer); };
     }, [isAnalyzing]);
 
     /** Fetch image blob via backend proxy */
@@ -281,7 +326,7 @@ function GeneratePageContent() {
             document.body.removeChild(a);
         } catch (e) {
             console.error("ZIP download failed", e);
-            alert("Failed to create ZIP");
+            toast.error("Failed to create ZIP");
         } finally {
             setZipDownloading(false);
         }
@@ -290,7 +335,7 @@ function GeneratePageContent() {
     /** Download image as JPG at 85% quality using Canvas */
     const downloadAsJpg = async (adId: string, ratio: string, adName: string | null) => {
         const blob = await fetchRatioBlob(adId, ratio);
-        if (!blob) { alert("Image not available"); return; }
+        if (!blob) { toast.error("Image not available"); return; }
         const blobUrl = URL.createObjectURL(blob);
         await new Promise<void>((resolve) => {
             const img = new Image();
@@ -321,7 +366,7 @@ function GeneratePageContent() {
     /** Download image at 2x resolution using Canvas upscale */
     const downloadAs2x = async (adId: string, ratio: string, adName: string | null) => {
         const blob = await fetchRatioBlob(adId, ratio);
-        if (!blob) { alert("Image not available"); return; }
+        if (!blob) { toast.error("Image not available"); return; }
         const blobUrl = URL.createObjectURL(blob);
         await new Promise<void>((resolve) => {
             const img = new Image();
@@ -453,7 +498,7 @@ function GeneratePageContent() {
                             // If completely failed (no useful results), show alert.
                             const anySuccess = batchStatus.variations.some(v => v.generation_status === 'completed');
                             if (!anySuccess) {
-                                alert("Generation failed. Please try again.");
+                                toast.error("Generation failed. Please try again.");
                                 setStep(3);
                             } else {
                                 // Partial success
@@ -480,7 +525,7 @@ function GeneratePageContent() {
                     router.push("/dashboard");
                 }
             } else {
-                alert("Failed to start generation. Please try again.");
+                toast.error("Failed to start generation. Please try again.");
             }
         }
     };
@@ -509,26 +554,32 @@ function GeneratePageContent() {
         }
 
         // Basic Validation
-        if (!brand.name || !brand.description || !brand.url || !brand.logo) {
-            alert("Please fill all required fields");
+        const errors: Record<string, string> = {};
+        if (!brand.name) errors.name = "Brand name is required";
+        if (!brand.description) errors.description = "Brand description is required (min 10 characters)";
+        else if (brand.description.length < 10) errors.description = "Brand description must be at least 10 characters";
+        if (!brand.url || brand.url === "https://") errors.url = "Website URL is required";
+        if (!brand.industry) errors.industry = "Please select an industry";
+        if (!brand.logo && !brand.logoPreview) errors.logo = "Brand logo is required. Please upload a PNG file.";
+        if (brand.voiceTags.length === 0) errors.voiceTags = "Please select at least one voice/tone option";
+        if (!brand.targetAudience) errors.targetAudience = "Target audience is required";
+
+        setBrandErrors(errors);
+        if (Object.keys(errors).length > 0) {
+            toast.error("Please fix the highlighted fields before continuing");
             return;
         }
-
-        console.log('\n━━━ handleBrandNext START ━━━');
-        console.log('  brand.name:', brand.name);
-        console.log('  brand.logo:', brand.logo?.name, brand.logo?.size, 'bytes');
 
         setIsLoading(true);
         try {
             let logoUrl = "";
             if (brand.logo) {
-                console.log('  📡 Step 1: Uploading logo...');
                 const { logo_url } = await uploadBrandLogo(brand.logo);
                 logoUrl = logo_url;
-                console.log('  ✅ Logo uploaded:', logoUrl);
+            } else if (brand.logoPreview && brand.logoPreview.startsWith("http")) {
+                // Use the imported logo URL directly if File conversion failed
+                logoUrl = brand.logoPreview;
             }
-
-            console.log('  📡 Step 2: Creating brand...');
             const newBrand = await createBrand({
                 name: brand.name,
                 description: brand.description,
@@ -542,8 +593,6 @@ function GeneratePageContent() {
                 target_audience: brand.targetAudience,
                 competitors: brand.competitors,
             });
-            console.log('  ✅ Brand created:', newBrand._id);
-
             setBrand((prev) => ({ ...prev, _id: newBrand._id }));
             // Refresh brands list
             getBrands(1, 100).then((res) => setBrands(res.list));
@@ -551,7 +600,7 @@ function GeneratePageContent() {
             setShowCreateBrandModal(false);
         } catch (e: any) {
             console.error('  ❌ handleBrandNext ERROR:', e.message || e);
-            alert(`Failed to create brand: ${e.message || 'Unknown error'}`);
+            toast.error(`Failed to create brand: ${e.message || 'Unknown error'}`);
         } finally {
             setIsLoading(false);
         }
@@ -564,13 +613,14 @@ function GeneratePageContent() {
         }
 
         // Basic Validation
-        if (!product.name || !product.description) {
-            alert("Please fill all required fields");
-            return;
-        }
+        const errors: Record<string, string> = {};
+        if (!product.name) errors.name = "Product name is required";
+        if (!product.description) errors.description = "Product description is required";
+        if (!product.noPhysicalProduct && !product.photo && !product.photoPreview) errors.photo = "Product photo is required for physical products";
 
-        if (!product.noPhysicalProduct && !product.photo) {
-            alert("Product photo is required for physical products");
+        setProductErrors(errors);
+        if (Object.keys(errors).length > 0) {
+            toast.error("Please fix the highlighted fields before continuing");
             return;
         }
 
@@ -602,7 +652,7 @@ function GeneratePageContent() {
             setStep(2);
         } catch (e) {
             console.error(e);
-            alert("Failed to create product");
+            toast.error("Failed to create product");
         } finally {
             setIsLoading(false);
         }
@@ -765,32 +815,41 @@ function GeneratePageContent() {
                                         <div className="gen-grid-2">
                                             <div>
                                                 <label className="gen-label">Brand Name *</label>
-                                                <input className="gen-input" placeholder="e.g., Bron" value={brand.name}
-                                                    onChange={(e) => setBrand((p) => ({ ...p, name: e.target.value }))} />
+                                                <input className="gen-input" placeholder="e.g., GlowVita, FreshPaws" value={brand.name}
+                                                    style={brandErrors.name ? { borderColor: "#f85149" } : {}}
+                                                    onChange={(e) => { setBrand((p) => ({ ...p, name: e.target.value })); setBrandErrors((prev) => { const { name, ...rest } = prev; return rest; }); }} />
+                                                {brandErrors.name && <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>{brandErrors.name}</div>}
                                             </div>
                                             <div>
                                                 <label className="gen-label">Industry *</label>
                                                 <select className="gen-select" value={brand.industry}
-                                                    onChange={(e) => setBrand((p) => ({ ...p, industry: e.target.value }))}>
+                                                    style={brandErrors.industry ? { borderColor: "#f85149" } : {}}
+                                                    onChange={(e) => { setBrand((p) => ({ ...p, industry: e.target.value })); setBrandErrors((prev) => { const { industry, ...rest } = prev; return rest; }); }}>
                                                     <option value="">Select industry</option>
                                                     {industries.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                                                 </select>
+                                                {brandErrors.industry && <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>{brandErrors.industry}</div>}
                                             </div>
                                         </div>
 
                                         <div className="gen-mb-20">
                                             <label className="gen-label">Brand Description *</label>
-                                            <textarea className="gen-textarea" style={{ height: 80 }}
+                                            <textarea className="gen-textarea" style={{ height: 80, ...(brandErrors.description ? { borderColor: "#f85149" } : {}) }}
                                                 placeholder="What does your brand do? Who does it serve?"
                                                 value={brand.description}
-                                                onChange={(e) => setBrand((p) => ({ ...p, description: e.target.value }))} />
-                                            <div className="gen-char-count">{brand.description.length}/500</div>
+                                                onChange={(e) => { setBrand((p) => ({ ...p, description: e.target.value })); setBrandErrors((prev) => { const { description, ...rest } = prev; return rest; }); }} />
+                                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                                {brandErrors.description ? <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>{brandErrors.description}</div> : <span />}
+                                                <div className="gen-char-count">{brand.description.length}/500</div>
+                                            </div>
                                         </div>
 
                                         <div className="gen-mb-28">
                                             <label className="gen-label">Website URL *</label>
                                             <input className="gen-input" placeholder="https://yourbrand.com" value={brand.url}
-                                                onChange={(e) => setBrand((p) => ({ ...p, url: e.target.value }))} />
+                                                style={brandErrors.url ? { borderColor: "#f85149" } : {}}
+                                                onChange={(e) => { setBrand((p) => ({ ...p, url: e.target.value })); setBrandErrors((prev) => { const { url, ...rest } = prev; return rest; }); }} />
+                                            {brandErrors.url && <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>{brandErrors.url}</div>}
                                         </div>
 
                                         <div className="gen-section"><span className="gen-section__num">02</span> Brand Visuals</div>
@@ -798,7 +857,10 @@ function GeneratePageContent() {
                                         <div className="gen-mb-20">
                                             <label className="gen-label">Logo (PNG) *</label>
                                             <div className="gen-upload" onClick={() => fileInputRef.current?.click()}
-                                                style={brand.logoPreview ? { backgroundImage: `url(${brand.logoPreview})`, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat", minHeight: 120 } : {}}>
+                                                style={{
+                                                    ...(brand.logoPreview ? { backgroundImage: `url(${brand.logoPreview})`, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat", minHeight: 120 } : {}),
+                                                    ...(brandErrors.logo ? { borderColor: "#f85149" } : {}),
+                                                }}>
                                                 {!brand.logoPreview && (
                                                     <>
                                                         <div className="gen-upload__icon">⬆</div>
@@ -807,12 +869,19 @@ function GeneratePageContent() {
                                                     </>
                                                 )}
                                             </div>
-                                            <input ref={fileInputRef} type="file" accept=".png" style={{ display: "none" }}
+                                            {brandErrors.logo && <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>{brandErrors.logo}</div>}
+                                            {brand.logoPreview && !brand.logo && (
+                                                <div style={{ color: "#e3b341", fontSize: 12, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                                                    <span>⚠️</span> Imported from website — verify this is your logo
+                                                </div>
+                                            )}
+                                            <input ref={fileInputRef} type="file" accept=".png,.jpg,.jpeg,.webp" style={{ display: "none" }}
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0];
                                                     if (file) {
                                                         const url = URL.createObjectURL(file);
                                                         setBrand((p) => ({ ...p, logo: file, logoPreview: url }));
+                                                        setBrandErrors((prev) => { const { logo, ...rest } = prev; return rest; });
                                                     }
                                                 }} />
                                         </div>
@@ -840,22 +909,24 @@ function GeneratePageContent() {
 
                                         <div className="gen-mb-20">
                                             <label className="gen-label">Voice & Tone *</label>
-                                            <div className="gen-tags">
+                                            <div className="gen-tags" style={brandErrors.voiceTags ? { border: "1px solid #f85149", borderRadius: 8, padding: 8 } : {}}>
                                                 {voiceTags.map((item) => (
                                                     <div key={item.id} className={`gen-tag ${brand.voiceTags.includes(item.id) ? "gen-tag--active" : ""}`}
-                                                        onClick={() => toggleVoiceTag(item.id)}>
+                                                        onClick={() => { toggleVoiceTag(item.id); setBrandErrors((prev) => { const { voiceTags, ...rest } = prev; return rest; }); }}>
                                                         {item.label}
                                                     </div>
                                                 ))}
                                             </div>
+                                            {brandErrors.voiceTags && <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>{brandErrors.voiceTags}</div>}
                                         </div>
 
                                         <div className="gen-mb-20">
                                             <label className="gen-label">Target Audience *</label>
-                                            <textarea className="gen-textarea" style={{ height: 60 }}
-                                                placeholder='e.g., "Men 25-40 interested in grooming who want simple, no-fuss products"'
+                                            <textarea className="gen-textarea" style={{ height: 60, ...(brandErrors.targetAudience ? { borderColor: "#f85149" } : {}) }}
+                                                placeholder='e.g., "Health-conscious women aged 25-45 who prefer clean beauty products"'
                                                 value={brand.targetAudience}
-                                                onChange={(e) => setBrand((p) => ({ ...p, targetAudience: e.target.value }))} />
+                                                onChange={(e) => { setBrand((p) => ({ ...p, targetAudience: e.target.value })); setBrandErrors((prev) => { const { targetAudience, ...rest } = prev; return rest; }); }} />
+                                            {brandErrors.targetAudience && <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>{brandErrors.targetAudience}</div>}
                                         </div>
 
                                         <div className="gen-mb-20">
@@ -930,7 +1001,7 @@ function GeneratePageContent() {
                                 <div style={{ display: "flex", gap: 8 }}>
                                     <input
                                         className="gen-input"
-                                        placeholder="https://yourbrand.com/products/bron-deodorant"
+                                        placeholder="https://yourbrand.com/products/vitamin-c-serum"
                                         value={productImportUrl}
                                         onChange={(e) => setProductImportUrl(e.target.value)}
                                         onKeyDown={(e) => e.key === "Enter" && handleProductImportUrl()}
@@ -959,8 +1030,10 @@ function GeneratePageContent() {
                             <div className="gen-grid-2">
                                 <div>
                                     <label className="gen-label">Product Name *</label>
-                                    <input className="gen-input" placeholder="e.g., Bron Deodorant" value={product.name}
-                                        onChange={(e) => setProduct((p) => ({ ...p, name: e.target.value }))} />
+                                    <input className="gen-input" placeholder="e.g., Vitamin C Serum" value={product.name}
+                                        style={productErrors.name ? { borderColor: "#f85149" } : {}}
+                                        onChange={(e) => { setProduct((p) => ({ ...p, name: e.target.value })); setProductErrors((prev) => { const { name, ...rest } = prev; return rest; }); }} />
+                                    {productErrors.name && <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>{productErrors.name}</div>}
                                 </div>
                                 <div>
                                     <label className="gen-label">Price Point</label>
@@ -971,10 +1044,11 @@ function GeneratePageContent() {
 
                             <div className="gen-mb-20">
                                 <label className="gen-label">Product Description *</label>
-                                <textarea className="gen-textarea" style={{ height: 80 }}
+                                <textarea className="gen-textarea" style={{ height: 80, ...(productErrors.description ? { borderColor: "#f85149" } : {}) }}
                                     placeholder="What is it, what does it do, who is it for?"
                                     value={product.description}
-                                    onChange={(e) => setProduct((p) => ({ ...p, description: e.target.value }))} />
+                                    onChange={(e) => { setProduct((p) => ({ ...p, description: e.target.value })); setProductErrors((prev) => { const { description, ...rest } = prev; return rest; }); }} />
+                                {productErrors.description && <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>{productErrors.description}</div>}
                             </div>
 
                             <div className="gen-mb-20">
@@ -999,7 +1073,8 @@ function GeneratePageContent() {
                                 <label className="gen-label">{product.noPhysicalProduct ? "Hero Image (Optional)" : "Product Photo *"}</label>
                                 <div className="gen-upload" onClick={() => productFileRef.current?.click()}
                                     style={{
-                                        ...(product.photoPreview ? { backgroundImage: `url(${product.photoPreview})`, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat", minHeight: 160, position: "relative" } : {})
+                                        ...(product.photoPreview ? { backgroundImage: `url(${product.photoPreview})`, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat", minHeight: 160, position: "relative" } : {}),
+                                        ...(productErrors.photo ? { borderColor: "#f85149" } : {}),
                                     }}>
                                     {!product.photoPreview && (
                                         <>
@@ -1026,12 +1101,14 @@ function GeneratePageContent() {
                                         </button>
                                     )}
                                 </div>
+                                {productErrors.photo && <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>{productErrors.photo}</div>}
                                 <input ref={productFileRef} type="file" accept=".png,.jpg,.jpeg" style={{ display: "none" }}
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
                                             const url = URL.createObjectURL(file);
                                             setProduct((p) => ({ ...p, photo: file, photoPreview: url }));
+                                            setProductErrors((prev) => { const { photo, ...rest } = prev; return rest; });
                                         }
                                     }} />
                             </div>
@@ -1168,13 +1245,41 @@ function GeneratePageContent() {
                     <div style={{ animation: "fadeIn 0.4s ease" }}>
                         {isAnalyzing ? (
                             <div className="gen-analyzing">
-                                <div className="gen-analyzing__spinner" />
-                                <h2 className="gen-analyzing__title">Analyzing your brand...</h2>
+                                {/* Progress circle with percentage */}
+                                <div style={{ position: "relative", width: 120, height: 120, margin: "0 auto 20px" }}>
+                                    <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: "rotate(-90deg)" }}>
+                                        <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
+                                        <circle cx="60" cy="60" r="54" fill="none" stroke="url(#analyzeGrad)" strokeWidth="8" strokeLinecap="round"
+                                            strokeDasharray={`${2 * Math.PI * 54}`}
+                                            strokeDashoffset={`${2 * Math.PI * 54 * (1 - analyzingPercent / 100)}`}
+                                            style={{ transition: "stroke-dashoffset 0.3s ease" }} />
+                                        <defs>
+                                            <linearGradient id="analyzeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stopColor="#3B82F6" />
+                                                <stop offset="100%" stopColor="#3ECFCF" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        <span style={{ fontSize: 28, fontWeight: 700, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{analyzingPercent}%</span>
+                                    </div>
+                                </div>
+                                <h2 className="gen-analyzing__title">{analyzingSteps[analyzingStep]}...</h2>
                                 <p className="gen-analyzing__desc">Our AI is studying your brand, product, and concept to craft the perfect ad variations.</p>
+                                {/* Progress bar */}
+                                <div style={{ width: "100%", maxWidth: 400, margin: "16px auto 0" }}>
+                                    <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
+                                        <div style={{ height: "100%", borderRadius: 3, background: "linear-gradient(90deg, #3B82F6, #3ECFCF)", width: `${analyzingPercent}%`, transition: "width 0.3s ease" }} />
+                                    </div>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, color: "#6B7194" }}>
+                                        <span>{analyzingPercent}% complete</span>
+                                        <span>Preparing ad copy...</span>
+                                    </div>
+                                </div>
                                 <div className="gen-analyzing__steps">
                                     {analyzingSteps.map((label, idx) => (
                                         <div key={idx} className={`gen-analyzing__step ${idx <= analyzingStep ? "gen-analyzing__step--active" : ""} ${idx < analyzingStep ? "gen-analyzing__step--done" : ""}`}>
-                                            {label}
+                                            {idx < analyzingStep ? "\u2713 " : ""}{label}
                                         </div>
                                     ))}
                                 </div>
@@ -1183,9 +1288,9 @@ function GeneratePageContent() {
                             <>
                                 <div className="gen-progress-title">
                                     <h2>Generating Your Ads</h2>
-                                    <p>{completedAds.filter(Boolean).length} of 6 variations complete</p>
+                                    <p style={{ fontVariantNumeric: "tabular-nums" }}>{completedAds.filter(Boolean).length} of 6 variations complete &middot; {Math.round(30 + (completedAds.filter(Boolean).length / 6) * 70)}%</p>
                                     <div className="gen-progress-bar">
-                                        <div className="gen-progress-bar__fill" style={{ width: `${(completedAds.filter(Boolean).length / 6) * 100}%` }} />
+                                        <div className="gen-progress-bar__fill" style={{ width: `${30 + (completedAds.filter(Boolean).length / 6) * 70}%`, transition: "width 0.5s ease" }} />
                                     </div>
                                 </div>
 
@@ -1316,7 +1421,7 @@ function GeneratePageContent() {
                                                             const data = await exportRatiosRequest(result._id);
                                                             setRatioModal({ adId: data._id, adName: data.ad_name, image_url_1x1: data.image_url_1x1, image_url_9x16: data.image_url_9x16, image_url_16x9: data.image_url_16x9 });
                                                         } catch (e: any) {
-                                                            alert(e.message || "Failed to load ratios");
+                                                            toast.error(e.message || "Failed to load ratios");
                                                         } finally {
                                                             setRatioModalLoading(false);
                                                         }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import toast from "react-hot-toast";
 import SubscriptionGuard from "../../libs/auth/SubscriptionGuard";
 import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest, updateMemberRequest, changePasswordRequest } from "../../server/user/login";
 import { createCheckoutRequest, createPortalRequest, purchaseAddonRequest } from "../../server/user/billing";
@@ -246,7 +247,7 @@ function DashboardPage() {
             setBrands((prev) => prev.filter((b) => b._id !== id));
         } catch (err) {
             console.error("Delete brand error:", err);
-            alert("Failed to delete brand");
+            toast.error("Failed to delete brand");
         } finally {
             setDeletingId(null);
         }
@@ -259,7 +260,7 @@ function DashboardPage() {
             const { checkout_url } = await createCheckoutRequest(tier, interval);
             window.location.href = checkout_url;
         } catch (err: any) {
-            alert(err.message || "Failed to start checkout");
+            toast.error(err.message || "Failed to start checkout");
         } finally {
             setBillingLoading(null);
         }
@@ -272,7 +273,7 @@ function DashboardPage() {
             const { portal_url } = await createPortalRequest();
             window.location.href = portal_url;
         } catch (err: any) {
-            alert(err.message || "Failed to open billing portal");
+            toast.error(err.message || "Failed to open billing portal");
         } finally {
             setBillingLoading(null);
         }
@@ -285,7 +286,7 @@ function DashboardPage() {
             const { checkout_url } = await purchaseAddonRequest(addon_key);
             window.location.href = checkout_url;
         } catch (err: any) {
-            alert(err.message || "Failed to start addon purchase");
+            toast.error(err.message || "Failed to start addon purchase");
         } finally {
             setBillingLoading(null);
         }
@@ -835,7 +836,7 @@ function DashboardPage() {
                             <button
                                 onClick={() => {
                                     if (confirm("Are you sure you want to delete your account? This cannot be undone.")) {
-                                        alert("Please contact support to delete your account.");
+                                        toast("Please contact support to delete your account.", { icon: "ℹ️" });
                                     }
                                 }}
                                 style={{

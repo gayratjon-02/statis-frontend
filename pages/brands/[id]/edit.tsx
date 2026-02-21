@@ -34,6 +34,9 @@ function BrandEditContent() {
     // URL import
     const [importUrl, setImportUrl] = useState("");
     const [importError, setImportError] = useState<string | null>(null);
+    const [importWarnings, setImportWarnings] = useState<string[]>([]);
+    const [importSuccess, setImportSuccess] = useState(false);
+    const [lowConfidence, setLowConfidence] = useState(false);
 
     // Brand form state
     const [form, setForm] = useState({
@@ -86,6 +89,9 @@ function BrandEditContent() {
         if (!importUrl.trim()) return;
         setImportLoading(true);
         setImportError(null);
+        setImportWarnings([]);
+        setImportSuccess(false);
+        setLowConfidence(false);
         try {
             const data = await importBrandFromUrl(importUrl.trim());
             setForm((prev) => ({
@@ -101,6 +107,9 @@ function BrandEditContent() {
                 background_color: data.background_color || prev.background_color,
             }));
             if (data.logo_url) setLogoPreview(data.logo_url);
+            if (data.warnings?.length) setImportWarnings(data.warnings);
+            if (data.confidence_score < 0.7) setLowConfidence(true);
+            setImportSuccess(true);
         } catch (err: any) {
             setImportError(err.message || "Import failed");
         } finally {
@@ -183,10 +192,10 @@ function BrandEditContent() {
                 {/* URL Import Section */}
                 <div style={{ background: "#161b22", border: "1px solid #30363d", borderRadius: 12, padding: 20 }}>
                     <div style={{ color: "#e6edf3", fontWeight: 600, fontSize: 15, marginBottom: 6 }}>
-                        🔗 Import from website
+                        Auto-fill from home page URL
                     </div>
                     <div style={{ color: "#8b949e", fontSize: 13, marginBottom: 12 }}>
-                        Enter your brand website URL — name, description and colors will be filled automatically
+                        Enter your brand&apos;s homepage URL (e.g., https://yourbrand.com). We&apos;ll extract your brand name, colors, and description automatically.
                     </div>
                     <div style={{ display: "flex", gap: 10 }}>
                         <input
@@ -209,11 +218,40 @@ function BrandEditContent() {
                                 minWidth: 100, whiteSpace: "nowrap"
                             }}
                         >
-                            {importLoading ? "..." : "Import"}
+                            {importLoading ? "Importing..." : "Import"}
                         </button>
                     </div>
+                    {/* Success message */}
+                    {importSuccess && (
+                        <div style={{ marginTop: 10, display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "#3fb950" }}>
+                            <span style={{ flexShrink: 0 }}>&#10003;</span>
+                            <span>Brand data imported. Please review the fields below and make any corrections before saving.</span>
+                        </div>
+                    )}
+                    {/* Low confidence banner */}
+                    {lowConfidence && (
+                        <div style={{
+                            marginTop: 10, padding: "10px 14px", borderRadius: 8,
+                            background: "rgba(227,179,65,0.1)", border: "1px solid rgba(227,179,65,0.3)",
+                            fontSize: 13, color: "#e3b341", display: "flex", alignItems: "flex-start", gap: 8,
+                        }}>
+                            <span style={{ flexShrink: 0 }}>&#9888;</span>
+                            <span>Low confidence extraction. Please carefully review all fields — some data may be inaccurate.</span>
+                        </div>
+                    )}
+                    {/* Warnings from AI extraction */}
+                    {importWarnings.length > 0 && importWarnings.map((w, i) => (
+                        <div key={i} style={{ marginTop: 8, display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "#e3b341" }}>
+                            <span style={{ flexShrink: 0 }}>&#9888;</span>
+                            <span>{w}</span>
+                        </div>
+                    ))}
+                    {/* Error */}
                     {importError && (
-                        <div style={{ color: "#f85149", fontSize: 13, marginTop: 8 }}>{importError}</div>
+                        <div style={{ marginTop: 10, display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "#f85149" }}>
+                            <span style={{ flexShrink: 0 }}>&#10007;</span>
+                            <span>{importError}</span>
+                        </div>
                     )}
                 </div>
 
@@ -267,7 +305,7 @@ function BrandEditContent() {
                             onChange={(e) => setForm({ ...form, name: e.target.value })}
                             maxLength={100}
                             style={inputStyle}
-                            placeholder="e.g. Nike, Apple"
+                            placeholder="e.g. GlowVita, FreshPaws"
                         />
                     </div>
 
@@ -388,7 +426,7 @@ function BrandEditContent() {
                             value={form.competitors}
                             onChange={(e) => setForm({ ...form, competitors: e.target.value })}
                             style={inputStyle}
-                            placeholder="e.g. Nike, Adidas, Puma"
+                            placeholder="e.g. Brand A, Brand B, Brand C"
                         />
                     </div>
                 </div>

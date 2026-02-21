@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
+import toast from "react-hot-toast";
 import AuthGuard from "../../libs/auth/AuthGuard";
 import {
     getLibraryAdsRequest,
@@ -75,7 +76,7 @@ function LibraryPage() {
             const data = await createCanvaCheckoutRequest(detailAd._id);
             if (data.checkout_url) window.location.href = data.checkout_url;
         } catch (e: any) {
-            alert(e.message || "Failed to start Canva checkout");
+            toast.error(e.message || "Failed to start Canva checkout");
         } finally {
             setCanvaLoading(false);
         }
@@ -161,7 +162,7 @@ function LibraryPage() {
             setAds((prev) => prev.filter((a) => !selectedIds.includes(a._id)));
             setSelectedIds([]);
         } catch (e: any) {
-            alert(e.message || "Delete failed");
+            toast.error(e.message || "Delete failed");
         } finally {
             setBulkLoading(null);
         }
@@ -217,7 +218,7 @@ function LibraryPage() {
             document.body.removeChild(a);
         } catch (e) {
             console.error("ZIP download failed", e);
-            alert("Failed to create ZIP");
+            toast.error("Failed to create ZIP");
         } finally {
             setZipDownloading(false);
         }
@@ -238,7 +239,7 @@ function LibraryPage() {
                     setIsCompareOpen(true);
                     setFixedAdId(null);
                 } else if (data && data.generation_status === "failed") {
-                    alert("Fix job failed.");
+                    toast.error("Fix job failed.");
                     setIsFixing(false);
                     setFixModalOpen(false);
                     setFixedAdId(null);
@@ -256,7 +257,7 @@ function LibraryPage() {
             setFixedAdId(data._id);
             setFixDescription("");
         } catch (e: any) {
-            alert(e.message || "Failed to start fix");
+            toast.error(e.message || "Failed to start fix");
             setIsFixing(false);
         }
     };
@@ -659,7 +660,7 @@ function LibraryPage() {
                                     <div className="detail-actions__row">
                                         <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(16,185,129,0.3)", color: "#10B981" }} onClick={() => setFixModalOpen(true)}>🛠 Fix Errors</button>
                                         <button className="detail-actions__btn detail-actions__btn--secondary">↻ Regenerate</button>
-                                        <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(239,68,68,0.3)", color: "#EF4444" }} onClick={async () => { if (!confirm("Delete this ad?")) return; try { await deleteAdsRequest([detailAd._id]); setAds((prev) => prev.filter((a) => a._id !== detailAd._id)); setDetailId(null); } catch { alert("Delete failed"); } }}>🗑 Delete</button>
+                                        <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(239,68,68,0.3)", color: "#EF4444" }} onClick={async () => { if (!confirm("Delete this ad?")) return; try { await deleteAdsRequest([detailAd._id]); setAds((prev) => prev.filter((a) => a._id !== detailAd._id)); setDetailId(null); } catch { toast.error("Delete failed"); } }}>🗑 Delete</button>
                                     </div>
 
                                     <div className="detail-actions__row">

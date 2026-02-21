@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
+import toast from "react-hot-toast";
 import AdminGuard from "../../../libs/auth/AdminGuard";
 import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
 import { getConcepts, getRecommendedConcepts, getCategories, getAdminUsers, getAdminStats, getCanvaOrdersAdmin, getPromptTemplatesAdmin } from "../../../server/admin/admnGetApis";
@@ -175,7 +176,7 @@ function AdminDashboard() {
             fetchConcepts();
             fetchRecommended();
         } catch (err: any) {
-            alert(err.message || "Failed to delete concept");
+            toast.error(err.message || "Failed to delete concept");
         }
     };
 
@@ -253,7 +254,7 @@ function AdminDashboard() {
             fetchConcepts();
             fetchRecommended();
         } catch (err: any) {
-            alert(err.message || "Failed to toggle visibility");
+            toast.error(err.message || "Failed to toggle visibility");
         }
     };
 
@@ -480,7 +481,7 @@ function AdminDashboard() {
             }
             fetchUsers();
         } catch (err: any) {
-            alert(err.message || "Action failed");
+            toast.error(err.message || "Action failed");
         }
     };
 
