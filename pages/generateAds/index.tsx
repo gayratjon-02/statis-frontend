@@ -5,7 +5,8 @@ import AuthGuard from "../../libs/auth/AuthGuard";
 import { getBrands, createBrand, uploadBrandLogo, importBrandFromUrl } from "../../server/user/brand";
 import { getProducts, createProduct, uploadProductPhoto, importProductFromUrl, removeProductBackground } from "../../server/user/product";
 import { getConcepts, getCategories, getRecommendedConcepts, getConceptConfig, incrementUsage } from "../../server/user/concept";
-import { createGeneration, getGenerationStatus, getGenerationBatchStatus, exportRatiosRequest, cancelBatchRequest, downloadAdImage } from "../../server/user/generation";
+import { createGeneration, getGenerationStatus, getGenerationBatchStatus, exportRatiosRequest, cancelBatchRequest, downloadAdImage, regenerateSingleRequest, fixErrorRequest } from "../../server/user/generation";
+import { createCanvaCheckoutRequest } from "../../server/user/billing";
 import { getBrandConfig, type IndustryItem, type VoiceItem } from "../../server/user/config";
 import { getUsageRequest } from "../../server/user/login";
 import API_BASE_URL from "../../libs/config/api.config";
@@ -1315,10 +1316,10 @@ function GeneratePageContent() {
                                                             </div>
                                                         </>
                                                     ) : isCompleted && !hasImage ? (
-                                                        <div className="gen-ad-card__failed">
+                                                        <div className="gen-ad-card__failed" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%" }}>
                                                             <div style={{ fontSize: 28, marginBottom: 8 }}>⚠️</div>
-                                                            <div style={{ fontSize: 13, color: "var(--muted)" }}>Generation failed</div>
-                                                            <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>This variation could not be generated</div>
+                                                            <div style={{ fontSize: 13, color: "var(--muted)" }}>Image not available</div>
+                                                            <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Generation failed for this variation</div>
                                                         </div>
                                                     ) : (
                                                         <div className="gen-ad-card__skeleton">
@@ -1368,11 +1369,27 @@ function GeneratePageContent() {
                                             style={{ height: 280, position: "relative", overflow: "hidden" }}>
                                             {result.image_url_1x1 ? (
                                                 <img src={result.image_url_1x1} alt={result.ad_name || `Variation ${i + 1} `}
-                                                    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }} />
-                                            ) : (
-                                                <div className="gen-ad-card__result"
-                                                    style={{ background: `linear - gradient(135deg, ${AD_COLORS[i % 6]}dd, ${AD_COLORS[(i + 3) % 6]}aa)`, width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 12 }}>
+                                                    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }}
+                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; const next = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (next) next.style.display = "flex"; }} />
+                                            ) : null}
+                                            {!result.image_url_1x1 && (
+                                                <div style={{ background: `linear-gradient(135deg, ${AD_COLORS[i % 6]}dd, ${AD_COLORS[(i + 3) % 6]}aa)`, width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 12, gap: 10 }}>
+                                                    <div style={{ fontSize: 32, opacity: 0.5 }}>⚠️</div>
                                                     <div style={{ fontSize: 14, opacity: 0.7 }}>Image not available</div>
+                                                    <button className="gen-ad-btn"
+                                                        style={{ marginTop: 4, padding: "6px 16px", fontSize: 12 }}
+                                                        onClick={async () => {
+                                                            if (!result._id) return;
+                                                            try {
+                                                                toast.loading("Retrying generation...", { id: "retry" });
+                                                                await regenerateSingleRequest(result._id);
+                                                                toast.success("Retry started! (2 credits used)", { id: "retry" });
+                                                            } catch (e: any) {
+                                                                toast.error(e.message || "Retry failed", { id: "retry" });
+                                                            }
+                                                        }}>
+                                                        Retry (2 credits)
+                                                    </button>
                                                 </div>
                                             )}
                                             {savedAds[i] && <div className="gen-ad-card__saved-badge">SAVED</div>}
@@ -1393,8 +1410,27 @@ function GeneratePageContent() {
 
                                         <div className="gen-ad-card__actions-full">
                                             <div style={{ display: "flex", gap: 6 }}>
-                                                <button className="gen-ad-btn">Fix Errors</button>
-                                                <button className="gen-ad-btn">↻ Redo</button>
+                                                <button className="gen-ad-btn" onClick={async () => {
+                                                    if (!result._id) return;
+                                                    const desc = prompt("Describe the issue (optional):");
+                                                    try {
+                                                        toast.loading("Fixing errors...", { id: "fix" });
+                                                        await fixErrorRequest(result._id, desc || "");
+                                                        toast.success("Fix started! (2 credits used)", { id: "fix" });
+                                                    } catch (e: any) {
+                                                        toast.error(e.message || "Fix failed", { id: "fix" });
+                                                    }
+                                                }}>Fix Errors</button>
+                                                <button className="gen-ad-btn" onClick={async () => {
+                                                    if (!result._id) return;
+                                                    try {
+                                                        toast.loading("Regenerating...", { id: "redo" });
+                                                        await regenerateSingleRequest(result._id);
+                                                        toast.success("Redo started! (2 credits used)", { id: "redo" });
+                                                    } catch (e: any) {
+                                                        toast.error(e.message || "Redo failed", { id: "redo" });
+                                                    }
+                                                }}>↻ Redo</button>
                                                 <button className="gen-ad-btn"
                                                     onClick={async () => {
                                                         if (!result._id) return;
@@ -1426,7 +1462,18 @@ function GeneratePageContent() {
                                                             setRatioModalLoading(false);
                                                         }
                                                     }}>{ratioModalLoading ? "Loading..." : "Get All Ratios"}</button>
-                                                    <button className="gen-ad-btn--canva">Buy Canva Template</button>
+                                                    <button className="gen-ad-btn--canva" onClick={async () => {
+                                                        if (!result._id) return;
+                                                        try {
+                                                            toast.loading("Redirecting to checkout...", { id: "canva" });
+                                                            const data = await createCanvaCheckoutRequest(result._id);
+                                                            if (data.checkout_url) {
+                                                                window.location.href = data.checkout_url;
+                                                            }
+                                                        } catch (e: any) {
+                                                            toast.error(e.message || "Checkout failed", { id: "canva" });
+                                                        }
+                                                    }}>Buy Canva Template</button>
                                                 </div>
                                             )}
                                         </div>

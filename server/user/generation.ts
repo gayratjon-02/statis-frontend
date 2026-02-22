@@ -292,6 +292,24 @@ export async function fixErrorRequest(adId: string, errorDescription: string): P
 }
 
 /**
+ * POST /generation/regenerateSingle/:adId
+ * Regenerates a single ad variation (2 credits).
+ */
+export async function regenerateSingleRequest(adId: string): Promise<{ job_id: string; batch_id: string; status: string }> {
+    const res = await fetch(`${GENERATION_API}/regenerateSingle/${adId}`, {
+        method: "POST",
+        headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Regenerate request failed" }));
+        throw new Error(error.message || `Regenerate request failed (${res.status})`);
+    }
+
+    return res.json();
+}
+
+/**
  * GET /generation/ad/:adId
  * Poll a single ad status. We use a filter on the getLibraryAdsRequest to get it.
  */
