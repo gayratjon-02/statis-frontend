@@ -71,7 +71,7 @@ const BRAND_COLORS = ["#3ECFCF", "#22C55E", "#8B5CF6", "#F59E0B", "#EC4899", "#6
 const planInfo: Record<string, { label: string; monthlyPrice: number; yearlyMonthly: number; yearlyTotal: number; credits: string; features: string[]; highlight?: boolean }> = {
     starter: { label: "Starter", monthlyPrice: 39, yearlyMonthly: 33, yearlyTotal: 390, credits: "250 credits/mo", features: ["250 image generations", "3 brands", "Standard support"] },
     pro: { label: "Pro", monthlyPrice: 99, yearlyMonthly: 83, yearlyTotal: 990, credits: "750 credits/mo", features: ["750 image generations", "10 brands", "Priority support"], highlight: true },
-    growth: { label: "Growth", monthlyPrice: 199, yearlyMonthly: 166, yearlyTotal: 1990, credits: "2,000 credits/mo", features: ["2,000 image generations", "Unlimited brands", "Dedicated support"] },
+    growth: { label: "Growth Engine", monthlyPrice: 199, yearlyMonthly: 166, yearlyTotal: 1990, credits: "2,000 credits/mo", features: ["2,000 image generations", "Unlimited brands", "Dedicated support"] },
 };
 
 interface RecentAd {
@@ -93,7 +93,7 @@ interface ActivityItem {
 }
 
 function tierLabel(tier: string): string {
-    const map: Record<string, string> = { free: "Free", starter: "Starter", pro: "Pro", growth: "Growth" };
+    const map: Record<string, string> = { free: "Free", starter: "Starter", pro: "Pro", growth: "Growth Engine" };
     return map[tier?.toLowerCase()] || tier;
 }
 
@@ -120,7 +120,7 @@ function DashboardPage() {
     const router = useRouter();
     const [brandFilter, setBrandFilter] = useState("all");
     const [collapsed, setCollapsed] = useState(false);
-    const [page, setPage] = useState("dashboard");
+    const [page, setPageState] = useState("dashboard");
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
     const [checkoutBanner, setCheckoutBanner] = useState<"success" | "cancelled" | null>(null);
     const [billingLoading, setBillingLoading] = useState<string | null>(null);
@@ -153,6 +153,25 @@ function DashboardPage() {
     /** Get label for industry ID from fetched config */
     const getIndustryLabel = (id: string) =>
         industryList.find((i) => i.id === id)?.label || id;
+
+    // Wrap setPage to also update URL query param
+    const validTabs = ["dashboard", "brands", "canva", "account", "billing"];
+    const setPage = (id: string) => {
+        setPageState(id);
+        if (id === "dashboard") {
+            router.replace("/dashboard", undefined, { shallow: true });
+        } else if (validTabs.includes(id)) {
+            router.replace(`/dashboard?tab=${id}`, undefined, { shallow: true });
+        }
+    };
+
+    // Read initial tab from query param
+    useEffect(() => {
+        const tab = router.query.tab as string | undefined;
+        if (tab && validTabs.includes(tab)) {
+            setPageState(tab);
+        }
+    }, [router.query.tab]);
 
     useEffect(() => {
         async function fetchData() {
@@ -217,11 +236,11 @@ function DashboardPage() {
     // Handle Stripe checkout success/cancel query params
     useEffect(() => {
         const { checkout } = router.query;
-        if (checkout === "success") {
+        const dismissed = typeof window !== "undefined" && sessionStorage.getItem("se_checkout_banner_dismissed");
+        if (checkout === "success" && !dismissed) {
             setCheckoutBanner("success");
-            // Remove query param from URL without reload
             router.replace("/dashboard", undefined, { shallow: true });
-        } else if (checkout === "cancelled") {
+        } else if (checkout === "cancelled" && !dismissed) {
             setCheckoutBanner("cancelled");
             router.replace("/dashboard", undefined, { shallow: true });
         }
@@ -501,7 +520,7 @@ function DashboardPage() {
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => setCheckoutBanner(null)}
+                        <button onClick={() => { setCheckoutBanner(null); sessionStorage.setItem("se_checkout_banner_dismissed", "true"); }}
                             style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 18 }}>
                             ×
                         </button>
@@ -523,7 +542,7 @@ function DashboardPage() {
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => setCheckoutBanner(null)}
+                        <button onClick={() => { setCheckoutBanner(null); sessionStorage.setItem("se_checkout_banner_dismissed", "true"); }}
                             style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 18 }}>
                             ×
                         </button>
@@ -1061,7 +1080,7 @@ function DashboardPage() {
                             <div>
                                 <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>100 Credits Pack</div>
                                 <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
-                                    One-time purchase · $19 · Never expires
+                                    One-time purchase · $15 · Resets on subscription renewal
                                 </div>
                             </div>
                             <button

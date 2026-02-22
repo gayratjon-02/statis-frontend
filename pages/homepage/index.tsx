@@ -42,21 +42,21 @@ export default function LandingPage() {
             period: annual ? "/mo (billed yearly)" : "/mo",
             credits: "250", ads: "~10-12 finished ads/mo",
             features: ["1 brand", "3 products", "All ad concepts", "Multi-ratio export (1:1, 9:16, 16:9)", "Fix Errors feature", "250 credits/month"],
-            cta: "Start Free Trial", popular: false,
+            cta: "Get Started", popular: false,
         },
         {
             name: "Pro", price: annual ? 82 : 99,
             period: annual ? "/mo (billed yearly)" : "/mo",
             credits: "750", ads: "~30-37 finished ads/mo",
             features: ["5 brands", "10 products per brand", "All ad concepts", "Multi-ratio export (1:1, 9:16, 16:9)", "Fix Errors feature", "750 credits/month", "Priority generation queue", "10% off Canva templates"],
-            cta: "Start Free Trial", popular: true,
+            cta: "Get Started", popular: true,
         },
         {
             name: "Growth Engine", price: annual ? 165 : 199,
             period: annual ? "/mo (billed yearly)" : "/mo",
             credits: "2,000", ads: "~80-100 finished ads/mo",
             features: ["Unlimited brands", "Unlimited products", "All ad concepts", "Multi-ratio export (1:1, 9:16, 16:9)", "Fix Errors feature", "2,000 credits/month", "Priority generation queue", "20% off Canva templates", "Up to 5 team members"],
-            cta: "Start Free Trial", popular: false,
+            cta: "Get Started", popular: false,
         },
     ];
 
@@ -123,7 +123,7 @@ export default function LandingPage() {
                     High-quality static ads in seconds, not days. Upload your brand, pick a concept, and let AI do the rest.
                 </p>
                 <div className="hero__buttons">
-                    <button className="btn-hero-primary" onClick={() => scrollToPricing()}>Start Free Trial</button>
+                    <button className="btn-hero-primary" onClick={() => scrollToPricing()}>Get Started</button>
                     <button className="btn-hero-secondary">See Examples</button>
                 </div>
                 <div className="hero__metrics">
@@ -141,21 +141,37 @@ export default function LandingPage() {
 
                 {/* Ad preview */}
                 <div className="hero-preview">
-                    {previewColors.map((colors, i) => (
+                    {[
+                        { headline: "BOOST YOUR GLOW", sub: "Vitamin C Serum", tag: "Skincare" },
+                        { headline: "FUEL YOUR DAY", sub: "Organic Protein", tag: "Nutrition" },
+                        { headline: "PEAK PERFORMANCE", sub: "Pre-Workout Pro", tag: "Fitness" },
+                        { headline: "PURE HYDRATION", sub: "Electrolyte Mix", tag: "Wellness" },
+                        { headline: "SLEEP BETTER", sub: "Melatonin Plus", tag: "Health" },
+                    ].map((card, i) => (
                         <div
                             key={i}
                             className="hero-preview-card"
                             style={{
                                 width: i === 2 ? 220 : 180,
                                 height: i === 2 ? 280 : 240,
-                                background: `linear-gradient(135deg, ${colors[0]}cc, ${colors[1]}88)`,
+                                background: `linear-gradient(135deg, ${previewColors[i][0]}cc, ${previewColors[i][1]}88)`,
                                 transform: `rotateY(${(i - 2) * 5}deg) translateY(${Math.abs(i - 2) * 12}px)`,
                                 opacity: 1 - Math.abs(i - 2) * 0.15,
                                 animation: `float ${3 + i * 0.4}s ease infinite`,
                                 animationDelay: `${i * 0.3}s`,
+                                display: "flex",
+                                flexDirection: "column" as const,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                padding: 16,
+                                gap: 8,
+                                textAlign: "center" as const,
                             }}
                         >
-                            <span>AD</span>
+                            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.5, color: "rgba(255,255,255,0.5)", textTransform: "uppercase" as const }}>{card.tag}</span>
+                            <span style={{ fontSize: i === 2 ? 16 : 13, fontWeight: 800, color: "#fff", lineHeight: 1.2, letterSpacing: 0.5 }}>{card.headline}</span>
+                            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>{card.sub}</span>
+                            <span style={{ marginTop: 6, fontSize: 9, fontWeight: 700, background: "rgba(62,207,207,0.3)", color: "#3ECFCF", padding: "3px 10px", borderRadius: 20, letterSpacing: 0.5 }}>SHOP NOW</span>
                         </div>
                     ))}
                 </div>
