@@ -313,6 +313,9 @@ function DashboardPage() {
 
     const handleNav = (id: string) => {
         if (ROUTES[id]) {
+            if (id === "dashboard") {
+                setPage("dashboard");
+            }
             router.push(ROUTES[id]);
         } else {
             setPage(id);
@@ -425,17 +428,17 @@ function DashboardPage() {
                     {BOTTOM_NAV.map((item) => (
                         <div
                             key={item.id}
-                            className="nav-item"
-                            onClick={() => setPage(item.id)}
+                            className={`nav-item ${page === item.id ? "nav-item--active" : ""}`}
+                            onClick={() => handleNav(item.id)}
                             style={{
                                 padding: collapsed ? "10px 0" : "10px 14px",
                                 justifyContent: collapsed ? "center" : "flex-start",
                             }}
                         >
-                            <span style={{ fontSize: 13, width: 28, textAlign: "center", color: "var(--dim)", fontWeight: 600 }}>
+                            <span style={{ fontSize: 13, width: 28, textAlign: "center", color: page === item.id ? "var(--accent)" : "var(--dim)", fontWeight: 600 }}>
                                 {item.letter}
                             </span>
-                            {!collapsed && <span style={{ fontSize: 13, color: "var(--dim)" }}>{item.label}</span>}
+                            {!collapsed && <span style={{ fontSize: 13, color: page === item.id ? "var(--text)" : "var(--dim)", fontWeight: page === item.id ? 600 : 400 }}>{item.label}</span>}
                         </div>
                     ))}
 
