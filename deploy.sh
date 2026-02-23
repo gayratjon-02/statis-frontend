@@ -23,5 +23,3 @@ fi
 
 # Clean up unused old images
 docker image prune -f
-
-docker compose logs --tail 200 -f
