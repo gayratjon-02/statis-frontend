@@ -16,6 +16,9 @@ const ROUTES: Record<string, string> = {
     dashboard: "/dashboard",
     generate: "/generateAds",
     library: "/adLibrary",
+    brands: "/brands",
+    account: "/account",
+    billing: "/billing",
 };
 
 const BG = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
@@ -116,11 +119,11 @@ function timeAgo(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString();
 }
 
-function DashboardPage() {
+export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: string }) {
     const router = useRouter();
     const [brandFilter, setBrandFilter] = useState("all");
     const [collapsed, setCollapsed] = useState(false);
-    const [page, setPageState] = useState("dashboard");
+    const [page, setPageState] = useState(initialTab);
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
     const [checkoutBanner, setCheckoutBanner] = useState<"success" | "cancelled" | null>(null);
     const [billingLoading, setBillingLoading] = useState<string | null>(null);
@@ -155,7 +158,7 @@ function DashboardPage() {
         industryList.find((i) => i.id === id)?.label || id;
 
     // Wrap setPage to also update URL query param
-    const validTabs = ["dashboard", "brands", "canva", "account", "billing"];
+    const validTabs = ["dashboard", "canva"];
     const setPage = (id: string) => {
         setPageState(id);
         if (id === "dashboard") {
@@ -165,10 +168,12 @@ function DashboardPage() {
         }
     };
 
-    // Read initial tab from query param
+    // Redirect old ?tab= URLs to new routes
     useEffect(() => {
         const tab = router.query.tab as string | undefined;
-        if (tab && validTabs.includes(tab)) {
+        if (tab && ROUTES[tab] && tab !== "dashboard") {
+            router.replace(ROUTES[tab]);
+        } else if (tab && validTabs.includes(tab)) {
             setPageState(tab);
         }
     }, [router.query.tab]);
@@ -256,6 +261,16 @@ function DashboardPage() {
                 .finally(() => setBrandsLoading(false));
         }
     }, [page]);
+
+    // Initialize account form when page is "account"
+    useEffect(() => {
+        if (page === "account" && member) {
+            setAcctName(member.full_name || "");
+            setAcctMsg(null);
+            setPwMsg(null);
+            setPwOld(""); setPwNew(""); setPwConfirm("");
+        }
+    }, [page, member]);
 
     const handleDeleteBrand = async (id: string) => {
         if (!confirm("Do you want to delete this brand?")) return;
@@ -498,7 +513,7 @@ function DashboardPage() {
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => setPage("billing")}
+                        <button onClick={() => router.push("/billing")}
                             className="dash-btn dash-btn--primary"
                             style={{ padding: "6px 12px", fontSize: 12 }}>
                             Upgrade Plan
