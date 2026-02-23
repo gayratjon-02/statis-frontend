@@ -782,7 +782,16 @@ function GeneratePageContent() {
               }
             }
           }
-        } catch (pollErr) {
+        } catch (pollErr: any) {
+          const errMsg = pollErr?.message || "";
+          if (
+            errMsg.includes("429") ||
+            errMsg.includes("Too Many Requests") ||
+            errMsg.includes("ThrottlerException")
+          ) {
+            console.warn("Rate limited, will retry next cycle...");
+            return; // Not fatal — skip and retry on next interval
+          }
           console.error("Polling error:", pollErr);
         }
       }, 3000);
