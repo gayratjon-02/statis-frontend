@@ -40,6 +40,7 @@ import {
 } from "../../server/user/config";
 import { getUsageRequest } from "../../server/user/login";
 import API_BASE_URL from "../../libs/config/api.config";
+import { useGenerationSocket } from "../../libs/hooks/useGenerationSocket";
 import type { Brand, CreateBrandInput } from "../../libs/types/brand.type";
 import { BrandIndustry, BrandVoice } from "../../libs/types/brand.type";
 import type {
@@ -207,11 +208,24 @@ function GeneratePageContent() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingStep, setAnalyzingStep] = useState(0);
   const [analyzingPercent, setAnalyzingPercent] = useState(0);
+  const [socketEnabled, setSocketEnabled] = useState(false);
+  const [displayPercent, setDisplayPercent] = useState(0);
   const analyzingSteps = [
     "Analyzing brand identity",
     "Crafting ad copy",
     "Preparing image prompts",
   ];
+
+  // WebSocket real-time progress
+  const storedMember = typeof window !== "undefined"
+    ? JSON.parse(localStorage.getItem("se_member") || "null")
+    : null;
+  const memberId: string | null = storedMember?._id || null;
+  const {
+    overallPercent: socketPercent,
+    latestMessage: socketMessage,
+    reset: resetSocket,
+  } = useGenerationSocket(memberId, socketEnabled);
 
   // Real generation results from backend
   interface GeneratedResult {
@@ -435,15 +449,40 @@ function GeneratePageContent() {
         prev < analyzingSteps.length - 1 ? prev + 1 : prev,
       );
     }, 3000);
-    // Smooth percentage animation: 0→30% over ~10s during analyzing phase
+    // Smooth percentage animation: 0→15% over ~10s during analyzing phase
     const percentTimer = setInterval(() => {
-      setAnalyzingPercent((prev) => (prev < 30 ? prev + 1 : prev));
-    }, 333);
+      setAnalyzingPercent((prev) => (prev < 15 ? prev + 1 : prev));
+    }, 666);
     return () => {
       clearInterval(stepTimer);
       clearInterval(percentTimer);
     };
   }, [isAnalyzing]);
+
+  // Smooth progress interpolation: combines analyzing phase + socket real-time progress
+  useEffect(() => {
+    // During analyzing: use analyzingPercent directly (0→15)
+    // After analyzing: 15 + socket progress scaled to 15-100 range
+    const targetPercent = isAnalyzing
+      ? analyzingPercent
+      : socketPercent > 0
+        ? Math.min(100, Math.round(15 + socketPercent * 0.85))
+        : Math.round(15 + (completedAds.filter(Boolean).length / 6) * 85); // polling fallback
+
+    if (displayPercent >= targetPercent) return;
+
+    const timer = setInterval(() => {
+      setDisplayPercent((prev) => {
+        if (prev >= targetPercent) {
+          clearInterval(timer);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 50);
+
+    return () => clearInterval(timer);
+  }, [isAnalyzing, analyzingPercent, socketPercent, completedAds]);
 
   /** Fetch image blob via backend proxy */
   const fetchRatioBlob = async (
@@ -595,6 +634,9 @@ function GeneratePageContent() {
 
     setStep(4);
     setIsAnalyzing(true);
+    setDisplayPercent(0);
+    resetSocket();
+    setSocketEnabled(true);
     setGeneratingAds([false, false, false, false, false, false]);
     setCompletedAds([false, false, false, false, false, false]);
     setSavedAds([false, false, false, false, false, false]);
@@ -685,15 +727,12 @@ function GeneratePageContent() {
             clearInterval(pollInterval);
             generationInProgressRef.current = false;
             activeBatchIdRef.current = null;
+            setSocketEnabled(false);
+            setDisplayPercent(100);
 
             if (batchStatus.status === "completed") {
-              // Success!
-              // Optional: Move to next step if desired, or let user review.
-              // Original logic moved to step 5.
               setTimeout(() => setStep(5), 1000);
             } else {
-              // Failed (partially or fully?)
-              // If completely failed (no useful results), show alert.
               const anySuccess = batchStatus.variations.some(
                 (v) => v.generation_status === "completed",
               );
@@ -701,7 +740,6 @@ function GeneratePageContent() {
                 toast.error("Generation failed. Please try again.");
                 setStep(3);
               } else {
-                // Partial success
                 setTimeout(() => setStep(5), 1000);
               }
             }
@@ -713,6 +751,7 @@ function GeneratePageContent() {
     } catch (error: any) {
       console.error("Failed to start generation", error);
       setIsAnalyzing(false);
+      setSocketEnabled(false);
       setStep(3);
 
       const msg = error?.message || "";
@@ -2283,7 +2322,7 @@ function GeneratePageContent() {
                       strokeLinecap="round"
                       strokeDasharray={`${2 * Math.PI * 54}`}
                       strokeDashoffset={`${
-                        2 * Math.PI * 54 * (1 - analyzingPercent / 100)
+                        2 * Math.PI * 54 * (1 - displayPercent / 100)
                       }`}
                       style={{ transition: "stroke-dashoffset 0.3s ease" }}
                     />
@@ -2317,7 +2356,7 @@ function GeneratePageContent() {
                         fontVariantNumeric: "tabular-nums",
                       }}
                     >
-                      {analyzingPercent}%
+                      {displayPercent}%
                     </span>
                   </div>
                 </div>
@@ -2349,7 +2388,7 @@ function GeneratePageContent() {
                         height: "100%",
                         borderRadius: 3,
                         background: "linear-gradient(90deg, #3B82F6, #3ECFCF)",
-                        width: `${analyzingPercent}%`,
+                        width: `${displayPercent}%`,
                         transition: "width 0.3s ease",
                       }}
                     />
@@ -2363,7 +2402,7 @@ function GeneratePageContent() {
                       color: "#6B7194",
                     }}
                   >
-                    <span>{analyzingPercent}% complete</span>
+                    <span>{displayPercent}% complete</span>
                     <span>Preparing ad copy...</span>
                   </div>
                 </div>
@@ -2392,22 +2431,27 @@ function GeneratePageContent() {
                   <p style={{ fontVariantNumeric: "tabular-nums" }}>
                     {completedAds.filter(Boolean).length} of 6 variations
                     complete &middot;{" "}
-                    {Math.round(
-                      30 + (completedAds.filter(Boolean).length / 6) * 70,
-                    )}
-                    %
+                    {displayPercent}%
                   </p>
                   <div className="gen-progress-bar">
                     <div
                       className="gen-progress-bar__fill"
                       style={{
-                        width: `${
-                          30 + (completedAds.filter(Boolean).length / 6) * 70
-                        }%`,
+                        width: `${displayPercent}%`,
                         transition: "width 0.5s ease",
                       }}
                     />
                   </div>
+                  {socketMessage && socketPercent > 0 && socketPercent < 100 && (
+                    <p style={{
+                      fontSize: 12,
+                      color: "rgba(255,255,255,0.45)",
+                      marginTop: 6,
+                      fontVariantNumeric: "tabular-nums",
+                    }}>
+                      {socketMessage}
+                    </p>
+                  )}
                 </div>
 
                 <div className="gen-ad-grid">
