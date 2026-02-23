@@ -44,6 +44,7 @@ function LibraryPage() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [detailId, setDetailId] = useState<string | null>(null);
+    const [lightboxId, setLightboxId] = useState<string | null>(null);
 
     // Inline rename state
     const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -112,6 +113,24 @@ function LibraryPage() {
     useEffect(() => {
         if (renamingId && renameInputRef.current) renameInputRef.current.focus();
     }, [renamingId]);
+
+    // Lightbox keyboard navigation
+    useEffect(() => {
+        if (!lightboxId) return;
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                setLightboxId(null);
+            } else if (e.key === "ArrowLeft") {
+                const idx = ads.findIndex((a) => a._id === lightboxId);
+                if (idx > 0) setLightboxId(ads[idx - 1]._id);
+            } else if (e.key === "ArrowRight") {
+                const idx = ads.findIndex((a) => a._id === lightboxId);
+                if (idx < ads.length - 1) setLightboxId(ads[idx + 1]._id);
+            }
+        };
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [lightboxId, ads]);
 
     const toggleSelect = (id: string) =>
         setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -224,6 +243,7 @@ function LibraryPage() {
         }
     };
 
+    const lightboxAd = lightboxId ? ads.find((a) => a._id === lightboxId) : null;
     const detailAd = detailId ? ads.find((a) => a._id === detailId) : null;
 
     // 🔥 Fix Errors logic & polling
@@ -418,7 +438,7 @@ function LibraryPage() {
                             <div
                                 key={ad._id}
                                 className={`lib-ad-card ${selectedIds.includes(ad._id) ? "lib-ad-card--selected" : ""}`}
-                                onClick={() => setDetailId(ad._id)}
+                                onClick={() => setLightboxId(ad._id)}
                             >
                                 <div
                                     className="lib-ad-card__image"
@@ -501,7 +521,7 @@ function LibraryPage() {
                             <div
                                 key={ad._id}
                                 className={`lib-list-item ${selectedIds.includes(ad._id) ? "lib-list-item--selected" : ""}`}
-                                onClick={() => setDetailId(ad._id)}
+                                onClick={() => setLightboxId(ad._id)}
                             >
                                 <div
                                     className={`lib-list-item__select ${selectedIds.includes(ad._id) ? "lib-list-item__select--checked" : ""}`}
@@ -559,7 +579,7 @@ function LibraryPage() {
                                     >{ad.is_favorite ? "⭐" : "☆"}</button>
                                     <button
                                         className="lib-list-item__action-btn"
-                                        onClick={(e) => { e.stopPropagation(); setDetailId(ad._id); }}
+                                        onClick={(e) => { e.stopPropagation(); setLightboxId(ad._id); }}
                                     >View</button>
                                     <button
                                         className="lib-list-item__action-btn"
@@ -592,6 +612,87 @@ function LibraryPage() {
                     <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading ads...</div>
                 )}
             </div>
+
+            {/* ===== IMAGE LIGHTBOX ===== */}
+            {lightboxAd && (
+                <div
+                    className="lightbox-backdrop"
+                    onClick={() => setLightboxId(null)}
+                >
+                    <div className="lightbox-container" onClick={(e) => e.stopPropagation()}>
+                        {/* Close button */}
+                        <button
+                            className="lightbox-close"
+                            onClick={() => setLightboxId(null)}
+                        >×</button>
+
+                        {/* Image */}
+                        <div className="lightbox-image-wrap">
+                            <img
+                                src={lightboxAd.image_url_1x1 || lightboxAd.image}
+                                alt={lightboxAd.name}
+                                className="lightbox-image"
+                            />
+                        </div>
+
+                        {/* Bottom bar */}
+                        <div className="lightbox-bar">
+                            <div className="lightbox-bar__info">
+                                <div className="lightbox-bar__name">{lightboxAd.name}</div>
+                                <div className="lightbox-bar__meta">
+                                    <span>{lightboxAd.brand_name}</span>
+                                    <span style={{ opacity: 0.4 }}>·</span>
+                                    <span>{timeAgo(lightboxAd.created_at)}</span>
+                                </div>
+                            </div>
+                            <div className="lightbox-bar__actions">
+                                <button
+                                    className="lightbox-bar__btn"
+                                    onClick={(e) => handleToggleFavorite(e, lightboxAd._id)}
+                                >
+                                    {lightboxAd.is_favorite ? "⭐" : "☆"}
+                                </button>
+                                <button
+                                    className="lightbox-bar__btn"
+                                    onClick={() => {
+                                        downloadAdImage(lightboxAd._id, `${lightboxAd.name || "ad"}_1x1.png`).catch(() => {
+                                            if (lightboxAd.image) window.open(lightboxAd.image, "_blank");
+                                        });
+                                    }}
+                                >⤓</button>
+                                <button
+                                    className="lightbox-bar__btn lightbox-bar__btn--primary"
+                                    onClick={() => {
+                                        setDetailId(lightboxAd._id);
+                                        setLightboxId(null);
+                                    }}
+                                >View Details</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Navigation arrows */}
+                    {(() => {
+                        const currentIndex = ads.findIndex((a) => a._id === lightboxId);
+                        return (
+                            <>
+                                {currentIndex > 0 && (
+                                    <button
+                                        className="lightbox-nav lightbox-nav--prev"
+                                        onClick={(e) => { e.stopPropagation(); setLightboxId(ads[currentIndex - 1]._id); }}
+                                    >‹</button>
+                                )}
+                                {currentIndex < ads.length - 1 && (
+                                    <button
+                                        className="lightbox-nav lightbox-nav--next"
+                                        onClick={(e) => { e.stopPropagation(); setLightboxId(ads[currentIndex + 1]._id); }}
+                                    >›</button>
+                                )}
+                            </>
+                        );
+                    })()}
+                </div>
+            )}
 
             {/* ===== DETAIL PANEL ===== */}
             {detailAd && (
