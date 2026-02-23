@@ -51,6 +51,14 @@ import type {
   ConceptCategoryItem,
 } from "../../libs/types/concept.type";
 
+const USP_PLACEHOLDERS = [
+  'e.g., "Clinically proven results in 14 days"',
+  'e.g., "100% natural, cruelty-free ingredients"',
+  'e.g., "30-day money-back guarantee"',
+  'e.g., "Dermatologist recommended formula"',
+  'e.g., "Visible results or your money back"',
+];
+
 const AD_COLORS = [
   "#1a3a4a",
   "#2a1a3a",
@@ -98,6 +106,9 @@ interface ProductState {
   starRating: string;
   reviewCount: string;
   offer: string;
+  ingredientsFeatures: string;
+  beforeDescription: string;
+  afterDescription: string;
 }
 
 function GeneratePageContent() {
@@ -148,6 +159,9 @@ function GeneratePageContent() {
     starRating: "",
     reviewCount: "",
     offer: "",
+    ingredientsFeatures: "",
+    beforeDescription: "",
+    afterDescription: "",
   });
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
   const [conceptFilter, setConceptFilter] = useState("All");
@@ -293,6 +307,9 @@ function GeneratePageContent() {
           ? resolveImageUrl(data.photo_url)
           : prev.photoPreview,
         noPhysicalProduct: data.photo_url ? false : prev.noPhysicalProduct,
+        ingredientsFeatures: data.ingredients_features || prev.ingredientsFeatures,
+        beforeDescription: data.before_description || prev.beforeDescription,
+        afterDescription: data.after_description || prev.afterDescription,
       }));
 
       // FIX: Convert imported photo URL to File object so form validation passes
@@ -848,6 +865,9 @@ function GeneratePageContent() {
           ? parseInt(product.reviewCount)
           : undefined,
         offer_text: product.offer || undefined,
+        ingredients_features: product.ingredientsFeatures || undefined,
+        before_description: product.beforeDescription || undefined,
+        after_description: product.afterDescription || undefined,
       });
 
       setProduct((prev) => ({ ...prev, _id: newProduct._id }));
@@ -1618,6 +1638,9 @@ function GeneratePageContent() {
                           starRating: p.star_rating?.toString() || "",
                           reviewCount: p.review_count?.toString() || "",
                           offer: p.offer_text,
+                          ingredientsFeatures: p.ingredients_features || "",
+                          beforeDescription: p.before_description || "",
+                          afterDescription: p.after_description || "",
                         });
                         setStep(2);
                       }}
@@ -1675,9 +1698,14 @@ function GeneratePageContent() {
                 }}
               >
                 <div
-                  style={{ fontSize: 13, color: "#8b949e", marginBottom: 8 }}
+                  style={{ fontSize: 13, color: "#8b949e", marginBottom: 4 }}
                 >
-                  Auto-fill from website URL
+                  Auto-fill from product page URL
+                </div>
+                <div
+                  style={{ fontSize: 11, color: "#6e7681", marginBottom: 8 }}
+                >
+                  Paste a direct link to your product page. We'll extract the name, description, price, and photo.
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input
@@ -1773,7 +1801,7 @@ function GeneratePageContent() {
                   )}
                 </div>
                 <div>
-                  <label className="gen-label">Price Point</label>
+                  <label className="gen-label">Price Point <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
                   <input
                     className="gen-input"
                     placeholder="e.g., $29.99"
@@ -1820,9 +1848,7 @@ function GeneratePageContent() {
                     <input
                       className="gen-input"
                       style={{ flex: 1 }}
-                      placeholder={`USP ${
-                        i + 1
-                      }, e.g., "48-hour odor protection"`}
+                      placeholder={USP_PLACEHOLDERS[i] || USP_PLACEHOLDERS[0]}
                       value={usp}
                       onChange={(e) => updateUsp(i, e.target.value)}
                     />
@@ -1950,7 +1976,7 @@ function GeneratePageContent() {
 
               <div className="gen-grid-3" style={{ marginBottom: 16 }}>
                 <div>
-                  <label className="gen-label">Star Rating</label>
+                  <label className="gen-label">Star Rating <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
                   <select
                     className="gen-select"
                     value={product.starRating}
@@ -1969,7 +1995,7 @@ function GeneratePageContent() {
                   </select>
                 </div>
                 <div>
-                  <label className="gen-label">Review Count</label>
+                  <label className="gen-label">Review Count <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
                   <input
                     className="gen-input"
                     placeholder="e.g., 2400"
@@ -1980,7 +2006,7 @@ function GeneratePageContent() {
                   />
                 </div>
                 <div>
-                  <label className="gen-label">Offer / Discount</label>
+                  <label className="gen-label">Offer / Discount <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
                   <input
                     className="gen-input"
                     placeholder="e.g., 20% off first order"
@@ -1989,6 +2015,69 @@ function GeneratePageContent() {
                       setProduct((p) => ({ ...p, offer: e.target.value }))
                     }
                   />
+                </div>
+              </div>
+
+              {/* Product URL */}
+              <div className="gen-mb-20">
+                <label className="gen-label">Product URL <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+                <input
+                  className="gen-input"
+                  placeholder="https://yourbrand.com/products/your-product"
+                  value={product.productUrl}
+                  onChange={(e) =>
+                    setProduct((p) => ({ ...p, productUrl: e.target.value }))
+                  }
+                />
+              </div>
+
+              {/* Key Ingredients / Features */}
+              <div className="gen-mb-20">
+                <label className="gen-label">Key Ingredients / Features <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+                <input
+                  className="gen-input"
+                  placeholder="e.g., Vitamin C, Hyaluronic Acid, Niacinamide, SPF 30"
+                  value={product.ingredientsFeatures}
+                  onChange={(e) =>
+                    setProduct((p) => ({ ...p, ingredientsFeatures: e.target.value }))
+                  }
+                />
+                <div style={{ fontSize: 11, color: "#6e7681", marginTop: 4 }}>
+                  Separate with commas. Used for ingredient spotlight and feature pointer ads.
+                </div>
+              </div>
+
+              {/* Before / After Description */}
+              <div className="gen-mb-20">
+                <label className="gen-label">Before / After Description <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+                <div style={{ fontSize: 11, color: "#6e7681", marginBottom: 8 }}>
+                  For transformation-style ads. Describe the problem state and the result after using your product.
+                </div>
+                <div className="gen-grid-2">
+                  <div>
+                    <label className="gen-label" style={{ fontSize: 11 }}>Before (Problem)</label>
+                    <textarea
+                      className="gen-input"
+                      style={{ height: 80, resize: "none" }}
+                      placeholder='e.g., Dull, uneven skin tone with visible dark spots'
+                      value={product.beforeDescription}
+                      onChange={(e) =>
+                        setProduct((p) => ({ ...p, beforeDescription: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="gen-label" style={{ fontSize: 11 }}>After (Result)</label>
+                    <textarea
+                      className="gen-input"
+                      style={{ height: 80, resize: "none" }}
+                      placeholder='e.g., Radiant, glowing complexion with reduced dark spots'
+                      value={product.afterDescription}
+                      onChange={(e) =>
+                        setProduct((p) => ({ ...p, afterDescription: e.target.value }))
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </div>
