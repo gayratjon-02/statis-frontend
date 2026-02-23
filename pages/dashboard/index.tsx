@@ -625,7 +625,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                         ) : (
                             <div className="brands-grid">
                                 {fullBrands.map((brand, i) => (
-                                    <div key={brand._id} className="brand-card">
+                                    <div key={brand._id} className="brand-card" onClick={() => router.push(`/generateAds?brandId=${brand._id}`)} style={{ cursor: "pointer" }}>
                                         {/* Card Header with gradient */}
                                         <div
                                             className="brand-card__header"
@@ -689,13 +689,13 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                                 <button
                                                     className="brand-card__btn"
                                                     style={{ marginRight: 8, background: "rgba(255,255,255,0.1)", border: "1px solid #30363d", fontSize: 13 }}
-                                                    onClick={() => router.push(`/brands/${brand._id}/edit`)}
+                                                    onClick={(e) => { e.stopPropagation(); router.push(`/brands/${brand._id}/edit`); }}
                                                 >
                                                     Edit
                                                 </button>
                                                 <button
                                                     className="brand-card__btn brand-card__btn--delete"
-                                                    onClick={() => handleDeleteBrand(brand._id)}
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteBrand(brand._id); }}
                                                     disabled={deletingId === brand._id}
                                                 >
                                                     {deletingId === brand._id ? "..." : "✕"}

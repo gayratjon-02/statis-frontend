@@ -421,6 +421,33 @@ function GeneratePageContent() {
     }
   }, [brand._id]);
 
+  // Pre-select brand from URL query param (e.g. /generateAds?brandId=xxx)
+  useEffect(() => {
+    const brandId = router.query.brandId as string | undefined;
+    if (brandId && brands.length > 0 && step === 0 && !brand._id) {
+      const found = brands.find((b) => b._id === brandId);
+      if (found) {
+        setBrand({
+          _id: found._id,
+          name: found.name,
+          description: found.description,
+          url: found.website_url,
+          industry: found.industry,
+          logo: null,
+          logoPreview: resolveImageUrl(found.logo_url),
+          primaryColor: found.primary_color,
+          secondaryColor: found.secondary_color,
+          accentColor: found.accent_color || "",
+          backgroundColor: found.background_color || "",
+          voiceTags: found.voice_tags,
+          targetAudience: found.target_audience,
+          competitors: found.competitors,
+        });
+        setStep(1);
+      }
+    }
+  }, [router.query.brandId, brands]);
+
   // Cancel active batch if user refreshes or navigates away mid-generation
   useEffect(() => {
     const handleUnload = () => {
