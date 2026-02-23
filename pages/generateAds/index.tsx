@@ -40,7 +40,7 @@ import {
 } from "../../server/user/config";
 import { getUsageRequest } from "../../server/user/login";
 import API_BASE_URL from "../../libs/config/api.config";
-import { useGenerationSocket } from "../../libs/hooks/useGenerationSocket";
+
 import type { Brand, CreateBrandInput } from "../../libs/types/brand.type";
 import { BrandIndustry, BrandVoice } from "../../libs/types/brand.type";
 import type {
@@ -76,6 +76,40 @@ const resolveImageUrl = (url: string | null | undefined): string => {
   if (url.startsWith("/uploads/")) return `${API_BASE_URL}${url}`;
   return url;
 };
+
+/** Asymptotic progress — never stops, never exceeds 99% */
+function getNextValue(current: number): number {
+  if (current >= 99) return 99 + Math.random() * 0.001;
+  if (current >= 97) return current + 0.01;
+  if (current >= 93) return current + 0.03;
+  if (current >= 85) return current + 0.08;
+  if (current >= 70) return current + 0.15;
+  if (current >= 50) return current + 0.3;
+  if (current >= 25) return current + 0.5;
+  return current + 0.8;
+}
+
+/** Step info based on current percentage */
+function getStepInfo(percent: number): { label: string; stepIndex: number } {
+  if (percent < 8) return { label: "Analyzing brand identity", stepIndex: 0 };
+  if (percent < 20) return { label: "Crafting ad copy...", stepIndex: 1 };
+  if (percent < 30) return { label: "Preparing image prompts", stepIndex: 2 };
+  if (percent < 45) return { label: "Generating variation 1 of 6...", stepIndex: 3 };
+  if (percent < 55) return { label: "Generating variation 2 of 6...", stepIndex: 3 };
+  if (percent < 65) return { label: "Generating variation 3 of 6...", stepIndex: 3 };
+  if (percent < 75) return { label: "Generating variation 4 of 6...", stepIndex: 3 };
+  if (percent < 85) return { label: "Generating variation 5 of 6...", stepIndex: 3 };
+  if (percent < 93) return { label: "Generating variation 6 of 6...", stepIndex: 3 };
+  return { label: "Finalizing & saving...", stepIndex: 4 };
+}
+
+const DISPLAY_STEPS = [
+  "Analyzing brand identity",
+  "Crafting ad copy",
+  "Preparing image prompts",
+  "Generating ad variations",
+  "Finalizing & saving",
+];
 
 interface BrandState {
   _id?: string; // If set, it's an existing brand
@@ -206,26 +240,11 @@ function GeneratePageContent() {
   const [ratioModalLoading, setRatioModalLoading] = useState(false);
   const [zipDownloading, setZipDownloading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analyzingStep, setAnalyzingStep] = useState(0);
-  const [analyzingPercent, setAnalyzingPercent] = useState(0);
-  const [socketEnabled, setSocketEnabled] = useState(false);
+  const [isGenerationActive, setIsGenerationActive] = useState(false);
+  const [isGenerationComplete, setIsGenerationComplete] = useState(false);
   const [displayPercent, setDisplayPercent] = useState(0);
-  const analyzingSteps = [
-    "Analyzing brand identity",
-    "Crafting ad copy",
-    "Preparing image prompts",
-  ];
-
-  // WebSocket real-time progress
-  const storedMember = typeof window !== "undefined"
-    ? JSON.parse(localStorage.getItem("se_member") || "null")
-    : null;
-  const memberId: string | null = storedMember?._id || null;
-  const {
-    overallPercent: socketPercent,
-    latestMessage: socketMessage,
-    reset: resetSocket,
-  } = useGenerationSocket(memberId, socketEnabled);
+  const smoothRef = useRef(0);
+  const smoothIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Real generation results from backend
   interface GeneratedResult {
@@ -465,51 +484,42 @@ function GeneratePageContent() {
     };
   }, []);
 
+  // Smooth asymptotic progress — NEVER freezes, always moving
   useEffect(() => {
-    if (!isAnalyzing) {
-      setAnalyzingStep(0);
-      setAnalyzingPercent(0);
-      return;
-    }
-    const stepTimer = setInterval(() => {
-      setAnalyzingStep((prev) =>
-        prev < analyzingSteps.length - 1 ? prev + 1 : prev,
-      );
-    }, 3000);
-    // Smooth percentage animation: 0→15% over ~10s during analyzing phase
-    const percentTimer = setInterval(() => {
-      setAnalyzingPercent((prev) => (prev < 15 ? prev + 1 : prev));
-    }, 666);
-    return () => {
-      clearInterval(stepTimer);
-      clearInterval(percentTimer);
+    if (!isGenerationActive) return;
+
+    smoothRef.current = 0;
+    setDisplayPercent(0);
+
+    const tick = () => {
+      smoothRef.current = getNextValue(smoothRef.current);
+      setDisplayPercent(Math.floor(smoothRef.current));
     };
-  }, [isAnalyzing]);
 
-  // Smooth progress interpolation: combines analyzing phase + socket real-time progress
+    smoothIntervalRef.current = setInterval(tick, 300);
+
+    return () => {
+      if (smoothIntervalRef.current) clearInterval(smoothIntervalRef.current);
+    };
+  }, [isGenerationActive]);
+
+  // When generation completes → animate to 100%
   useEffect(() => {
-    // During analyzing: use analyzingPercent directly (0→15)
-    // After analyzing: 15 + socket progress scaled to 15-100 range
-    const targetPercent = isAnalyzing
-      ? analyzingPercent
-      : socketPercent > 0
-        ? Math.min(100, Math.round(15 + socketPercent * 0.85))
-        : Math.round(15 + (completedAds.filter(Boolean).length / 6) * 85); // polling fallback
+    if (!isGenerationComplete) return;
+    if (smoothIntervalRef.current) clearInterval(smoothIntervalRef.current);
 
-    if (displayPercent >= targetPercent) return;
-
-    const timer = setInterval(() => {
-      setDisplayPercent((prev) => {
-        if (prev >= targetPercent) {
-          clearInterval(timer);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 50);
-
-    return () => clearInterval(timer);
-  }, [isAnalyzing, analyzingPercent, socketPercent, completedAds]);
+    const animate = () => {
+      smoothRef.current += 3;
+      if (smoothRef.current >= 100) {
+        smoothRef.current = 100;
+        setDisplayPercent(100);
+        return;
+      }
+      setDisplayPercent(Math.floor(smoothRef.current));
+      requestAnimationFrame(animate);
+    };
+    animate();
+  }, [isGenerationComplete]);
 
   /** Fetch image blob via backend proxy */
   const fetchRatioBlob = async (
@@ -661,9 +671,10 @@ function GeneratePageContent() {
 
     setStep(4);
     setIsAnalyzing(true);
+    setIsGenerationActive(true);
+    setIsGenerationComplete(false);
     setDisplayPercent(0);
-    resetSocket();
-    setSocketEnabled(true);
+    smoothRef.current = 0;
     setGeneratingAds([false, false, false, false, false, false]);
     setCompletedAds([false, false, false, false, false, false]);
     setSavedAds([false, false, false, false, false, false]);
@@ -754,8 +765,8 @@ function GeneratePageContent() {
             clearInterval(pollInterval);
             generationInProgressRef.current = false;
             activeBatchIdRef.current = null;
-            setSocketEnabled(false);
-            setDisplayPercent(100);
+            setIsGenerationComplete(true);
+            setIsGenerationActive(false);
 
             if (batchStatus.status === "completed") {
               setTimeout(() => setStep(5), 1000);
@@ -778,7 +789,7 @@ function GeneratePageContent() {
     } catch (error: any) {
       console.error("Failed to start generation", error);
       setIsAnalyzing(false);
-      setSocketEnabled(false);
+      setIsGenerationActive(false);
       setStep(3);
 
       const msg = error?.message || "";
@@ -2388,7 +2399,7 @@ function GeneratePageContent() {
                   </div>
                 </div>
                 <h2 className="gen-analyzing__title">
-                  {analyzingSteps[analyzingStep]}...
+                  {getStepInfo(displayPercent).label}
                 </h2>
                 <p className="gen-analyzing__desc">
                   Our AI is studying your brand, product, and concept to craft
@@ -2430,25 +2441,28 @@ function GeneratePageContent() {
                     }}
                   >
                     <span>{displayPercent}% complete</span>
-                    <span>Preparing ad copy...</span>
+                    <span>{getStepInfo(displayPercent).label}</span>
                   </div>
                 </div>
                 <div className="gen-analyzing__steps">
-                  {analyzingSteps.map((label, idx) => (
-                    <div
-                      key={idx}
-                      className={`gen-analyzing__step ${
-                        idx <= analyzingStep
-                          ? "gen-analyzing__step--active"
-                          : ""
-                      } ${
-                        idx < analyzingStep ? "gen-analyzing__step--done" : ""
-                      }`}
-                    >
-                      {idx < analyzingStep ? "\u2713 " : ""}
-                      {label}
-                    </div>
-                  ))}
+                  {DISPLAY_STEPS.map((label, idx) => {
+                    const currentStepIdx = getStepInfo(displayPercent).stepIndex;
+                    return (
+                      <div
+                        key={idx}
+                        className={`gen-analyzing__step ${
+                          idx <= currentStepIdx
+                            ? "gen-analyzing__step--active"
+                            : ""
+                        } ${
+                          idx < currentStepIdx ? "gen-analyzing__step--done" : ""
+                        }`}
+                      >
+                        {idx < currentStepIdx ? "\u2713 " : ""}
+                        {label}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : (
@@ -2469,16 +2483,14 @@ function GeneratePageContent() {
                       }}
                     />
                   </div>
-                  {socketMessage && socketPercent > 0 && socketPercent < 100 && (
-                    <p style={{
-                      fontSize: 12,
-                      color: "rgba(255,255,255,0.45)",
-                      marginTop: 6,
-                      fontVariantNumeric: "tabular-nums",
-                    }}>
-                      {socketMessage}
-                    </p>
-                  )}
+                  <p style={{
+                    fontSize: 12,
+                    color: "rgba(255,255,255,0.45)",
+                    marginTop: 6,
+                    fontVariantNumeric: "tabular-nums",
+                  }}>
+                    {getStepInfo(displayPercent).label}
+                  </p>
                 </div>
 
                 <div className="gen-ad-grid">
