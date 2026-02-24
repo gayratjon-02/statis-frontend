@@ -15,6 +15,22 @@ import {
 } from "../../server/user/generation";
 import type { AdLibraryItem, LibraryCounts } from "../../libs/types/generation.type";
 
+const DownloadIcon = ({ size = 16, color = "currentColor" }: { size?: number; color?: string }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+);
+
+const CanvaIcon = ({ size = 16 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="3" />
+        <path d="M9 3v18" />
+        <path d="M3 9h18" />
+    </svg>
+);
+
 const BG = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
 const CONCEPTS = ["All", "⭐ Favorites", "Feature Pointers", "Testimonial", "Before & After", "Us vs Them", "Social Proof", "Stat Callout"];
 
@@ -417,7 +433,7 @@ function LibraryPage() {
                             disabled={bulkLoading === "download"}
                             style={{ opacity: bulkLoading === "download" ? 0.6 : 1 }}
                         >
-                            {bulkLoading === "download" ? "Downloading..." : "⤓ Download All"}
+                            {bulkLoading === "download" ? "Downloading..." : <><DownloadIcon size={14} /> Download All</>}
                         </button>
                         <button
                             className="lib-bulk__btn"
@@ -589,7 +605,8 @@ function LibraryPage() {
                                                 if (ad.image) window.open(ad.image, "_blank");
                                             });
                                         }}
-                                    >⤓</button>
+                                        title="Download"
+                                    ><DownloadIcon size={15} /></button>
                                 </div>
                             </div>
                         ))}
@@ -659,7 +676,32 @@ function LibraryPage() {
                                             if (lightboxAd.image) window.open(lightboxAd.image, "_blank");
                                         });
                                     }}
-                                >⤓</button>
+                                    title="Download"
+                                ><DownloadIcon size={15} /></button>
+                                {lightboxAd.canva_status === 'fulfilled' && lightboxAd.canva_link ? (
+                                    <button
+                                        className="lightbox-bar__btn"
+                                        style={{ borderColor: "rgba(16,185,129,0.4)", color: "#10B981" }}
+                                        onClick={() => window.open(lightboxAd.canva_link!, "_blank")}
+                                        title="Open Canva Template"
+                                    ><CanvaIcon size={15} /> <span style={{ marginLeft: 4 }}>Open Template</span></button>
+                                ) : lightboxAd.canva_status === 'pending' ? (
+                                    <button
+                                        className="lightbox-bar__btn"
+                                        style={{ borderColor: "rgba(245,158,11,0.3)", color: "#F59E0B", opacity: 0.7, cursor: "not-allowed" }}
+                                        disabled
+                                    ><CanvaIcon size={15} /> <span style={{ marginLeft: 4 }}>Pending...</span></button>
+                                ) : (
+                                    <button
+                                        className="lightbox-bar__btn"
+                                        style={{ borderColor: "rgba(245,158,11,0.3)", color: "#F59E0B" }}
+                                        onClick={() => {
+                                            setDetailId(lightboxAd._id);
+                                            setLightboxId(null);
+                                        }}
+                                        title="Buy Canva Template"
+                                    ><CanvaIcon size={15} /> <span style={{ marginLeft: 4 }}>Canva Template</span></button>
+                                )}
                                 <button
                                     className="lightbox-bar__btn lightbox-bar__btn--primary"
                                     onClick={() => {
@@ -752,11 +794,11 @@ function LibraryPage() {
 
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
                                         {(["1:1", "9:16", "16:9"] as const).map((ratio) => (
-                                            <button key={ratio} className="detail-actions__btn detail-actions__btn--primary" onClick={() => { downloadAdImageByRatio(detailAd._id, ratio, `${detailAd.name}_${ratio.replace(":", "x")}.png`).catch(() => { if (detailAd.image) window.open(detailAd.image, "_blank"); }); }} style={{ padding: "10px 0", fontSize: 12 }}>⤓ {ratio}</button>
+                                            <button key={ratio} className="detail-actions__btn detail-actions__btn--primary" onClick={() => { downloadAdImageByRatio(detailAd._id, ratio, `${detailAd.name}_${ratio.replace(":", "x")}.png`).catch(() => { if (detailAd.image) window.open(detailAd.image, "_blank"); }); }} style={{ padding: "10px 0", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><DownloadIcon size={13} /> {ratio}</button>
                                         ))}
                                     </div>
 
-                                    <button className="detail-actions__btn detail-actions__btn--primary" onClick={downloadAllAsZip} disabled={zipDownloading} style={{ width: "100%", padding: "12px 0", marginBottom: 20, background: "linear-gradient(135deg, rgba(34,211,238,0.1), rgba(59,130,246,0.1))", border: "1px solid rgba(34,211,238,0.3)", color: "#38bdf8", fontWeight: 600, fontSize: 13, opacity: zipDownloading ? 0.7 : 1 }}>{zipDownloading ? "Packing ZIP..." : "⤓ Download All Ratios (ZIP)"}</button>
+                                    <button className="detail-actions__btn detail-actions__btn--primary" onClick={downloadAllAsZip} disabled={zipDownloading} style={{ width: "100%", padding: "12px 0", marginBottom: 20, background: "linear-gradient(135deg, rgba(34,211,238,0.1), rgba(59,130,246,0.1))", border: "1px solid rgba(34,211,238,0.3)", color: "#38bdf8", fontWeight: 600, fontSize: 13, opacity: zipDownloading ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>{zipDownloading ? "Packing ZIP..." : <><DownloadIcon size={14} /> Download All Ratios (ZIP)</>}</button>
 
                                     <div className="detail-actions__row">
                                         <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(16,185,129,0.3)", color: "#10B981" }} onClick={() => setFixModalOpen(true)}>🛠 Fix Errors</button>
