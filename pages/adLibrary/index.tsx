@@ -87,15 +87,17 @@ function LibraryPage() {
     const [fixedAdOutput, setFixedAdOutput] = useState<any | null>(null);
     const [isCompareOpen, setIsCompareOpen] = useState(false);
 
-    const handleBuyCanva = async () => {
-        if (!detailAd || canvaLoading) return;
+    const handleBuyCanva = async (adId?: string) => {
+        const targetId = adId ?? detailAd?._id;
+        if (!targetId || canvaLoading) return;
         setCanvaLoading(true);
         try {
             const { createCanvaCheckoutRequest } = await import("../../server/user/billing");
-            const data = await createCanvaCheckoutRequest(detailAd._id);
+            const data = await createCanvaCheckoutRequest(targetId);
             if (data.checkout_url) window.location.href = data.checkout_url;
-        } catch (e: any) {
-            toast.error(e.message || "Failed to start Canva checkout");
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Failed to start Canva checkout";
+            toast.error(message);
         } finally {
             setCanvaLoading(false);
         }
@@ -697,12 +699,10 @@ function LibraryPage() {
                                     <button
                                         className="lightbox-bar__btn"
                                         style={{ borderColor: "rgba(245,158,11,0.3)", color: "#F59E0B" }}
-                                        onClick={() => {
-                                            setDetailId(lightboxAd._id);
-                                            setLightboxId(null);
-                                        }}
+                                        onClick={() => handleBuyCanva(lightboxAd._id)}
+                                        disabled={canvaLoading}
                                         title="Buy Canva Template"
-                                    ><CanvaIcon size={15} /> <span style={{ marginLeft: 4 }}>Canva Template</span></button>
+                                    ><CanvaIcon size={15} /> <span style={{ marginLeft: 4 }}>{canvaLoading ? "Redirecting..." : "Canva Template"}</span></button>
                                 )}
                                 <button
                                     className="lightbox-bar__btn lightbox-bar__btn--primary"
