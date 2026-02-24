@@ -814,7 +814,7 @@ function LibraryPage() {
                                         ) : detailAd.canva_status === 'pending' ? (
                                             <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(245,158,11,0.27)", color: "var(--yellow)", opacity: 0.7, cursor: "not-allowed" }} disabled>Canva Template Pending...</button>
                                         ) : (
-                                            <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(245,158,11,0.27)", color: "var(--yellow)" }} onClick={handleBuyCanva} disabled={canvaLoading}>{canvaLoading ? "Redirecting..." : "Buy Canva Template"}</button>
+                                            <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(245,158,11,0.27)", color: "var(--yellow)" }} onClick={() => handleBuyCanva()} disabled={canvaLoading}>{canvaLoading ? "Redirecting..." : "Buy Canva Template"}</button>
                                         )}
                                     </div>
                                 </div>
