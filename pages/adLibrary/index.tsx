@@ -23,16 +23,6 @@ const DownloadIcon = ({ size = 16, color = "currentColor" }: { size?: number; co
     </svg>
 );
 
-const CanvaIcon = ({ size = 16 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="2" width="20" height="20" rx="3" />
-        <path d="M2 9h20" />
-        <rect x="5" y="12" width="6" height="7" rx="1" opacity="0.5" />
-        <line x1="15" y1="13" x2="19" y2="13" opacity="0.5" />
-        <line x1="15" y1="16" x2="19" y2="16" opacity="0.5" />
-    </svg>
-);
-
 const BG = ["#1a3a4a", "#2a1a3a", "#1a2a3a", "#3a2a1a", "#1a3a2a", "#2a3a1a"];
 const CONCEPTS = ["All", "⭐ Favorites", "Feature Pointers", "Testimonial", "Before & After", "Us vs Them", "Social Proof", "Stat Callout"];
 
@@ -688,13 +678,13 @@ function LibraryPage() {
                                         style={{ borderColor: "rgba(16,185,129,0.4)", color: "#10B981" }}
                                         onClick={() => window.open(lightboxAd.canva_link!, "_blank")}
                                         title="Open Canva Template"
-                                    ><CanvaIcon size={15} /> <span style={{ marginLeft: 4 }}>Open Template</span></button>
+                                    >Open Template</button>
                                 ) : lightboxAd.canva_status === 'pending' ? (
                                     <button
                                         className="lightbox-bar__btn"
                                         style={{ borderColor: "rgba(245,158,11,0.3)", color: "#F59E0B", opacity: 0.7, cursor: "not-allowed" }}
                                         disabled
-                                    ><CanvaIcon size={15} /> <span style={{ marginLeft: 4 }}>Pending...</span></button>
+                                    >Pending...</button>
                                 ) : (
                                     <button
                                         className="lightbox-bar__btn"
@@ -702,7 +692,7 @@ function LibraryPage() {
                                         onClick={() => handleBuyCanva(lightboxAd._id)}
                                         disabled={canvaLoading}
                                         title="Buy Canva Template"
-                                    ><CanvaIcon size={15} /> <span style={{ marginLeft: 4 }}>{canvaLoading ? "Redirecting..." : "Canva Template"}</span></button>
+                                    >{canvaLoading ? "Redirecting..." : "Canva Template"}</button>
                                 )}
                                 <button
                                     className="lightbox-bar__btn lightbox-bar__btn--primary"
