@@ -35,8 +35,10 @@ import {
 import { createCanvaCheckoutRequest } from "../../server/user/billing";
 import {
   getBrandConfig,
+  getCreditCosts,
   type IndustryItem,
   type VoiceItem,
+  type CreditCosts,
 } from "../../server/user/config";
 import { getUsageRequest } from "../../server/user/login";
 import API_BASE_URL from "../../libs/config/api.config";
@@ -269,6 +271,13 @@ function GeneratePageContent() {
     {},
   );
 
+  // Dynamic credit costs from backend
+  const [creditCosts, setCreditCosts] = useState<CreditCosts>({
+    credits_per_generation: 5,
+    credits_per_fix_errors: 2,
+    credits_per_regenerate_single: 2,
+  });
+
   const handleImportUrl = async () => {
     if (!importUrl.trim()) return;
     setImportLoading(true);
@@ -427,6 +436,9 @@ function GeneratePageContent() {
           limit: usage.credits_limit || 0,
         });
       })
+      .catch(console.error);
+    getCreditCosts()
+      .then(setCreditCosts)
       .catch(console.error);
   }, []);
 
@@ -692,8 +704,7 @@ function GeneratePageContent() {
       setIsAnalyzing(false);
       setGeneratingAds([true, true, true, true, true, true]);
 
-      // Update credits in real-time (5 credits deducted per generation)
-      setCredits((prev) => ({ ...prev, used: prev.used + 5 }));
+      setCredits((prev) => ({ ...prev, used: prev.used + creditCosts.credits_per_generation }));
 
       const jobId = result.job_id;
       const batchId = result.batch_id || jobId; // Fallback to jobId if batch_id is missing (backward compat)
@@ -2293,7 +2304,7 @@ function GeneratePageContent() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
-              <div className="gen-char-count">{notes.length}/2000</div>
+              <div className="gen-char-count">{notes.length}/500</div>
 
               <div className="gen-summary">
                 <div className="gen-summary__title">GENERATION SUMMARY</div>
@@ -2309,7 +2320,7 @@ function GeneratePageContent() {
                           concepts.find((c) => c._id === selectedConcept)?.name
                         : "Not selected",
                     },
-                    { label: "Credit Cost", value: "5 credits (6 variations)" },
+                    { label: "Credit Cost", value: `${creditCosts.credits_per_generation} credits (6 variations)` },
                   ].map(({ label, value }) => (
                     <div key={label} className="gen-summary__row">
                       <span className="gen-summary__label">{label}</span>
@@ -2639,7 +2650,7 @@ function GeneratePageContent() {
               <div>
                 <h2>Your Ad Variations</h2>
                 <p>
-                  {generatedResults.length} variation(s) generated · 5 credits
+                  {generatedResults.length} variation(s) generated · {creditCosts.credits_per_generation} credits
                   used
                 </p>
               </div>
@@ -2650,7 +2661,7 @@ function GeneratePageContent() {
                   startGeneration();
                 }}
               >
-                🔄 Regenerate All (5 credits)
+                🔄 Regenerate All ({creditCosts.credits_per_generation} credits)
               </button>
             </div>
 
@@ -2725,7 +2736,7 @@ function GeneratePageContent() {
                                 });
                                 await regenerateSingleRequest(result._id);
                                 toast.success(
-                                  "Retry started! (2 credits used)",
+                                  `Retry started! (${creditCosts.credits_per_regenerate_single} credits used)`,
                                   { id: "retry" },
                                 );
                               } catch (e: any) {
@@ -2735,7 +2746,7 @@ function GeneratePageContent() {
                               }
                             }}
                           >
-                            Retry (2 credits)
+                            Retry ({creditCosts.credits_per_regenerate_single} credits)
                           </button>
                         </div>
                       )}
@@ -2782,7 +2793,7 @@ function GeneratePageContent() {
                             try {
                               toast.loading("Fixing errors...", { id: "fix" });
                               await fixErrorRequest(result._id, desc || "");
-                              toast.success("Fix started! (2 credits used)", {
+                              toast.success(`Fix started! (${creditCosts.credits_per_fix_errors} credits used)`, {
                                 id: "fix",
                               });
                             } catch (e: any) {
@@ -2801,7 +2812,7 @@ function GeneratePageContent() {
                             try {
                               toast.loading("Regenerating...", { id: "redo" });
                               await regenerateSingleRequest(result._id);
-                              toast.success("Redo started! (2 credits used)", {
+                              toast.success(`Redo started! (${creditCosts.credits_per_regenerate_single} credits used)`, {
                                 id: "redo",
                               });
                             } catch (e: any) {

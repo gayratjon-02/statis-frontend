@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { getCreditCosts, type CreditCosts } from "../../server/user/config";
 
 export default function LandingPage() {
     const router = useRouter();
@@ -7,6 +8,7 @@ export default function LandingPage() {
     const [openFaq, setOpenFaq] = useState<number | null>(null);
     const [email, setEmail] = useState("");
     const [scrollY, setScrollY] = useState(0);
+    const [cc, setCc] = useState<CreditCosts>({ credits_per_generation: 5, credits_per_fix_errors: 2, credits_per_regenerate_single: 2 });
 
     /** Scroll to pricing section */
     const scrollToPricing = () => {
@@ -33,6 +35,7 @@ export default function LandingPage() {
     useEffect(() => {
         const handler = () => setScrollY(window.scrollY || 0);
         window.addEventListener("scroll", handler, { passive: true });
+        getCreditCosts().then(setCc).catch(console.error);
         return () => window.removeEventListener("scroll", handler);
     }, []);
 
@@ -71,16 +74,16 @@ export default function LandingPage() {
         { title: "AI-Powered Copy", desc: "Claude writes headlines, callouts, and CTAs that actually convert. Not generic filler.", letter: "Ai" },
         { title: "6 Variations Per Click", desc: "Every generation gives you 6 different angles. More creative volume, less time.", letter: "6x" },
         { title: "Multi-Ratio Export", desc: "One click to get 1:1 (feed), 9:16 (stories), and 16:9 (landscape). No resizing needed.", letter: "R" },
-        { title: "Fix Errors", desc: "AI output not perfect? Describe the issue and the AI fixes it. 2 credits instead of 5.", letter: "Fx" },
+        { title: "Fix Errors", desc: `AI output not perfect? Describe the issue and the AI fixes it. ${cc.credits_per_fix_errors} credits instead of ${cc.credits_per_generation}.`, letter: "Fx" },
         { title: "Canva Templates", desc: "Buy editable Canva versions of any ad. Tweak fonts, swap images, make it yours.", letter: "Cv" },
         { title: "Concept Library", desc: "Feature pointers, testimonials, stat callouts, before/after. Proven frameworks that perform.", letter: "Lb" },
     ];
 
     const faqs = [
-        { q: "How does the credit system work?", a: "Each ad generation costs 5 credits and produces 6 image variations. Fix Errors costs 2 credits. Multi-ratio exports are free. Credits reset monthly on your billing date. You can buy add-on packs of 100 credits for $15 anytime." },
+        { q: "How does the credit system work?", a: `Each ad generation costs ${cc.credits_per_generation} credits and produces 6 image variations. Fix Errors costs ${cc.credits_per_fix_errors} credits. Multi-ratio exports are free. Credits reset monthly on your billing date. You can buy add-on packs of 100 credits for $15 anytime.` },
         { q: "What is a Canva template?", a: "For any saved ad, you can purchase a fully editable Canva template version. This gives you complete control to customize fonts, colors, images, and text. Templates are delivered within 48 hours and include all ratio versions." },
         { q: "Can I use these ads on Facebook and Instagram?", a: "Yes. Every ad is generated at high resolution specifically for Meta advertising. The multi-ratio export gives you feed (1:1), stories (9:16), and landscape (16:9) versions ready to upload directly to Ads Manager." },
-        { q: "What if the AI output doesn't look good?", a: "You get 6 variations per generation, so there's usually at least one strong option. If not, use Fix Errors (2 credits) to describe what's wrong and the AI will regenerate with tighter constraints. You can also regenerate individual slots for 2 credits." },
+        { q: "What if the AI output doesn't look good?", a: `You get 6 variations per generation, so there's usually at least one strong option. If not, use Fix Errors (${cc.credits_per_fix_errors} credits) to describe what's wrong and the AI will regenerate with tighter constraints. You can also regenerate individual slots for ${cc.credits_per_regenerate_single} credits.` },
         { q: "Do I need design skills?", a: "Not at all. You provide your brand info, product details, and pick a concept. The AI handles all the design work. If you want to fine-tune results, you can purchase Canva templates for full editing control." },
         { q: "Can I cancel anytime?", a: "Yes. No contracts, no cancellation fees. Your account stays active until the end of your current billing period. Annual plans can be cancelled anytime and you'll keep access for the remainder of your paid year." },
     ];
@@ -247,7 +250,7 @@ export default function LandingPage() {
                         Simple, credit-based <span className="grad-text">pricing</span>
                     </h2>
                     <p className="pricing-header__desc">
-                        Pay for what you use. Every generation = 5 credits = 6 ad variations.
+                        Pay for what you use. Every generation = {cc.credits_per_generation} credits = 6 ad variations.
                     </p>
 
                     <div className="pricing-toggle">
