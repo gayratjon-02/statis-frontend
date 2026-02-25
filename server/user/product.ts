@@ -161,6 +161,11 @@ export async function importProductFromUrl(url: string): Promise<{
     product_url: string;
     price_text: string;
     image_urls: string[];
+    star_rating: number | null;
+    review_count: number | null;
+    usps: string[];
+    offer_text: string;
+    ingredients_features: string;
 }> {
     const res = await fetch(`${PRODUCT_API}/importFromUrl`, {
         method: "POST",

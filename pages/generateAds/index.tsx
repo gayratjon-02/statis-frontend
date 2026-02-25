@@ -367,6 +367,13 @@ function GeneratePageContent() {
           ? refUrls.map((u) => resolveImageUrl(u))
           : prev.referenceImagePreviews,
         noPhysicalProduct: frontUrl ? false : prev.noPhysicalProduct,
+        starRating: data.star_rating ? String(data.star_rating) : prev.starRating,
+        reviewCount: data.review_count ? String(data.review_count) : prev.reviewCount,
+        usps: data.usps?.length > 0
+          ? [...data.usps.slice(0, 5), ...Array(Math.max(0, 3 - data.usps.length)).fill("")]
+          : prev.usps,
+        offer: data.offer_text || prev.offer,
+        ingredientsFeatures: data.ingredients_features || prev.ingredientsFeatures,
       }));
 
       // Convert front image URL to File for form validation
