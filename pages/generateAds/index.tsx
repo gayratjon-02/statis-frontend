@@ -1256,14 +1256,16 @@ function GeneratePageContent() {
                           value={importUrl}
                           onChange={(e) => setImportUrl(e.target.value)}
                           onKeyDown={(e) =>
-                            e.key === "Enter" && handleImportUrl()
+                            e.key === "Enter" && !importLoading && handleImportUrl()
                           }
+                          disabled={importLoading}
+                          style={importLoading ? { opacity: 0.5 } : undefined}
                         />
                         <button
                           onClick={handleImportUrl}
                           disabled={importLoading || !importUrl.trim()}
                           style={{
-                            background: "#238636",
+                            background: importLoading ? "#21262d" : "#238636",
                             color: "#fff",
                             border: "none",
                             borderRadius: 8,
@@ -1271,9 +1273,33 @@ function GeneratePageContent() {
                             cursor: importLoading ? "not-allowed" : "pointer",
                             fontWeight: 500,
                             whiteSpace: "nowrap",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            minWidth: 100,
+                            justifyContent: "center",
+                            opacity: importLoading ? 0.7 : 1,
+                            transition: "all 0.2s ease",
                           }}
                         >
-                          {importLoading ? "..." : "Import"}
+                          {importLoading ? (
+                            <>
+                              <span
+                                style={{
+                                  width: 14,
+                                  height: 14,
+                                  border: "2px solid rgba(255,255,255,0.3)",
+                                  borderTopColor: "#fff",
+                                  borderRadius: "50%",
+                                  display: "inline-block",
+                                  animation: "spin 0.8s linear infinite",
+                                }}
+                              />
+                              Importing...
+                            </>
+                          ) : (
+                            "Import"
+                          )}
                         </button>
                       </div>
                       {importError && (
