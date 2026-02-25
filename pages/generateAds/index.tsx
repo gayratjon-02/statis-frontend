@@ -981,6 +981,8 @@ function GeneratePageContent() {
     if (!product.name) errors.name = "Product name is required";
     if (!product.description)
       errors.description = "Product description is required";
+    if (product.usps.filter((u) => u.trim() !== "").length === 0)
+      errors.usps = "At least one USP is required";
     if (!product.noPhysicalProduct && !product.photo && !product.photoPreview)
       errors.photo = "Product photo is required for physical products";
 
@@ -1060,9 +1062,9 @@ function GeneratePageContent() {
       if (brand._id)
         getProducts(brand._id).then((res) => setProducts(res.list));
       setStep(2);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      toast.error("Failed to create product");
+      toast.error(e.message || "Failed to create product");
     } finally {
       setIsLoading(false);
     }
@@ -2088,10 +2090,21 @@ function GeneratePageContent() {
                     <div className="gen-usp-num">{i + 1}</div>
                     <input
                       className="gen-input"
-                      style={{ flex: 1 }}
+                      style={{
+                        flex: 1,
+                        ...(productErrors.usps && !usp.trim() ? { borderColor: "#f85149" } : {}),
+                      }}
                       placeholder={USP_PLACEHOLDERS[i] || USP_PLACEHOLDERS[0]}
                       value={usp}
-                      onChange={(e) => updateUsp(i, e.target.value)}
+                      onChange={(e) => {
+                        updateUsp(i, e.target.value);
+                        if (e.target.value.trim()) {
+                          setProductErrors((prev) => {
+                            const { usps, ...rest } = prev;
+                            return rest;
+                          });
+                        }
+                      }}
                     />
                     {product.usps.length > 1 && (
                       <button
@@ -2107,6 +2120,11 @@ function GeneratePageContent() {
                   <button className="gen-usp-add" onClick={addUsp}>
                     + Add USP
                   </button>
+                )}
+                {productErrors.usps && (
+                  <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>
+                    {productErrors.usps}
+                  </div>
                 )}
               </div>
 
