@@ -137,6 +137,10 @@ interface ProductState {
   usps: string[];
   photo: File | null;
   photoPreview: string | null;
+  backImage: File | null;
+  backImagePreview: string | null;
+  referenceImages: File[];
+  referenceImagePreviews: string[];
   noPhysicalProduct: boolean;
   price: string;
   productUrl: string;
@@ -190,6 +194,10 @@ function GeneratePageContent() {
     usps: ["", "", ""],
     photo: null,
     photoPreview: null,
+    backImage: null,
+    backImagePreview: null,
+    referenceImages: [],
+    referenceImagePreviews: [],
     noPhysicalProduct: false,
     price: "",
     productUrl: "",
@@ -339,40 +347,82 @@ function GeneratePageContent() {
     setProductImportError(null);
     try {
       const data = await importProductFromUrl(productImportUrl.trim());
+      const images = data.image_urls || [];
+      const frontUrl = images[0] || "";
+      const backUrl = images[1] || "";
+      const refUrls = images.slice(2);
+
       setProduct((prev) => ({
         ...prev,
         name: data.name || prev.name,
         description: data.description || prev.description,
         productUrl: data.product_url || prev.productUrl,
         price: data.price_text || prev.price,
-        photoPreview: data.photo_url
-          ? resolveImageUrl(data.photo_url)
-          : prev.photoPreview,
-        noPhysicalProduct: data.photo_url ? false : prev.noPhysicalProduct,
-        ingredientsFeatures: data.ingredients_features || prev.ingredientsFeatures,
-        beforeDescription: data.before_description || prev.beforeDescription,
-        afterDescription: data.after_description || prev.afterDescription,
+        photoPreview: frontUrl ? resolveImageUrl(frontUrl) : prev.photoPreview,
+        backImagePreview: backUrl ? resolveImageUrl(backUrl) : prev.backImagePreview,
+        referenceImagePreviews: refUrls.length > 0
+          ? refUrls.map((u) => resolveImageUrl(u))
+          : prev.referenceImagePreviews,
+        noPhysicalProduct: frontUrl ? false : prev.noPhysicalProduct,
       }));
 
-      // FIX: Convert imported photo URL to File object so form validation passes
-      if (data.photo_url) {
-        const photoUrl = resolveImageUrl(data.photo_url);
+      // Convert front image URL to File for form validation
+      if (frontUrl) {
         try {
-          const response = await fetch(photoUrl);
+          const response = await fetch(resolveImageUrl(frontUrl));
           if (response.ok) {
             const blob = await response.blob();
             if (blob.type.startsWith("image/")) {
-              const extension = blob.type.split("/")[1] || "png";
-              const photoFile = new File([blob], `product-photo.${extension}`, {
-                type: blob.type,
-              });
-              setProduct((prev) => ({ ...prev, photo: photoFile }));
+              const ext = blob.type.split("/")[1] || "png";
+              setProduct((prev) => ({
+                ...prev,
+                photo: new File([blob], `product-front.${ext}`, { type: blob.type }),
+              }));
             }
           }
         } catch {
-          console.warn(
-            "Could not convert imported product photo to File, user can upload manually",
-          );
+          console.warn("Could not convert front image to File");
+        }
+      }
+
+      // Convert back image URL to File
+      if (backUrl) {
+        try {
+          const response = await fetch(resolveImageUrl(backUrl));
+          if (response.ok) {
+            const blob = await response.blob();
+            if (blob.type.startsWith("image/")) {
+              const ext = blob.type.split("/")[1] || "png";
+              setProduct((prev) => ({
+                ...prev,
+                backImage: new File([blob], `product-back.${ext}`, { type: blob.type }),
+              }));
+            }
+          }
+        } catch {
+          console.warn("Could not convert back image to File");
+        }
+      }
+
+      // Convert reference image URLs to Files
+      if (refUrls.length > 0) {
+        const refFiles: File[] = [];
+        for (let i = 0; i < refUrls.length; i++) {
+          try {
+            const response = await fetch(resolveImageUrl(refUrls[i]));
+            if (response.ok) {
+              const blob = await response.blob();
+              if (blob.type.startsWith("image/")) {
+                const ext = blob.type.split("/")[1] || "png";
+                refFiles.push(new File([blob], `product-ref-${i}.${ext}`, { type: blob.type }));
+              }
+            }
+          } catch {
+            console.warn(`Could not convert reference image ${i} to File`);
+          }
+        }
+        if (refFiles.length > 0) {
+          setProduct((prev) => ({ ...prev, referenceImages: refFiles }));
         }
       }
     } catch (err: any) {
@@ -940,11 +990,43 @@ function GeneratePageContent() {
 
     setIsLoading(true);
     try {
-      let photoUrl = "";
+      // Upload all images in parallel
+      const uploadPromises: Promise<string>[] = [];
+
+      // Front photo
       if (product.photo) {
-        const { photo_url } = await uploadProductPhoto(product.photo);
-        photoUrl = photo_url;
+        uploadPromises.push(
+          uploadProductPhoto(product.photo).then((r) => r.photo_url),
+        );
+      } else {
+        uploadPromises.push(Promise.resolve(""));
       }
+
+      // Back image
+      if (product.backImage) {
+        uploadPromises.push(
+          uploadProductPhoto(product.backImage).then((r) => r.photo_url),
+        );
+      } else if (product.backImagePreview?.startsWith("http")) {
+        uploadPromises.push(Promise.resolve(product.backImagePreview));
+      } else {
+        uploadPromises.push(Promise.resolve(""));
+      }
+
+      // Reference images
+      const refUploadPromises = product.referenceImages.map((file) =>
+        uploadProductPhoto(file).then((r) => r.photo_url),
+      );
+      const refUrlFallbacks = product.referenceImagePreviews
+        .filter((_, i) => i >= product.referenceImages.length)
+        .filter((u) => u.startsWith("http"));
+
+      const [photoUrl, backImageUrl, ...refUploadedUrls] = await Promise.all([
+        ...uploadPromises,
+        ...refUploadPromises,
+      ]);
+
+      const referenceImageUrls = [...refUploadedUrls, ...refUrlFallbacks].filter(Boolean);
 
       const newProduct = await createProduct({
         brand_id: brand._id!,
@@ -952,6 +1034,8 @@ function GeneratePageContent() {
         description: product.description,
         usps: product.usps.filter((u) => u.trim() !== ""),
         photo_url: photoUrl,
+        back_image_url: backImageUrl || undefined,
+        reference_image_urls: referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
         has_physical_product: !product.noPhysicalProduct,
         price_text: product.price || undefined,
         product_url: product.productUrl || undefined,
@@ -1755,6 +1839,10 @@ function GeneratePageContent() {
                           usps: p.usps,
                           photo: null,
                           photoPreview: resolveImageUrl(p.photo_url),
+                          backImage: null,
+                          backImagePreview: p.back_image_url ? resolveImageUrl(p.back_image_url) : null,
+                          referenceImages: [],
+                          referenceImagePreviews: (p.reference_image_urls || []).map((u) => resolveImageUrl(u)),
                           noPhysicalProduct: !p.has_physical_product,
                           price: p.price_text,
                           productUrl: p.product_url,
@@ -2090,6 +2178,129 @@ function GeneratePageContent() {
                   }}
                 />
               </div>
+
+              {/* ── Additional Product Images (imported or manual) ── */}
+              {!product.noPhysicalProduct && (product.backImagePreview || product.referenceImagePreviews.length > 0) && (
+                <div style={{ marginBottom: 20 }}>
+                  <label className="gen-label" style={{ marginBottom: 8 }}>
+                    Additional Product Images
+                    <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none", marginLeft: 6 }}>
+                      (imported from URL)
+                    </span>
+                  </label>
+                  <div style={{ fontSize: 11, color: "#6e7681", marginBottom: 8 }}>
+                    These images help AI understand your product from multiple angles. Click the X to remove.
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    {product.backImagePreview && (
+                      <div style={{ position: "relative" }}>
+                        <div
+                          style={{
+                            width: 100,
+                            height: 100,
+                            borderRadius: 8,
+                            border: "1px solid var(--border)",
+                            backgroundImage: `url(${product.backImagePreview})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }}
+                        />
+                        <div style={{
+                          fontSize: 9,
+                          color: "#8b949e",
+                          textAlign: "center",
+                          marginTop: 4,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}>
+                          Back
+                        </div>
+                        <button
+                          onClick={() =>
+                            setProduct((p) => ({
+                              ...p,
+                              backImage: null,
+                              backImagePreview: null,
+                            }))
+                          }
+                          style={{
+                            position: "absolute",
+                            top: -6,
+                            right: -6,
+                            width: 20,
+                            height: 20,
+                            borderRadius: "50%",
+                            background: "#f85149",
+                            color: "#fff",
+                            border: "none",
+                            fontSize: 12,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            lineHeight: 1,
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
+                    {product.referenceImagePreviews.map((url, i) => (
+                      <div key={i} style={{ position: "relative" }}>
+                        <div
+                          style={{
+                            width: 100,
+                            height: 100,
+                            borderRadius: 8,
+                            border: "1px solid var(--border)",
+                            backgroundImage: `url(${url})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }}
+                        />
+                        <div style={{
+                          fontSize: 9,
+                          color: "#8b949e",
+                          textAlign: "center",
+                          marginTop: 4,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}>
+                          Ref {i + 1}
+                        </div>
+                        <button
+                          onClick={() =>
+                            setProduct((p) => ({
+                              ...p,
+                              referenceImages: p.referenceImages.filter((_, j) => j !== i),
+                              referenceImagePreviews: p.referenceImagePreviews.filter((_, j) => j !== i),
+                            }))
+                          }
+                          style={{
+                            position: "absolute",
+                            top: -6,
+                            right: -6,
+                            width: 20,
+                            height: 20,
+                            borderRadius: "50%",
+                            background: "#f85149",
+                            color: "#fff",
+                            border: "none",
+                            fontSize: 12,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            lineHeight: 1,
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="gen-divider">
                 <div className="gen-divider__line" />

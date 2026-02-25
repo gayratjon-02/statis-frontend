@@ -153,17 +153,14 @@ export async function deleteProduct(id: string): Promise<{ message: string }> {
 
 /**
  * POST /product/importFromUrl
- * Scrapes a website URL and returns pre-filled product data.
+ * Scrapes a website URL and returns pre-filled product data with all images.
  */
 export async function importProductFromUrl(url: string): Promise<{
     name: string;
     description: string;
     product_url: string;
-    photo_url: string;
     price_text: string;
-    ingredients_features?: string;
-    before_description?: string;
-    after_description?: string;
+    image_urls: string[];
 }> {
     const res = await fetch(`${PRODUCT_API}/importFromUrl`, {
         method: "POST",

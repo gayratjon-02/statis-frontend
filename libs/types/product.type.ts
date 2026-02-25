@@ -12,6 +12,8 @@ export interface Product {
     description: string;
     usps: string[];
     photo_url: string;
+    back_image_url: string;
+    reference_image_urls: string[];
     has_physical_product: boolean;
 
     // Pricing & URL
@@ -39,6 +41,8 @@ export interface CreateProductInput {
     description: string;
     usps: string[];
     photo_url?: string;
+    back_image_url?: string;
+    reference_image_urls?: string[];
     has_physical_product?: boolean;
     price_text?: string;
     product_url?: string;
@@ -55,6 +59,8 @@ export interface UpdateProductInput {
     description?: string;
     usps?: string[];
     photo_url?: string;
+    back_image_url?: string;
+    reference_image_urls?: string[];
     has_physical_product?: boolean;
     price_text?: string;
     product_url?: string;
