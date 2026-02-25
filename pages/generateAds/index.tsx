@@ -453,6 +453,8 @@ function GeneratePageContent() {
   const [credits, setCredits] = useState({ used: 0, limit: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const productFileRef = useRef<HTMLInputElement>(null);
+  const backFileRef = useRef<HTMLInputElement>(null);
+  const refFileRef = useRef<HTMLInputElement>(null);
 
   const steps = [
     { label: "Brand" },
@@ -998,6 +1000,8 @@ function GeneratePageContent() {
         uploadPromises.push(
           uploadProductPhoto(product.photo).then((r) => r.photo_url),
         );
+      } else if (product.photoPreview?.startsWith("http")) {
+        uploadPromises.push(Promise.resolve(product.photoPreview));
       } else {
         uploadPromises.push(Promise.resolve(""));
       }
@@ -2106,227 +2110,345 @@ function GeneratePageContent() {
                 )}
               </div>
 
+              {/* ── PRODUCT IMAGES ── */}
               <div className="gen-mb-20">
                 <label className="gen-label">
                   {product.noPhysicalProduct
                     ? "Hero Image (Optional)"
-                    : "Product Photo *"}
+                    : "Product Images *"}
                 </label>
-                <div
-                  className="gen-upload"
-                  onClick={() => productFileRef.current?.click()}
-                  style={{
-                    ...(product.photoPreview
-                      ? {
-                          backgroundImage: `url(${product.photoPreview})`,
+                <div style={{ fontSize: 11, color: "#6e7681", marginBottom: 10 }}>
+                  {product.noPhysicalProduct
+                    ? "Upload a screenshot, mockup, or lifestyle image."
+                    : "Upload product photos. More angles = better AI-generated ads."}
+                </div>
+
+                {/* ── Image grid: Front + Back + References ── */}
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+
+                  {/* FRONT IMAGE */}
+                  <div
+                    onClick={() => productFileRef.current?.click()}
+                    style={{
+                      width: 140,
+                      height: 140,
+                      borderRadius: 10,
+                      border: productErrors.photo
+                        ? "2px dashed #f85149"
+                        : product.photoPreview
+                          ? "2px solid var(--border)"
+                          : "2px dashed var(--border)",
+                      cursor: "pointer",
+                      overflow: "hidden",
+                      position: "relative",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      ...(product.photoPreview
+                        ? {
+                            backgroundImage: `url(${product.photoPreview})`,
+                            backgroundSize: "contain",
+                            backgroundPosition: "center",
+                            backgroundRepeat: "no-repeat",
+                          }
+                        : {}),
+                    }}
+                  >
+                    {!product.photoPreview && (
+                      <>
+                        <div style={{ fontSize: 24, marginBottom: 4 }}>📷</div>
+                        <div style={{ fontSize: 11, color: "#8b949e", textAlign: "center", padding: "0 8px" }}>
+                          Front Photo
+                        </div>
+                      </>
+                    )}
+                    {product.photoPreview && (
+                      <div style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: "rgba(0,0,0,0.6)",
+                        color: "#fff",
+                        fontSize: 10,
+                        textAlign: "center",
+                        padding: "3px 0",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                      }}>
+                        Front
+                      </div>
+                    )}
+                    {product.photoPreview &&
+                      product._id &&
+                      !product.noPhysicalProduct && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleRemoveBg(e); }}
+                          disabled={bgRemoving}
+                          style={{
+                            position: "absolute",
+                            top: 4,
+                            right: 4,
+                            background: "rgba(0,0,0,0.7)",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 4,
+                            padding: "2px 6px",
+                            fontSize: 10,
+                            cursor: bgRemoving ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          {bgRemoving ? "..." : "BG"}
+                        </button>
+                      )}
+                  </div>
+
+                  {/* BACK IMAGE */}
+                  {!product.noPhysicalProduct && (
+                    <div
+                      onClick={() => backFileRef.current?.click()}
+                      style={{
+                        width: 140,
+                        height: 140,
+                        borderRadius: 10,
+                        border: product.backImagePreview
+                          ? "2px solid var(--border)"
+                          : "2px dashed var(--border)",
+                        cursor: "pointer",
+                        overflow: "hidden",
+                        position: "relative",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        ...(product.backImagePreview
+                          ? {
+                              backgroundImage: `url(${product.backImagePreview})`,
+                              backgroundSize: "contain",
+                              backgroundPosition: "center",
+                              backgroundRepeat: "no-repeat",
+                            }
+                          : {}),
+                      }}
+                    >
+                      {!product.backImagePreview && (
+                        <>
+                          <div style={{ fontSize: 24, marginBottom: 4, opacity: 0.5 }}>🔄</div>
+                          <div style={{ fontSize: 11, color: "#6e7681", textAlign: "center", padding: "0 8px" }}>
+                            Back Image
+                          </div>
+                          <div style={{ fontSize: 9, color: "#484f58" }}>optional</div>
+                        </>
+                      )}
+                      {product.backImagePreview && (
+                        <>
+                          <div style={{
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            background: "rgba(0,0,0,0.6)",
+                            color: "#fff",
+                            fontSize: 10,
+                            textAlign: "center",
+                            padding: "3px 0",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}>
+                            Back
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProduct((p) => ({ ...p, backImage: null, backImagePreview: null }));
+                            }}
+                            style={{
+                              position: "absolute",
+                              top: -4,
+                              right: -4,
+                              width: 20,
+                              height: 20,
+                              borderRadius: "50%",
+                              background: "#f85149",
+                              color: "#fff",
+                              border: "none",
+                              fontSize: 12,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              lineHeight: 1,
+                            }}
+                          >
+                            ×
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* REFERENCE IMAGES */}
+                  {!product.noPhysicalProduct && product.referenceImagePreviews.map((url, i) => (
+                    <div key={i} style={{ position: "relative" }}>
+                      <div
+                        style={{
+                          width: 140,
+                          height: 140,
+                          borderRadius: 10,
+                          border: "2px solid var(--border)",
+                          backgroundImage: `url(${url})`,
                           backgroundSize: "contain",
                           backgroundPosition: "center",
                           backgroundRepeat: "no-repeat",
-                          minHeight: 160,
                           position: "relative",
-                        }
-                      : {}),
-                    ...(productErrors.photo ? { borderColor: "#f85149" } : {}),
-                  }}
-                >
-                  {!product.photoPreview && (
-                    <>
-                      <div className="gen-upload__icon">📷</div>
-                      <div className="gen-upload__label">
-                        {product.noPhysicalProduct
-                          ? "Upload a screenshot, mockup, or lifestyle image"
-                          : "Upload product photo with clean/white background"}
-                      </div>
-                      <div className="gen-upload__hint">
-                        PNG or JPG · Max 10MB
-                      </div>
-                    </>
-                  )}
-                  {product.photoPreview &&
-                    product._id &&
-                    !product.noPhysicalProduct && (
-                      <button
-                        onClick={handleRemoveBg}
-                        disabled={bgRemoving}
-                        style={{
-                          position: "absolute",
-                          bottom: 12,
-                          right: 12,
-                          background: "rgba(0,0,0,0.7)",
-                          color: "#fff",
-                          border: "1px solid rgba(255,255,255,0.2)",
-                          borderRadius: 6,
-                          padding: "6px 12px",
-                          fontSize: 12,
-                          cursor: bgRemoving ? "not-allowed" : "pointer",
-                          backdropFilter: "blur(4px)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
+                          overflow: "hidden",
                         }}
                       >
-                        {bgRemoving ? (
-                          <span
-                            className="gen-loading-spinner"
-                            style={{ width: 14, height: 14, borderWidth: 2 }}
-                          />
-                        ) : (
-                          "✨"
-                        )}
-                        {bgRemoving ? "Removing..." : "Remove Background"}
+                        <div style={{
+                          position: "absolute",
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          background: "rgba(0,0,0,0.6)",
+                          color: "#fff",
+                          fontSize: 10,
+                          textAlign: "center",
+                          padding: "3px 0",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}>
+                          Angle {i + 1}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setProduct((p) => ({
+                            ...p,
+                            referenceImages: p.referenceImages.filter((_, j) => j !== i),
+                            referenceImagePreviews: p.referenceImagePreviews.filter((_, j) => j !== i),
+                          }))
+                        }
+                        style={{
+                          position: "absolute",
+                          top: -4,
+                          right: -4,
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          background: "#f85149",
+                          color: "#fff",
+                          border: "none",
+                          fontSize: 12,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          lineHeight: 1,
+                          zIndex: 1,
+                        }}
+                      >
+                        ×
                       </button>
-                    )}
+                    </div>
+                  ))}
+
+                  {/* ADD MORE REFERENCE IMAGES */}
+                  {!product.noPhysicalProduct && product.referenceImagePreviews.length < 5 && (
+                    <div
+                      onClick={() => refFileRef.current?.click()}
+                      style={{
+                        width: 140,
+                        height: 140,
+                        borderRadius: 10,
+                        border: "2px dashed var(--border)",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <div style={{ fontSize: 24, marginBottom: 4, opacity: 0.4 }}>+</div>
+                      <div style={{ fontSize: 11, color: "#6e7681", textAlign: "center", padding: "0 8px" }}>
+                        More Angles
+                      </div>
+                      <div style={{ fontSize: 9, color: "#484f58" }}>optional</div>
+                    </div>
+                  )}
                 </div>
+
                 {productErrors.photo && (
                   <div style={{ color: "#f85149", fontSize: 12, marginTop: 4 }}>
                     {productErrors.photo}
                   </div>
                 )}
+
+                {/* Hidden file inputs */}
                 <input
                   ref={productFileRef}
                   type="file"
-                  accept=".png,.jpg,.jpeg"
+                  accept=".png,.jpg,.jpeg,.webp"
                   style={{ display: "none" }}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      const url = URL.createObjectURL(file);
                       setProduct((p) => ({
                         ...p,
                         photo: file,
-                        photoPreview: url,
+                        photoPreview: URL.createObjectURL(file),
                       }));
                       setProductErrors((prev) => {
                         const { photo, ...rest } = prev;
                         return rest;
                       });
                     }
+                    e.target.value = "";
+                  }}
+                />
+                <input
+                  ref={backFileRef}
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.webp"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setProduct((p) => ({
+                        ...p,
+                        backImage: file,
+                        backImagePreview: URL.createObjectURL(file),
+                      }));
+                    }
+                    e.target.value = "";
+                  }}
+                />
+                <input
+                  ref={refFileRef}
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.webp"
+                  multiple
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) {
+                      setProduct((p) => {
+                        const remaining = 5 - p.referenceImagePreviews.length;
+                        const toAdd = files.slice(0, remaining);
+                        return {
+                          ...p,
+                          referenceImages: [...p.referenceImages, ...toAdd],
+                          referenceImagePreviews: [
+                            ...p.referenceImagePreviews,
+                            ...toAdd.map((f) => URL.createObjectURL(f)),
+                          ],
+                        };
+                      });
+                    }
+                    e.target.value = "";
                   }}
                 />
               </div>
-
-              {/* ── Additional Product Images (imported or manual) ── */}
-              {!product.noPhysicalProduct && (product.backImagePreview || product.referenceImagePreviews.length > 0) && (
-                <div style={{ marginBottom: 20 }}>
-                  <label className="gen-label" style={{ marginBottom: 8 }}>
-                    Additional Product Images
-                    <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none", marginLeft: 6 }}>
-                      (imported from URL)
-                    </span>
-                  </label>
-                  <div style={{ fontSize: 11, color: "#6e7681", marginBottom: 8 }}>
-                    These images help AI understand your product from multiple angles. Click the X to remove.
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    {product.backImagePreview && (
-                      <div style={{ position: "relative" }}>
-                        <div
-                          style={{
-                            width: 100,
-                            height: 100,
-                            borderRadius: 8,
-                            border: "1px solid var(--border)",
-                            backgroundImage: `url(${product.backImagePreview})`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                          }}
-                        />
-                        <div style={{
-                          fontSize: 9,
-                          color: "#8b949e",
-                          textAlign: "center",
-                          marginTop: 4,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}>
-                          Back
-                        </div>
-                        <button
-                          onClick={() =>
-                            setProduct((p) => ({
-                              ...p,
-                              backImage: null,
-                              backImagePreview: null,
-                            }))
-                          }
-                          style={{
-                            position: "absolute",
-                            top: -6,
-                            right: -6,
-                            width: 20,
-                            height: 20,
-                            borderRadius: "50%",
-                            background: "#f85149",
-                            color: "#fff",
-                            border: "none",
-                            fontSize: 12,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            lineHeight: 1,
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
-                    {product.referenceImagePreviews.map((url, i) => (
-                      <div key={i} style={{ position: "relative" }}>
-                        <div
-                          style={{
-                            width: 100,
-                            height: 100,
-                            borderRadius: 8,
-                            border: "1px solid var(--border)",
-                            backgroundImage: `url(${url})`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                          }}
-                        />
-                        <div style={{
-                          fontSize: 9,
-                          color: "#8b949e",
-                          textAlign: "center",
-                          marginTop: 4,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}>
-                          Ref {i + 1}
-                        </div>
-                        <button
-                          onClick={() =>
-                            setProduct((p) => ({
-                              ...p,
-                              referenceImages: p.referenceImages.filter((_, j) => j !== i),
-                              referenceImagePreviews: p.referenceImagePreviews.filter((_, j) => j !== i),
-                            }))
-                          }
-                          style={{
-                            position: "absolute",
-                            top: -6,
-                            right: -6,
-                            width: 20,
-                            height: 20,
-                            borderRadius: "50%",
-                            background: "#f85149",
-                            color: "#fff",
-                            border: "none",
-                            fontSize: 12,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            lineHeight: 1,
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               <div className="gen-divider">
                 <div className="gen-divider__line" />
