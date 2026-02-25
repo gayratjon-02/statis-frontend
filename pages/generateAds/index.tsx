@@ -1925,14 +1925,16 @@ function GeneratePageContent() {
                     value={productImportUrl}
                     onChange={(e) => setProductImportUrl(e.target.value)}
                     onKeyDown={(e) =>
-                      e.key === "Enter" && handleProductImportUrl()
+                      e.key === "Enter" && !productImportLoading && handleProductImportUrl()
                     }
+                    disabled={productImportLoading}
+                    style={productImportLoading ? { opacity: 0.5 } : undefined}
                   />
                   <button
                     onClick={handleProductImportUrl}
                     disabled={productImportLoading || !productImportUrl.trim()}
                     style={{
-                      background: "#238636",
+                      background: productImportLoading ? "#21262d" : "#238636",
                       color: "#fff",
                       border: "none",
                       borderRadius: 8,
@@ -1940,9 +1942,33 @@ function GeneratePageContent() {
                       cursor: productImportLoading ? "not-allowed" : "pointer",
                       fontWeight: 500,
                       whiteSpace: "nowrap",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      minWidth: 100,
+                      justifyContent: "center",
+                      opacity: productImportLoading ? 0.7 : 1,
+                      transition: "all 0.2s ease",
                     }}
                   >
-                    {productImportLoading ? "..." : "Import"}
+                    {productImportLoading ? (
+                      <>
+                        <span
+                          style={{
+                            width: 14,
+                            height: 14,
+                            border: "2px solid rgba(255,255,255,0.3)",
+                            borderTopColor: "#fff",
+                            borderRadius: "50%",
+                            display: "inline-block",
+                            animation: "spin 0.8s linear infinite",
+                          }}
+                        />
+                        Importing...
+                      </>
+                    ) : (
+                      "Import"
+                    )}
                   </button>
                 </div>
                 {productImportError && (
