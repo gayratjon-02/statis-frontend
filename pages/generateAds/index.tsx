@@ -305,6 +305,9 @@ function GeneratePageContent() {
         secondaryColor: data.secondary_color || prev.secondaryColor,
         accentColor: data.accent_color || prev.accentColor,
         backgroundColor: data.background_color || prev.backgroundColor,
+        voiceTags: data.voice_tags?.length ? data.voice_tags : prev.voiceTags,
+        targetAudience: data.target_audience || prev.targetAudience,
+        competitors: data.competitors || prev.competitors,
       }));
 
       // FIX: Convert imported logo URL to File object so form validation passes

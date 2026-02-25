@@ -182,6 +182,9 @@ export async function importBrandFromUrl(url: string): Promise<{
     secondary_color: string;
     accent_color: string;
     background_color: string;
+    voice_tags: string[];
+    target_audience: string;
+    competitors: string;
     confidence_score: number;
     warnings: string[];
 }> {

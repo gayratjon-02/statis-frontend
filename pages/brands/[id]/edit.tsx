@@ -105,6 +105,9 @@ function BrandEditContent() {
                 secondary_color: data.secondary_color || prev.secondary_color,
                 accent_color: data.accent_color || prev.accent_color,
                 background_color: data.background_color || prev.background_color,
+                voice_tags: data.voice_tags?.length ? data.voice_tags : prev.voice_tags,
+                target_audience: data.target_audience || prev.target_audience,
+                competitors: data.competitors || prev.competitors,
             }));
             if (data.logo_url) setLogoPreview(data.logo_url);
             if (data.warnings?.length) setImportWarnings(data.warnings);
