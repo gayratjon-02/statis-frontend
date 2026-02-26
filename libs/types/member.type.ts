@@ -66,3 +66,8 @@ export interface SignupInput {
     full_name: string;
     avatar_url?: string;
 }
+
+/** POST /member/google-auth */
+export interface GoogleLoginInput {
+    id_token: string;
+}

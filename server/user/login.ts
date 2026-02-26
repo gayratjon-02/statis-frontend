@@ -3,7 +3,7 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
-import type { AuthResponse, LoginInput, SignupInput } from "../../libs/types/member.type";
+import type { AuthResponse, GoogleLoginInput, LoginInput, SignupInput } from "../../libs/types/member.type";
 
 const MEMBER_API = `${API_BASE_URL}/member`;
 
@@ -40,6 +40,25 @@ export async function signupRequest(input: SignupInput): Promise<AuthResponse> {
     if (!res.ok) {
         const error = await res.json().catch(() => ({ message: "Signup failed" }));
         throw new Error(error.message || `Signup failed (${res.status})`);
+    }
+
+    return res.json();
+}
+
+/**
+ * POST /member/google-auth
+ * Authenticate with Google ID token.
+ */
+export async function googleLoginRequest(input: GoogleLoginInput): Promise<AuthResponse> {
+    const res = await fetch(`${MEMBER_API}/google-auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Google login failed" }));
+        throw new Error(error.message || `Google login failed (${res.status})`);
     }
 
     return res.json();
