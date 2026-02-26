@@ -69,5 +69,5 @@ export interface SignupInput {
 
 /** POST /member/google-auth */
 export interface GoogleLoginInput {
-    id_token: string;
+    access_token: string;
 }
