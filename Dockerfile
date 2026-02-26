@@ -13,8 +13,8 @@ RUN yarn install --network-timeout 600000 --frozen-lockfile
 COPY . .
 
 # Build arguments for environment variables at build time
-ARG NEXT_PUBLIC_API_URL=http://167.172.90.235:4009
-ARG NEXT_PUBLIC_WS_URL=ws://167.172.90.235:4009
+ARG NEXT_PUBLIC_API_URL=https://app.staticengine.com
+ARG NEXT_PUBLIC_WS_URL=wss://app.staticengine.com
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
