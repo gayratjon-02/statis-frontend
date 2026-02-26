@@ -276,11 +276,11 @@ export async function downloadAdImageByRatio(adId: string, ratio: string, filena
  * POST /generation/fixErrors/:adId
  * Starts a fix job to fix an existing ad based on a description.
  */
-export async function fixErrorRequest(adId: string, errorDescription: string): Promise<{ _id: string }> {
+export async function fixErrorRequest(adId: string, errorDescription: string): Promise<{ job_id: string; batch_id: string; status: string }> {
     const res = await fetch(`${GENERATION_API}/fixErrors/${adId}`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ prompt_addon: errorDescription, error_description: errorDescription }),
+        body: JSON.stringify({ error_description: errorDescription }),
     });
 
     if (!res.ok) {

@@ -11,7 +11,7 @@ import {
     renameAdRequest,
     deleteAdsRequest,
     fixErrorRequest,
-    getSingleAdRequest,
+    getGenerationStatus,
 } from "../../server/user/generation";
 import type { AdLibraryItem, LibraryCounts } from "../../libs/types/generation.type";
 
@@ -261,14 +261,31 @@ function LibraryPage() {
         if (!fixedAdId) return;
         const interval = setInterval(async () => {
             try {
-                const data = await getSingleAdRequest(fixedAdId);
-                if (data && data.generation_status === "completed") {
-                    setFixedAdOutput(data);
+                const data = await getGenerationStatus(fixedAdId);
+                if (data.generation_status === "completed") {
+                    setFixedAdOutput({
+                        _id: data._id,
+                        name: data.ad_name || "Fixed Ad",
+                        image: data.image_url_1x1 || "",
+                        image_url_1x1: data.image_url_1x1 || undefined,
+                        image_url_9x16: data.image_url_9x16 || undefined,
+                        image_url_16x9: data.image_url_16x9 || undefined,
+                        created_at: data.created_at || new Date().toISOString(),
+                        brand_name: detailAd?.brand_name || "",
+                        brand_color: detailAd?.brand_color || "#3ECFCF",
+                        product_name: detailAd?.product_name || "",
+                        concept_name: detailAd?.concept_name || "",
+                        ratios: ["1:1", "9:16", "16:9"],
+                        canva_status: "none",
+                        canva_link: null,
+                        is_favorite: false,
+                        is_saved: false,
+                    });
                     setIsFixing(false);
                     setFixModalOpen(false);
                     setIsCompareOpen(true);
                     setFixedAdId(null);
-                } else if (data && data.generation_status === "failed") {
+                } else if (data.generation_status === "failed") {
                     toast.error("Fix job failed.");
                     setIsFixing(false);
                     setFixModalOpen(false);
@@ -284,7 +301,7 @@ function LibraryPage() {
         setIsFixing(true);
         try {
             const data = await fixErrorRequest(detailAd._id, fixDescription.trim());
-            setFixedAdId(data._id);
+            setFixedAdId(data.job_id);
             setFixDescription("");
         } catch (e: any) {
             toast.error(e.message || "Failed to start fix");
