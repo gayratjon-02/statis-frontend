@@ -279,6 +279,11 @@ function GeneratePageContent() {
     {},
   );
 
+  // Fix Errors modal
+  const [fixModalAdId, setFixModalAdId] = useState<string | null>(null);
+  const [fixDescription, setFixDescription] = useState("");
+  const [isFixing, setIsFixing] = useState(false);
+
   // Dynamic credit costs from backend
   const [creditCosts, setCreditCosts] = useState<CreditCosts>({
     credits_per_generation: 5,
@@ -3198,22 +3203,10 @@ function GeneratePageContent() {
                       <div style={{ display: "flex", gap: 6 }}>
                         <button
                           className="gen-ad-btn"
-                          onClick={async () => {
+                          onClick={() => {
                             if (!result._id) return;
-                            const desc = prompt(
-                              "Describe the issue (optional):",
-                            );
-                            try {
-                              toast.loading("Fixing errors...", { id: "fix" });
-                              await fixErrorRequest(result._id, desc || "");
-                              toast.success(`Fix started! (${creditCosts.credits_per_fix_errors} credits used)`, {
-                                id: "fix",
-                              });
-                            } catch (e: any) {
-                              toast.error(e.message || "Fix failed", {
-                                id: "fix",
-                              });
-                            }
+                            setFixModalAdId(result._id);
+                            setFixDescription("");
                           }}
                         >
                           Fix Errors
@@ -3641,6 +3634,73 @@ function GeneratePageContent() {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fix Errors Modal */}
+      {fixModalAdId && (
+        <div className="gen-modal-overlay" onClick={() => { if (!isFixing) { setFixModalAdId(null); setFixDescription(""); } }}>
+          <div className="gen-fix-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="gen-fix-modal__header">
+              <div className="gen-fix-modal__title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                </svg>
+                Fix Errors
+              </div>
+              <p className="gen-fix-modal__subtitle">
+                Describe what needs to be fixed in this ad. The AI will analyze the image and regenerate it with corrections.
+              </p>
+            </div>
+            <div className="gen-fix-modal__body">
+              <textarea
+                className="gen-fix-modal__textarea"
+                placeholder="e.g. Text is misspelled, logo is too small, colors are wrong..."
+                value={fixDescription}
+                onChange={(e) => setFixDescription(e.target.value)}
+                disabled={isFixing}
+                autoFocus
+                maxLength={500}
+              />
+            </div>
+            <div className="gen-fix-modal__actions">
+              <span className="gen-fix-modal__credit">{creditCosts.credits_per_fix_errors} credits</span>
+              <button
+                className="gen-fix-modal__cancel"
+                onClick={() => { setFixModalAdId(null); setFixDescription(""); }}
+                disabled={isFixing}
+              >
+                Cancel
+              </button>
+              <button
+                className="gen-fix-modal__submit"
+                disabled={isFixing || !fixDescription.trim()}
+                onClick={async () => {
+                  if (!fixModalAdId || !fixDescription.trim()) return;
+                  setIsFixing(true);
+                  try {
+                    await fixErrorRequest(fixModalAdId, fixDescription.trim());
+                    toast.success(`Fix started! (${creditCosts.credits_per_fix_errors} credits used)`);
+                    setFixModalAdId(null);
+                    setFixDescription("");
+                  } catch (e: any) {
+                    toast.error(e.message || "Fix failed");
+                  } finally {
+                    setIsFixing(false);
+                  }
+                }}
+              >
+                {isFixing ? (
+                  <>
+                    <span className="gen-fix-modal__spinner" />
+                    Fixing...
+                  </>
+                ) : (
+                  "Start Fix"
+                )}
+              </button>
             </div>
           </div>
         </div>
