@@ -230,6 +230,15 @@
     }
 }
 
+/* --- Mobile Topbar (hidden on desktop) --- */
+.mobile-topbar {
+    display: none;
+}
+
+.mobile-overlay {
+    display: none;
+}
+
 /* --- Main Content --- */
 .dash-main {
     flex: 1;
@@ -1057,5 +1066,278 @@
 
     &:hover &__delete {
         opacity: 1;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .dashboard-layout {
+        flex-direction: column;
+    }
+
+    .dash-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 280px !important;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+
+        &--open {
+            transform: translateX(0);
+        }
+    }
+
+    .mobile-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+
+        &--visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    }
+
+    .mobile-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .mobile-topbar__logo {
+        font-size: 18px;
+        font-weight: 700;
+        font-family: var(--font-display);
+    }
+
+    .mobile-topbar__hamburger {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        color: var(--text);
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .mobile-topbar__credits {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent);
+    }
+
+    .dash-main {
+        margin-left: 0 !important;
+        padding: 0 16px 80px;
+    }
+
+    .dash-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 20px 0;
+        margin-bottom: 20px;
+
+        &__title {
+            font-size: 22px;
+        }
+
+        &__date {
+            font-size: 12px;
+        }
+    }
+
+    .btn-generate {
+        width: 100%;
+        text-align: center;
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        padding: 16px;
+
+        &__value {
+            font-size: 26px;
+        }
+
+        &__label {
+            font-size: 10px;
+        }
+    }
+
+    .dash-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .recent-ads__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .recent-ads__filters {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .ads-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .ad-card {
+        &__overlay {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        &__name {
+            font-size: 12px;
+        }
+
+        &__info {
+            padding: 10px 12px;
+        }
+    }
+
+    .dash-right {
+        gap: 14px;
+    }
+
+    .quick-actions {
+        padding: 16px;
+    }
+
+    .activity-card {
+        padding: 16px;
+    }
+
+    .tip-card {
+        padding: 16px;
+    }
+
+    .brands-page__stats {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .brands-stat {
+        padding: 14px 20px;
+        min-width: 100px;
+        flex: 1;
+
+        &__value {
+            font-size: 22px;
+        }
+    }
+
+    .brands-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .da-upload-area {
+        padding: 24px 16px;
+    }
+
+    .da-templates-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .da-template-card__delete {
+        opacity: 1;
+    }
+
+    .dash-banner {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start !important;
+        padding: 14px 16px !important;
+    }
+
+    .acct-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .acct-stats-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 8px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .stat-card {
+        padding: 14px;
+
+        &__value {
+            font-size: 22px;
+        }
+    }
+
+    .ads-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .dash-header__title {
+        font-size: 20px;
+    }
+
+    .brands-page__stats {
+        flex-direction: column;
+    }
+
+    .brands-stat {
+        flex: unset;
+        width: 100%;
+    }
+
+    .da-templates-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .acct-stats-grid {
+        grid-template-columns: 1fr !important;
     }
 }

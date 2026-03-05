@@ -126,6 +126,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
     const router = useRouter();
     const [brandFilter, setBrandFilter] = useState("all");
     const [collapsed, setCollapsed] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [page, setPageState] = useState(initialTab);
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
     const [checkoutBanner, setCheckoutBanner] = useState<"success" | "cancelled" | null>(null);
@@ -348,6 +349,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
     };
 
     const handleNav = (id: string) => {
+        setMobileMenuOpen(false);
         if (ROUTES[id]) {
             if (id === "dashboard") {
                 setPage("dashboard");
@@ -355,7 +357,6 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
             router.push(ROUTES[id]);
         } else {
             setPage(id);
-            // Reset account messages when navigating
             if (id === "account") {
                 setAcctName(member?.full_name || "");
                 setAcctMsg(null);
@@ -417,8 +418,25 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
 
     return (
         <div className="dashboard-layout">
+            {/* ===== MOBILE TOPBAR ===== */}
+            <div className="mobile-topbar">
+                <button className="mobile-topbar__hamburger" onClick={() => setMobileMenuOpen(true)}>
+                    &#9776;
+                </button>
+                <span className="mobile-topbar__logo grad-text">Static Engine</span>
+                <div className="mobile-topbar__credits">
+                    {remaining} cr
+                </div>
+            </div>
+
+            {/* ===== MOBILE OVERLAY ===== */}
+            <div
+                className={`mobile-overlay ${mobileMenuOpen ? "mobile-overlay--visible" : ""}`}
+                onClick={() => setMobileMenuOpen(false)}
+            />
+
             {/* ===== SIDEBAR ===== */}
-            <div className="dash-sidebar" style={{ width: sw }}>
+            <div className={`dash-sidebar ${mobileMenuOpen ? "dash-sidebar--open" : ""}`} style={{ width: sw }}>
                 {/* Logo */}
                 <div
                     className="dash-sidebar__header"
@@ -550,10 +568,10 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
 
                 {/* 80% Credit Usage Warning */}
                 {usage && usage.credits_limit > 0 && (usage.credits_used / usage.credits_limit >= 0.8) && (
-                    <div style={{
+                    <div className="dash-banner" style={{
                         background: "rgba(245, 158, 11, 0.1)",
                         border: "1px solid rgba(245, 158, 11, 0.4)",
-                        borderRadius: 12, padding: "14px 20px", margin: "16px 24px 0",
+                        borderRadius: 12, padding: "14px 20px", margin: "16px 0 0",
                         display: "flex", alignItems: "center", justifyContent: "space-between",
                     }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -575,10 +593,10 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
 
                 {/* Checkout result banners */}
                 {checkoutBanner === "success" && (
-                    <div style={{
+                    <div className="dash-banner" style={{
                         background: "linear-gradient(135deg, rgba(34,197,94,0.15), rgba(62,207,207,0.1))",
                         border: "1px solid rgba(34,197,94,0.4)",
-                        borderRadius: 12, padding: "14px 20px", margin: "16px 24px 0",
+                        borderRadius: 12, padding: "14px 20px", margin: "16px 0 0",
                         display: "flex", alignItems: "center", justifyContent: "space-between",
                     }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -597,10 +615,10 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                     </div>
                 )}
                 {checkoutBanner === "cancelled" && (
-                    <div style={{
+                    <div className="dash-banner" style={{
                         background: "rgba(239,68,68,0.08)",
                         border: "1px solid rgba(239,68,68,0.3)",
-                        borderRadius: 12, padding: "14px 20px", margin: "16px 24px 0",
+                        borderRadius: 12, padding: "14px 20px", margin: "16px 0 0",
                         display: "flex", alignItems: "center", justifyContent: "space-between",
                     }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -798,7 +816,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                     }}>{tierLabel(usage?.subscription_tier || "free")} Plan</div>
                                 </div>
                             </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
+                            <div className="acct-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
                                 {[
                                     { label: "Ads Generated", val: usage?.stats?.ads_generated || 0, color: "var(--g1)" },
                                     { label: "Credits Left", val: usage ? usage.credits_limit - usage.credits_used : 0, color: "var(--accent)" },
@@ -813,7 +831,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                         </div>
 
                         {/* Two-column: Edit Profile + Change Password */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+                        <div className="acct-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
                             {/* Edit Profile */}
                             <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 24 }}>
                                 <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 20 }}>Edit Profile</div>
