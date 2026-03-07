@@ -42,6 +42,9 @@ export interface Member {
     // Timestamps
     created_at: string;
     updated_at: string;
+
+    // ToS
+    needs_tos_update?: boolean;
 }
 
 /** Login/Signup response from API */

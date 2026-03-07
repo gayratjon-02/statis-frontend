@@ -46,6 +46,30 @@ export async function signupRequest(input: SignupInput): Promise<AuthResponse> {
 }
 
 /**
+ * POST /member/accept-tos
+ * Accepts the Terms of Service.
+ */
+export async function acceptTosRequest(input: { tos_accepted: boolean; tos_version: string }): Promise<any> {
+    const token = localStorage.getItem("se_access_token");
+
+    const res = await fetch(`${MEMBER_API}/accept-tos`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(input),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Failed to accept Terms of Service" }));
+        throw new Error(error.message || `ToS acceptance failed (${res.status})`);
+    }
+
+    return res.json();
+}
+
+/**
  * POST /member/google-auth
  * Authenticate with Google ID token.
  */
