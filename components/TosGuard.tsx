@@ -42,6 +42,20 @@ export const TosGuard: React.FC<{ children: React.ReactNode }> = ({ children }) 
             if (member) {
                 const updatedMember = { ...member, needs_tos_update: false };
                 login(localStorage.getItem("se_access_token") || "", updatedMember);
+
+                // Redirect based on subscription status
+                const PAID_TIERS = ["starter", "pro", "growth"];
+                const hasPaidSubscription =
+                    updatedMember.subscription_status === "active" &&
+                    PAID_TIERS.includes(updatedMember.subscription_tier?.toLowerCase() || "");
+
+                if (!hasPaidSubscription) {
+                    // No active subscription → send to plan selection / Stripe
+                    router.push("/subscribe");
+                } else {
+                    // Has subscription → send to dashboard
+                    router.push("/dashboard");
+                }
             }
 
             setShowModal(false);
