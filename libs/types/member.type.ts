@@ -65,6 +65,8 @@ export interface SignupInput {
     password: string;
     full_name: string;
     avatar_url?: string;
+    tos_accepted: boolean;
+    tos_version: string;
 }
 
 /** POST /member/google-auth */
