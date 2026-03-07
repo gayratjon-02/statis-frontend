@@ -97,6 +97,11 @@ export default function UserAuth() {
         e.preventDefault();
         setTosAttempted(true);
 
+        if (!selectedPlan) {
+            setError("Please select a plan before creating your account.");
+            return;
+        }
+
         if (!tosAccepted) {
             return;
         }
@@ -562,7 +567,7 @@ export default function UserAuth() {
                                     )}
                                 </div>
 
-                                <button type="submit" className="admin-auth__submit" disabled={loading || !tosAccepted} style={{ opacity: loading || !tosAccepted ? 0.6 : 1, cursor: loading || !tosAccepted ? "not-allowed" : "pointer" }}>
+                                <button type="submit" className="admin-auth__submit" disabled={loading || !tosAccepted || !selectedPlan} style={{ opacity: loading || !tosAccepted || !selectedPlan ? 0.6 : 1, cursor: loading || !tosAccepted || !selectedPlan ? "not-allowed" : "pointer" }}>
                                     {loading ? (
                                         <>
                                             <span className="admin-auth__spinner" />
