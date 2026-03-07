@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
 
+import { requestPasswordReset } from "../server/user/login";
+
 export default function ForgotPassword() {
     const router = useRouter();
     const [email, setEmail] = useState("");
@@ -18,17 +20,8 @@ export default function ForgotPassword() {
         setMessage(null);
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3007";
-            const res = await fetch(`${API_URL}/member/forgot-password-flow`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Failed to request password reset");
-
-            setMessage({ text: "If an account exists, a reset link has been sent to your email.", type: "success" });
+            const res = await requestPasswordReset(email);
+            setMessage({ text: res.message || "If an account exists, a reset link has been sent to your email.", type: "success" });
             setEmail("");
         } catch (err: any) {
             setMessage({ text: err.message || "Something went wrong", type: "error" });

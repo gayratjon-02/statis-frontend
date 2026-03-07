@@ -213,3 +213,41 @@ export async function changePasswordRequest(input: { old_password: string; new_p
     }
     return res.json();
 }
+
+/**
+ * POST /member/forgot-password-flow
+ * Request a password reset link to be sent to the user's email.
+ */
+export async function requestPasswordReset(email: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${MEMBER_API}/forgot-password-flow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Failed to request password reset" }));
+        throw new Error(error.message || `Failed to request password reset (${res.status})`);
+    }
+
+    return res.json();
+}
+
+/**
+ * POST /member/reset-password-flow
+ * Execute the password reset using the token sent to the user's email.
+ */
+export async function executePasswordReset(token: string, password: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${MEMBER_API}/reset-password-flow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Failed to reset password" }));
+        throw new Error(error.message || `Failed to reset password (${res.status})`);
+    }
+
+    return res.json();
+}

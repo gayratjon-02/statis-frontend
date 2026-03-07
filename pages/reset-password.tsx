@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 
+import { executePasswordReset } from "../server/user/login";
+
 export default function ResetPassword() {
     const router = useRouter();
     const { token } = router.query;
@@ -39,15 +41,7 @@ export default function ResetPassword() {
         setMessage(null);
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3007";
-            const res = await fetch(`${API_URL}/member/reset-password-flow`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token, password }),
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Failed to reset password");
+            await executePasswordReset(token as string, password);
 
             setMessage({ text: "Password successfully reset! Redirecting to login...", type: "success" });
             setTimeout(() => {
