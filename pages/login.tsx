@@ -118,6 +118,7 @@ export default function UserAuth() {
                 email: signupEmail,
                 password: signupPassword,
                 full_name: signupName,
+                subscription_tier: selectedPlan || undefined,
                 tos_accepted: tosAccepted,
                 tos_version: process.env.NEXT_PUBLIC_TOS_VERSION || "2026-03-05"
             });
