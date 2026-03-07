@@ -8,7 +8,7 @@ import type { Member } from "../types/member.type";
 
 const TOKEN_KEY = "se_access_token";
 const MEMBER_KEY = "se_member";
-const PUBLIC_ROUTES = ["/login", "/homepage", "/", "/terms", "/privacy"];
+const PUBLIC_ROUTES = ["/login", "/homepage", "/", "/terms", "/privacy", "/forgot-password", "/reset-password"];
 
 export function useAuth() {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
