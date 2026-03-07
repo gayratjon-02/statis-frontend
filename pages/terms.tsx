@@ -1,6 +1,9 @@
 import Head from "next/head";
+import { useRouter } from "next/router";
 
 export default function TermsOfService() {
+    const router = useRouter();
+
     return (
         <div style={{ backgroundColor: "#0f172a", minHeight: "100vh", color: "#f8fafc", padding: "40px 20px" }}>
             <Head>
@@ -201,7 +204,7 @@ export default function TermsOfService() {
 
                 <div style={{ marginTop: "40px", paddingTop: "20px", borderTop: "1px solid #334155", textAlign: "center" }}>
                     <button
-                        onClick={() => { window.close(); }}
+                        onClick={() => { router.back(); }}
                         style={{ background: "none", border: "none", color: "#3ECFCF", fontWeight: "bold", fontSize: "1rem", cursor: "pointer" }}
                     >
                         &larr; Back to App

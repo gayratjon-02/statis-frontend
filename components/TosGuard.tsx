@@ -1,21 +1,31 @@
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { useAuth } from "../libs/hooks/useAuth";
 import { acceptTosRequest } from "../server/user/login";
 import toast from "react-hot-toast";
 
+/** Routes where the TosGuard modal should NOT block the page */
+const TOS_EXEMPT_ROUTES = ["/terms", "/privacy"];
+
 export const TosGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const router = useRouter();
     const { isAuthenticated, member, login, logout } = useAuth();
     const [showModal, setShowModal] = useState(false);
     const [accepted, setAccepted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
+        // Don't show modal on Terms/Privacy pages — user needs to read them
+        if (TOS_EXEMPT_ROUTES.includes(router.pathname)) {
+            setShowModal(false);
+            return;
+        }
         if (isAuthenticated && member?.needs_tos_update) {
             setShowModal(true);
         } else {
             setShowModal(false);
         }
-    }, [isAuthenticated, member]);
+    }, [isAuthenticated, member, router.pathname]);
 
     const handleAccept = async () => {
         if (!accepted) return;
@@ -41,6 +51,13 @@ export const TosGuard: React.FC<{ children: React.ReactNode }> = ({ children }) 
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    /** Navigate to Terms/Privacy pages within the app (not new tab) */
+    const handleLinkClick = (e: React.MouseEvent, path: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        router.push(path);
     };
 
     if (showModal) {
@@ -75,7 +92,22 @@ export const TosGuard: React.FC<{ children: React.ReactNode }> = ({ children }) 
                                 }}
                             />
                             <label htmlFor="tos_reaccept" style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.5, cursor: "pointer", userSelect: 'none' }}>
-                                I agree to the updated <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#3ECFCF", textDecoration: "none", fontWeight: 600 }}>Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#3ECFCF", textDecoration: "none", fontWeight: 600 }}>Privacy Policy</a>.
+                                I agree to the updated{" "}
+                                <a
+                                    href="/terms"
+                                    onClick={(e) => handleLinkClick(e, "/terms")}
+                                    style={{ color: "#3ECFCF", textDecoration: "none", fontWeight: 600 }}
+                                >
+                                    Terms of Service
+                                </a>{" "}
+                                and{" "}
+                                <a
+                                    href="/privacy"
+                                    onClick={(e) => handleLinkClick(e, "/privacy")}
+                                    style={{ color: "#3ECFCF", textDecoration: "none", fontWeight: 600 }}
+                                >
+                                    Privacy Policy
+                                </a>.
                             </label>
                         </div>
                     </div>
