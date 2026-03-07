@@ -174,7 +174,12 @@ export default function PrivacyPolicy() {
                 </div>
 
                 <div style={{ marginTop: "40px", paddingTop: "20px", borderTop: "1px solid #334155", textAlign: "center" }}>
-                    <a href="/login" style={{ color: "#3ECFCF", textDecoration: "none", fontWeight: "bold" }}>&larr; Back to App</a>
+                    <button
+                        onClick={() => { window.close(); }}
+                        style={{ background: "none", border: "none", color: "#3ECFCF", fontWeight: "bold", fontSize: "1rem", cursor: "pointer" }}
+                    >
+                        &larr; Back to App
+                    </button>
                 </div>
             </div>
         </div>
