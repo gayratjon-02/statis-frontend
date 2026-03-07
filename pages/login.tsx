@@ -35,6 +35,8 @@ export default function UserAuth() {
     const [loading, setLoading] = useState(false);
     const [loadingStep, setLoadingStep] = useState<"account" | "payment">("account");
     const [error, setError] = useState("");
+    const [showGoogleTosModal, setShowGoogleTosModal] = useState(false);
+    const [googleTosAccepted, setGoogleTosAccepted] = useState(false);
 
     // ── Plan selection ──
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -166,7 +168,11 @@ export default function UserAuth() {
         setLoading(true);
         setLoadingStep("account");
         try {
-            const res = await googleLoginRequest({ access_token });
+            const res = await googleLoginRequest({
+                access_token,
+                tos_accepted: mode === "signup" ? true : undefined,
+                tos_version: mode === "signup" ? (process.env.NEXT_PUBLIC_TOS_VERSION || "2026-03-05") : undefined,
+            });
             localStorage.setItem("se_access_token", res.accessToken);
             localStorage.setItem("se_member", JSON.stringify(res.member));
 
@@ -592,9 +598,59 @@ export default function UserAuth() {
                                 <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>or</span>
                                 <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
                             </div>
+                            {/* Google ToS Modal */}
+                            {showGoogleTosModal && (
+                                <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(15, 23, 42, 0.9)", backdropFilter: "blur(6px)" }}>
+                                    <div style={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: 16, padding: 28, maxWidth: 400, width: "90%", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)" }}>
+                                        <h3 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 700, color: "#f8fafc" }}>Terms of Service</h3>
+                                        <p style={{ color: "#94a3b8", fontSize: 13, lineHeight: 1.5, marginBottom: 20, marginTop: 0 }}>
+                                            Before continuing with Google, please review and accept our terms.
+                                        </p>
+                                        <div style={{ backgroundColor: "rgba(15, 23, 42, 0.5)", border: "1px solid #334155", borderRadius: 10, padding: 14, marginBottom: 20 }}>
+                                            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                                                <input
+                                                    type="checkbox"
+                                                    id="google_tos_accept"
+                                                    checked={googleTosAccepted}
+                                                    onChange={(e) => setGoogleTosAccepted(e.target.checked)}
+                                                    style={{ marginTop: 3, width: 16, height: 16, cursor: "pointer", accentColor: "#3ECFCF", flexShrink: 0 }}
+                                                />
+                                                <label htmlFor="google_tos_accept" style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.4, cursor: "pointer" }}>
+                                                    I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#3ECFCF", textDecoration: "none", fontWeight: 600 }}>Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#3ECFCF", textDecoration: "none", fontWeight: 600 }}>Privacy Policy</a>.
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: "flex", gap: 10 }}>
+                                            <button
+                                                onClick={() => { setShowGoogleTosModal(false); setGoogleTosAccepted(false); }}
+                                                style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid #334155", backgroundColor: "transparent", color: "#cbd5e1", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={() => { setShowGoogleTosModal(false); googleLogin(); }}
+                                                disabled={!googleTosAccepted}
+                                                style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "none", backgroundColor: "#3ECFCF", color: "#0f172a", fontSize: 13, fontWeight: 700, cursor: googleTosAccepted ? "pointer" : "not-allowed", opacity: googleTosAccepted ? 1 : 0.5 }}
+                                            >
+                                                Agree & Continue
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <button
                                 type="button"
-                                onClick={() => googleLogin()}
+                                onClick={() => {
+                                    if (mode === "signup") {
+                                        if (!selectedPlan) {
+                                            setError("Please select a plan before creating your account.");
+                                            return;
+                                        }
+                                        setShowGoogleTosModal(true);
+                                    } else {
+                                        googleLogin();
+                                    }
+                                }}
                                 disabled={loading}
                                 style={{
                                     display: "flex", alignItems: "center", justifyContent: "center", gap: 10,

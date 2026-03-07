@@ -76,4 +76,6 @@ export interface SignupInput {
 /** POST /member/google-auth */
 export interface GoogleLoginInput {
     access_token: string;
+    tos_accepted?: boolean;
+    tos_version?: string;
 }
