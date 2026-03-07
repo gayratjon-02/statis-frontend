@@ -1,8 +1,8 @@
 // =============================================
 // SERVER — Admin POST APIs (admin-only endpoints)
 // =============================================
-
 import API_BASE_URL from "../../libs/config/api.config";
+import { AdminRole } from "../../libs/enums/admin.enum";
 import type { AdConcept, ConceptCategoryItem } from "../../libs/types/concept.type";
 import type {
     AdminAuthResponse,
@@ -63,6 +63,14 @@ export async function adminSignup(input: AdminSignupInput): Promise<AdminAuthRes
 
 export async function adminLogin(input: AdminLoginInput): Promise<AdminAuthResponse> {
     return postRequest<AdminAuthResponse>(`${MEMBER_API}/adminLogin`, input);
+}
+
+/**
+ * POST /member/generateAdminInvite
+ * Super Admin only: Generate a new invite code for a specific role.
+ */
+export async function generateAdminInvite(role: AdminRole): Promise<{ inviteToken: string, expiresAt: string }> {
+    return postRequest<{ inviteToken: string, expiresAt: string }>(`${MEMBER_API}/generateAdminInvite`, { role });
 }
 
 // =============================================
@@ -158,6 +166,24 @@ export async function blockUser(id: string): Promise<{ _id: string; email: strin
  */
 export async function unblockUser(id: string): Promise<{ _id: string; email: string; member_status: string }> {
     return postRequest(`${MEMBER_API}/adminUnblock/${id}`, {});
+}
+
+/**
+ * DELETE /member/adminDelete/:id
+ * Permanently delete a user (admin only).
+ */
+export async function deleteUser(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${MEMBER_API}/adminDelete/${id}`, {
+        method: "DELETE",
+        headers: adminHeaders(),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Request failed" }));
+        throw new Error(error.message || `DELETE failed (${res.status})`);
+    }
+
+    return res.json();
 }
 
 // =============================================

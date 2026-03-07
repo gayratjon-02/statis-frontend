@@ -29,6 +29,7 @@ export interface AdminSignupInput {
     password: string;
     name: string;
     role: AdminRole;
+    inviteToken?: string;
 }
 
 /** POST /member/adminLogin */

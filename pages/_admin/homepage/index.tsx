@@ -5,15 +5,16 @@ import AdminGuard from "../../../libs/auth/AdminGuard";
 import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
 import { getConcepts, getRecommendedConcepts, getCategories, getAdminUsers, getAdminStats, getCanvaOrdersAdmin, getPromptTemplatesAdmin } from "../../../server/admin/admnGetApis";
 import type { AdminUser, AdminPlatformStats, CanvaOrderAdmin, PromptTemplateAdmin } from "../../../server/admin/admnGetApis";
-import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, reorderConcepts, blockUser, unblockUser, fulfillCanvaOrder, updatePromptTemplateAdmin } from "../../../server/admin/adminPostApis";
+import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, reorderConcepts, blockUser, unblockUser, deleteUser, fulfillCanvaOrder, updatePromptTemplateAdmin } from "../../../server/admin/adminPostApis";
 import type { AdConcept, ConceptCategoryItem } from "../../../libs/types/concept.type";
+import { AdminRole } from "../../../libs/enums/admin.enum";
 import API_BASE_URL from "../../../libs/config/api.config";
 
 /** Prepend API base URL to relative image paths */
 function resolveImageUrl(url?: string): string {
     if (!url) return "";
     if (url.startsWith("http")) return url;
-    return `${API_BASE_URL}${url}`;
+    return `${API_BASE_URL}${url} `;
 }
 
 // ── Nav items ──
@@ -53,8 +54,13 @@ function AdminDashboard() {
     const [usersLoading, setUsersLoading] = useState(false);
     const [platformStats, setPlatformStats] = useState<AdminPlatformStats | null>(null);
 
-    // ── Drag & Drop ──
     const [draggedId, setDraggedId] = useState<string | null>(null);
+
+    // ── Invite Admin Modal ──
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [inviteRole, setInviteRole] = useState<AdminRole>(AdminRole.CONTENT_ADMIN);
+    const [generatedInvite, setGeneratedInvite] = useState("");
+    const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
 
     // ── Create Concept Modal ──
     const [showModal, setShowModal] = useState(false);
@@ -170,7 +176,7 @@ function AdminDashboard() {
 
     // ── Delete concept ──
     const handleDelete = async (id: string, name: string) => {
-        if (!confirm(`Delete "${name}"? This action cannot be undone.`)) return;
+        if (!confirm(`Delete "${name}" ? This action cannot be undone.`)) return;
         try {
             await deleteConcept(id);
             fetchConcepts();
@@ -485,6 +491,33 @@ function AdminDashboard() {
         }
     };
 
+    // ── Delete user ──
+    const handleDeleteUser = async (user: AdminUser) => {
+        if (!confirm(`Are you sure you want to PERMANENTLY delete user ${user.email}? This action cannot be undone and will delete all their data.`)) return;
+        try {
+            await deleteUser(user._id);
+            toast.success("User deleted successfully");
+            fetchUsers();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to delete user");
+        }
+    };
+    // ── Generate Admin Invite ──
+    const handleGenerateInvite = async () => {
+        setIsGeneratingInvite(true);
+        setGeneratedInvite("");
+        try {
+            const { generateAdminInvite } = await import("../../../server/admin/adminPostApis");
+            const res = await generateAdminInvite(inviteRole);
+            setGeneratedInvite(res.inviteToken);
+            toast.success(`Invite token generated for ${inviteRole}`);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to generate invite");
+        } finally {
+            setIsGeneratingInvite(false);
+        }
+    };
+
     // ── Logout ──
     const handleLogout = () => {
         logout();
@@ -520,7 +553,7 @@ function AdminDashboard() {
                     {NAV_ITEMS.map((item) => (
                         <button
                             key={item.id}
-                            className={`admin-dash__nav-item ${activeNav === item.id ? "admin-dash__nav-item--active" : ""}`}
+                            className={`admin - dash__nav - item ${activeNav === item.id ? "admin-dash__nav-item--active" : ""} `}
                             onClick={() => setActiveNav(item.id)}
                         >
                             <span className="admin-dash__nav-icon">{item.icon}</span>
@@ -627,42 +660,42 @@ function AdminDashboard() {
 
                         {/* Concept-only stats (fallback if platform stats not loaded) */}
                         {!platformStats && (
-                        <div className="admin-dash__stats">
-                            <div className="admin-dash__stat-card">
-                                <div className="admin-dash__stat-top">
-                                    <div className="admin-dash__stat-icon admin-dash__stat-icon--blue">📦</div>
-                                    <span className="admin-dash__stat-trend admin-dash__stat-trend--neutral">library</span>
+                            <div className="admin-dash__stats">
+                                <div className="admin-dash__stat-card">
+                                    <div className="admin-dash__stat-top">
+                                        <div className="admin-dash__stat-icon admin-dash__stat-icon--blue">📦</div>
+                                        <span className="admin-dash__stat-trend admin-dash__stat-trend--neutral">library</span>
+                                    </div>
+                                    <div className="admin-dash__stat-value">{total}</div>
+                                    <div className="admin-dash__stat-label">Total Concepts</div>
                                 </div>
-                                <div className="admin-dash__stat-value">{total}</div>
-                                <div className="admin-dash__stat-label">Total Concepts</div>
+                                <div className="admin-dash__stat-card">
+                                    <div className="admin-dash__stat-top">
+                                        <div className="admin-dash__stat-icon admin-dash__stat-icon--green">✅</div>
+                                        <span className="admin-dash__stat-trend admin-dash__stat-trend--up">active</span>
+                                    </div>
+                                    <div className="admin-dash__stat-value">{activeCount}</div>
+                                    <div className="admin-dash__stat-label">Active Concepts</div>
+                                </div>
+                                <div className="admin-dash__stat-card">
+                                    <div className="admin-dash__stat-top">
+                                        <div className="admin-dash__stat-icon admin-dash__stat-icon--purple">🏷️</div>
+                                        <span className="admin-dash__stat-trend admin-dash__stat-trend--neutral">types</span>
+                                    </div>
+                                    <div className="admin-dash__stat-value">{categories.length}</div>
+                                    <div className="admin-dash__stat-label">Categories</div>
+                                </div>
+                                <div className="admin-dash__stat-card">
+                                    <div className="admin-dash__stat-top">
+                                        <div className="admin-dash__stat-icon admin-dash__stat-icon--amber">🔥</div>
+                                        <span className="admin-dash__stat-trend admin-dash__stat-trend--up">top</span>
+                                    </div>
+                                    <div className="admin-dash__stat-value" style={{ fontSize: 16 }}>
+                                        {topCategory ? topCategory[0] : "—"}
+                                    </div>
+                                    <div className="admin-dash__stat-label">Top Category</div>
+                                </div>
                             </div>
-                            <div className="admin-dash__stat-card">
-                                <div className="admin-dash__stat-top">
-                                    <div className="admin-dash__stat-icon admin-dash__stat-icon--green">✅</div>
-                                    <span className="admin-dash__stat-trend admin-dash__stat-trend--up">active</span>
-                                </div>
-                                <div className="admin-dash__stat-value">{activeCount}</div>
-                                <div className="admin-dash__stat-label">Active Concepts</div>
-                            </div>
-                            <div className="admin-dash__stat-card">
-                                <div className="admin-dash__stat-top">
-                                    <div className="admin-dash__stat-icon admin-dash__stat-icon--purple">🏷️</div>
-                                    <span className="admin-dash__stat-trend admin-dash__stat-trend--neutral">types</span>
-                                </div>
-                                <div className="admin-dash__stat-value">{categories.length}</div>
-                                <div className="admin-dash__stat-label">Categories</div>
-                            </div>
-                            <div className="admin-dash__stat-card">
-                                <div className="admin-dash__stat-top">
-                                    <div className="admin-dash__stat-icon admin-dash__stat-icon--amber">🔥</div>
-                                    <span className="admin-dash__stat-trend admin-dash__stat-trend--up">top</span>
-                                </div>
-                                <div className="admin-dash__stat-value" style={{ fontSize: 16 }}>
-                                    {topCategory ? topCategory[0] : "—"}
-                                </div>
-                                <div className="admin-dash__stat-label">Top Category</div>
-                            </div>
-                        </div>
                         )}
 
                         {/* Recommended */}
@@ -739,33 +772,42 @@ function AdminDashboard() {
                                 value={userSearch}
                                 onChange={(e) => { setUserSearch(e.target.value); setUsersPage(1); }}
                             />
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                                {[
-                                    { label: "All Tiers", value: "" },
-                                    { label: "Free", value: "free" },
-                                    { label: "Starter", value: "starter" },
-                                    { label: "Pro", value: "pro" },
-                                    { label: "Growth", value: "growth" },
-                                ].map((opt) => (
-                                    <button key={opt.value}
-                                        className={`admin-dash__filter-btn ${userTierFilter === opt.value ? "admin-dash__filter-btn--active" : ""}`}
-                                        onClick={() => { setUserTierFilter(opt.value); setUsersPage(1); }}>
-                                        {opt.label}
-                                    </button>
-                                ))}
-                                <span style={{ width: 1, background: "var(--border)", margin: "0 4px" }} />
-                                {[
-                                    { label: "All Status", value: "" },
-                                    { label: "Active", value: "active" },
-                                    { label: "Suspended", value: "suspended" },
-                                ].map((opt) => (
-                                    <button key={opt.value}
-                                        className={`admin-dash__filter-btn ${userStatusFilter === opt.value ? "admin-dash__filter-btn--active" : ""}`}
-                                        onClick={() => { setUserStatusFilter(opt.value); setUsersPage(1); }}>
-                                        {opt.label}
-                                    </button>
-                                ))}
-                            </div>
+                            {session?.admin?.role === AdminRole.SUPER_ADMIN && (
+                                <button
+                                    className="admin-dash__btn admin-dash__btn--primary"
+                                    onClick={() => setShowInviteModal(true)}
+                                    style={{ marginLeft: 'auto' }}
+                                >
+                                    ＋ Generate Invite
+                                </button>
+                            )}
+                        </div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+                            {[
+                                { label: "All Tiers", value: "" },
+                                { label: "Free", value: "free" },
+                                { label: "Starter", value: "starter" },
+                                { label: "Pro", value: "pro" },
+                                { label: "Growth", value: "growth" },
+                            ].map((opt) => (
+                                <button key={opt.value}
+                                    className={`admin - dash__filter - btn ${userTierFilter === opt.value ? "admin-dash__filter-btn--active" : ""} `}
+                                    onClick={() => { setUserTierFilter(opt.value); setUsersPage(1); }}>
+                                    {opt.label}
+                                </button>
+                            ))}
+                            <span style={{ width: 1, background: "var(--border)", margin: "0 4px" }} />
+                            {[
+                                { label: "All Status", value: "" },
+                                { label: "Active", value: "active" },
+                                { label: "Suspended", value: "suspended" },
+                            ].map((opt) => (
+                                <button key={opt.value}
+                                    className={`admin-dash__filter-btn ${userStatusFilter === opt.value ? "admin-dash__filter-btn--active" : ""}`}
+                                    onClick={() => { setUserStatusFilter(opt.value); setUsersPage(1); }}>
+                                    {opt.label}
+                                </button>
+                            ))}
                         </div>
 
                         {/* Users Table */}
@@ -823,18 +865,30 @@ function AdminDashboard() {
                                                     {new Date(user.created_at).toLocaleDateString()}
                                                 </td>
                                                 <td style={{ padding: "10px 12px" }}>
-                                                    {user.member_status !== "deleted" && (
+                                                    <div style={{ display: "flex", gap: "8px" }}>
+                                                        {user.member_status !== "deleted" && (
+                                                            <button
+                                                                onClick={() => handleBlockUser(user)}
+                                                                style={{
+                                                                    background: user.member_status === "suspended" ? "#1a3a2a" : "#3a1a1a",
+                                                                    color: user.member_status === "suspended" ? "#3fb950" : "#f85149",
+                                                                    border: "1px solid currentColor", borderRadius: 5,
+                                                                    padding: "4px 10px", fontSize: 12, cursor: "pointer"
+                                                                }}>
+                                                                {user.member_status === "suspended" ? "Reactivate" : "Suspend"}
+                                                            </button>
+                                                        )}
                                                         <button
-                                                            onClick={() => handleBlockUser(user)}
+                                                            onClick={() => handleDeleteUser(user)}
                                                             style={{
-                                                                background: user.member_status === "suspended" ? "#1a3a2a" : "#3a1a1a",
-                                                                color: user.member_status === "suspended" ? "#3fb950" : "#f85149",
+                                                                background: "#3a1a1a",
+                                                                color: "#f85149",
                                                                 border: "1px solid currentColor", borderRadius: 5,
                                                                 padding: "4px 10px", fontSize: 12, cursor: "pointer"
                                                             }}>
-                                                            {user.member_status === "suspended" ? "Reactivate" : "Suspend"}
+                                                            Delete
                                                         </button>
-                                                    )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -862,706 +916,771 @@ function AdminDashboard() {
                             </div>
                         )}
                     </div>
-                )}
+                )
+                }
 
-                {/* ── Concepts View ── */}
-                {activeNav === "concepts" && (
-                    <div className="admin-dash__section">
-                        <div className="admin-dash__section-header">
-                            <div className="admin-dash__section-title">
-                                🎨 All Concepts
-                                <span className="admin-dash__section-count">{total}</span>
-                            </div>
-                            <div className="admin-dash__section-actions">
-                                <button className="admin-dash__btn admin-dash__btn--primary" onClick={openModal}>
-                                    ＋ Add Concept
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Search & Filter */}
-                        <div className="admin-dash__search">
-                            <input
-                                className="admin-dash__search-input"
-                                placeholder="Search concepts by name..."
-                                value={search}
-                                onChange={(e) => {
-                                    setSearch(e.target.value);
-                                    setPage(1);
-                                }}
-                            />
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                                {categoryFilters.map((cat) => (
-                                    <button
-                                        key={cat.value}
-                                        className={`admin-dash__filter-btn ${categoryFilter === cat.value ? "admin-dash__filter-btn--active" : ""}`}
-                                        onClick={() => {
-                                            setCategoryFilter(cat.value);
-                                            setPage(1);
-                                        }}
+                {/* ── Invite Modal ── */}
+                {
+                    showInviteModal && (
+                        <div className="admin-dash__modal-backdrop" onClick={() => setShowInviteModal(false)}>
+                            <div className="admin-dash__modal" onClick={(e) => e.stopPropagation()}>
+                                <div className="admin-dash__modal-header">
+                                    <h3 className="admin-dash__modal-title">Generate Admin Invite</h3>
+                                    <button className="admin-dash__modal-close" onClick={() => setShowInviteModal(false)}>&times;</button>
+                                </div>
+                                <div className="admin-dash__form-group">
+                                    <label className="admin-dash__label">Select Role</label>
+                                    <select
+                                        className="admin-dash__select"
+                                        value={inviteRole}
+                                        onChange={(e) => setInviteRole(e.target.value as AdminRole)}
                                     >
-                                        {cat.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                                        <option value={AdminRole.CONTENT_ADMIN}>Content Admin</option>
+                                    </select>
+                                    <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                                        Super Admins cannot be invited. Only one Super Admin exists.
+                                    </p>
+                                </div>
 
-                        {renderConceptGrid(true)}
-
-                        {/* Pagination */}
-                        {total > 12 && (
-                            <div style={{ display: "flex", justifyContent: "center", gap: 8, padding: "16px 0" }}>
-                                <button
-                                    className="admin-dash__btn admin-dash__btn--ghost"
-                                    disabled={page <= 1}
-                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                >
-                                    ← Previous
-                                </button>
-                                <span style={{ padding: "8px 14px", fontSize: 13, color: "var(--muted)" }}>
-                                    Page {page} of {Math.ceil(total / 12)}
-                                </span>
-                                <button
-                                    className="admin-dash__btn admin-dash__btn--ghost"
-                                    disabled={page >= Math.ceil(total / 12)}
-                                    onClick={() => setPage((p) => p + 1)}
-                                >
-                                    Next →
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* ── Recommended View ── */}
-                {activeNav === "recommended" && (
-                    <div className="admin-dash__section">
-                        <div className="admin-dash__section-header">
-                            <div className="admin-dash__section-title">
-                                ⭐ Top Concepts by Usage
-                                <span className="admin-dash__section-count">{recommended.length}</span>
-                            </div>
-                            <button className="admin-dash__btn admin-dash__btn--ghost" onClick={fetchRecommended}>
-                                🔄 Refresh
-                            </button>
-                        </div>
-                        {recommended.length > 0 ? (
-                            <div className="admin-dash__grid">
-                                {recommended.map((c) => (
-                                    <div key={c._id} className="admin-dash__concept-card">
-                                        <img
-                                            src={resolveImageUrl(c.image_url)}
-                                            alt={c.name}
-                                            className="admin-dash__concept-img"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = "none";
-                                            }}
-                                        />
-                                        <div className="admin-dash__concept-body">
-                                            <div className="admin-dash__concept-category">
-                                                {getCategoryName(c.category_id, c.category_name)}
-                                            </div>
-                                            <div className="admin-dash__concept-name">{c.name}</div>
-                                            <div className="admin-dash__concept-meta">
-                                                <span className="admin-dash__concept-usage">
-                                                    🔥 {c.usage_count} uses
-                                                </span>
-                                                <span
-                                                    className={`admin-dash__concept-status ${c.is_active ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"}`}
-                                                />
-                                            </div>
-                                        </div>
+                                {generatedInvite && (
+                                    <div style={{ background: "rgba(0, 255, 0, 0.1)", border: "1px solid #3fb950", padding: 12, borderRadius: 6, marginTop: 16 }}>
+                                        <div style={{ fontSize: 12, color: "#3fb950", marginBottom: 4 }}>Generated Link / Token:</div>
+                                        <code style={{ fontSize: 14, userSelect: "all", display: "block" }}>{generatedInvite}</code>
+                                        <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>This token expires in 24 hours and can only be used once.</p>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="admin-dash__empty">
-                                <div className="admin-dash__empty-icon">⭐</div>
-                                <div className="admin-dash__empty-text">No recommended concepts</div>
-                                <div className="admin-dash__empty-hint">
-                                    Concepts will be ranked by usage_count
+                                )}
+
+                                <div className="admin-dash__modal-footer">
+                                    <button className="admin-dash__btn admin-dash__btn--ghost" onClick={() => setShowInviteModal(false)}>
+                                        Close
+                                    </button>
+                                    <button
+                                        className="admin-dash__btn admin-dash__btn--primary"
+                                        onClick={handleGenerateInvite}
+                                        disabled={isGeneratingInvite}
+                                    >
+                                        {isGeneratingInvite ? "Generating..." : "Generate Invite Token"}
+                                    </button>
                                 </div>
                             </div>
-                        )}
-                    </div>
-                )}
-
-                {/* ── Canva Orders View ── */}
-                {activeNav === "canva" && (
-                    <div className="admin-dash__section">
-                        <div className="admin-dash__section-header">
-                            <div className="admin-dash__section-title">
-                                📦 Canva Orders
-                                <span className="admin-dash__section-count">{canvaOrders.length}</span>
-                            </div>
-                            <button className="admin-dash__btn admin-dash__btn--ghost" onClick={fetchCanvaOrders} disabled={canvaOrdersLoading}>
-                                {canvaOrdersLoading ? "…" : "🔄 Refresh"}
-                            </button>
                         </div>
-                        {canvaOrdersLoading ? (
-                            <div className="admin-dash__empty">
-                                <div className="admin-dash__spinner" style={{ width: 32, height: 32 }} />
-                                <div className="admin-dash__empty-text">Loading orders...</div>
-                            </div>
-                        ) : canvaOrders.length === 0 ? (
-                            <div className="admin-dash__empty">
-                                <div className="admin-dash__empty-icon">📦</div>
-                                <div className="admin-dash__empty-text">No Canva orders yet</div>
-                                <div className="admin-dash__empty-hint">Orders will appear here when users purchase Canva templates</div>
-                            </div>
-                        ) : (
-                            <div style={{ overflowX: "auto" }}>
-                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                                    <thead>
-                                        <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", textAlign: "left" }}>
-                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Order</th>
-                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>User</th>
-                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Ad</th>
-                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Status</th>
-                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Price</th>
-                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Created</th>
-                                            <th style={{ padding: "8px 12px", fontWeight: 500 }}>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {canvaOrders.map((order) => {
-                                            const user = order.users ?? (order as any).users;
-                                            const ad = order.generated_ads ?? (order as any).generated_ads;
-                                            const email = typeof user === "object" && user !== null ? (user as any).email : "—";
-                                            const fullName = typeof user === "object" && user !== null ? (user as any).full_name : "—";
-                                            const adName = typeof ad === "object" && ad !== null ? (ad as any).ad_name : "—";
-                                            const isPending = order.status === "pending";
-                                            const isFulfilling = canvaFulfillId === order._id;
-                                            return (
-                                                <tr key={order._id} style={{ borderBottom: "1px solid var(--border-subtle, #21262d)" }}>
-                                                    <td style={{ padding: "10px 12px" }}><code style={{ fontSize: 11 }}>{order._id.slice(0, 8)}…</code></td>
-                                                    <td style={{ padding: "10px 12px" }}>
-                                                        <div style={{ fontWeight: 500, color: "var(--text)" }}>{fullName || "—"}</div>
-                                                        <div style={{ fontSize: 12, color: "var(--muted)" }}>{email}</div>
-                                                    </td>
-                                                    <td style={{ padding: "10px 12px" }}>{adName}</td>
-                                                    <td style={{ padding: "10px 12px" }}>
-                                                        <span className={`admin-dash__concept-status ${order.status === "fulfilled" ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"}`} style={{ marginRight: 6 }} />
-                                                        {order.status}
-                                                    </td>
-                                                    <td style={{ padding: "10px 12px" }}>{(order.price_paid_cents / 100).toFixed(2)}</td>
-                                                    <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--muted)" }}>{new Date(order.created_at).toLocaleDateString()}</td>
-                                                    <td style={{ padding: "10px 12px" }}>
-                                                        {isPending ? (
-                                                            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 280 }}>
-                                                                <input
-                                                                    type="url"
-                                                                    placeholder="Canva link"
-                                                                    value={canvaFulfillId === order._id ? canvaFulfillLink : ""}
-                                                                    onChange={(e) => { setCanvaFulfillLink(e.target.value); setCanvaFulfillId(order._id); }}
-                                                                    className="admin-dash__search-input"
-                                                                    style={{ padding: "6px 10px", fontSize: 12 }}
-                                                                />
-                                                                {canvaFulfillError && canvaFulfillId === order._id && (
-                                                                    <div style={{ fontSize: 12, color: "#f85149" }}>{canvaFulfillError}</div>
-                                                                )}
-                                                                <button
-                                                                    className="admin-dash__btn admin-dash__btn--primary"
-                                                                    style={{ fontSize: 12, padding: "6px 12px" }}
-                                                                    disabled={isFulfilling || !canvaFulfillLink.trim()}
-                                                                    onClick={async () => {
-                                                                        setCanvaFulfillError("");
-                                                                        setCanvaFulfillId(order._id);
-                                                                        try {
-                                                                            await fulfillCanvaOrder(order._id, canvaFulfillLink.trim());
-                                                                            setCanvaFulfillLink("");
-                                                                            setCanvaFulfillId(null);
-                                                                            fetchCanvaOrders();
-                                                                        } catch (err: any) {
-                                                                            setCanvaFulfillError(err.message || "Failed");
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    {isFulfilling ? "…" : "Fulfill & send email"}
-                                                                </button>
-                                                            </div>
-                                                        ) : order.canva_link ? (
-                                                            <a href={order.canva_link} target="_blank" rel="noopener noreferrer" className="admin-dash__btn admin-dash__btn--ghost" style={{ fontSize: 12 }}>
-                                                                View link
-                                                            </a>
-                                                        ) : (
-                                                            "—"
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-                )}
+                    )
+                }
 
-                {/* ── Prompt Management View ── */}
-                {activeNav === "prompts" && (
-                    <div className="admin-dash__section">
-                        <div className="admin-dash__section-header">
-                            <div className="admin-dash__section-title">
-                                📝 Prompt Templates
-                                <span className="admin-dash__section-count">{promptTemplates.length}</span>
+                {/* ── Concepts View ── */}
+                {
+                    activeNav === "concepts" && (
+                        <div className="admin-dash__section">
+                            <div className="admin-dash__section-header">
+                                <div className="admin-dash__section-title">
+                                    🎨 All Concepts
+                                    <span className="admin-dash__section-count">{total}</span>
+                                </div>
+                                <div className="admin-dash__section-actions">
+                                    <button className="admin-dash__btn admin-dash__btn--primary" onClick={openModal}>
+                                        ＋ Add Concept
+                                    </button>
+                                </div>
                             </div>
-                            <button className="admin-dash__btn admin-dash__btn--ghost" onClick={fetchPromptTemplates} disabled={promptTemplatesLoading}>
-                                {promptTemplatesLoading ? "…" : "🔄 Refresh"}
-                            </button>
-                        </div>
-                        {promptTemplatesLoading ? (
-                            <div className="admin-dash__empty">
-                                <div className="admin-dash__spinner" style={{ width: 32, height: 32 }} />
-                                <div className="admin-dash__empty-text">Loading prompts...</div>
-                            </div>
-                        ) : promptTemplates.length === 0 ? (
-                            <div className="admin-dash__empty">
-                                <div className="admin-dash__empty-icon">📝</div>
-                                <div className="admin-dash__empty-text">No prompt templates found</div>
-                            </div>
-                        ) : (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                                {promptTemplates.map((t) => {
-                                    const isEditing = promptEditId === t._id;
-                                    const content = isEditing ? promptEditContent : t.content;
-                                    const active = isEditing ? promptEditActive : t.is_active;
-                                    return (
-                                        <div
-                                            key={t._id}
-                                            style={{
-                                                background: "var(--bg-card)",
-                                                border: "1px solid var(--border)",
-                                                borderRadius: 12,
-                                                padding: 20,
+
+                            {/* Search & Filter */}
+                            <div className="admin-dash__search">
+                                <input
+                                    className="admin-dash__search-input"
+                                    placeholder="Search concepts by name..."
+                                    value={search}
+                                    onChange={(e) => {
+                                        setSearch(e.target.value);
+                                        setPage(1);
+                                    }}
+                                />
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                    {categoryFilters.map((cat) => (
+                                        <button
+                                            key={cat.value}
+                                            className={`admin - dash__filter - btn ${categoryFilter === cat.value ? "admin-dash__filter-btn--active" : ""} `}
+                                            onClick={() => {
+                                                setCategoryFilter(cat.value);
+                                                setPage(1);
                                             }}
                                         >
-                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-                                                <div>
-                                                    <span style={{ fontWeight: 600, color: "var(--text)" }}>{t.name}</span>
-                                                    <span style={{ marginLeft: 10, fontSize: 12, color: "var(--muted)", textTransform: "uppercase" }}>{t.template_type}</span>
-                                                </div>
-                                                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer" }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={active}
-                                                        onChange={() => {
-                                                            if (!isEditing) {
-                                                                setPromptEditId(t._id);
-                                                                setPromptEditContent(t.content);
-                                                                setPromptEditActive(!t.is_active);
-                                                            } else {
-                                                                setPromptEditActive(!promptEditActive);
-                                                            }
-                                                        }}
-                                                    />
-                                                    Active
-                                                </label>
-                                            </div>
-                                            <textarea
-                                                value={content}
-                                                onChange={(e) => {
-                                                    if (!isEditing) {
-                                                        setPromptEditId(t._id);
-                                                        setPromptEditContent(e.target.value);
-                                                        setPromptEditActive(t.is_active);
-                                                    } else {
-                                                        setPromptEditContent(e.target.value);
-                                                    }
-                                                }}
-                                                placeholder="Prompt content..."
-                                                rows={10}
-                                                style={{
-                                                    width: "100%",
-                                                    background: "var(--bg)",
-                                                    border: "1px solid var(--border)",
-                                                    borderRadius: 8,
-                                                    color: "var(--text)",
-                                                    padding: 12,
-                                                    fontSize: 13,
-                                                    fontFamily: "monospace",
-                                                    resize: "vertical",
-                                                    boxSizing: "border-box",
+                                            {cat.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {renderConceptGrid(true)}
+
+                            {/* Pagination */}
+                            {total > 12 && (
+                                <div style={{ display: "flex", justifyContent: "center", gap: 8, padding: "16px 0" }}>
+                                    <button
+                                        className="admin-dash__btn admin-dash__btn--ghost"
+                                        disabled={page <= 1}
+                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    >
+                                        ← Previous
+                                    </button>
+                                    <span style={{ padding: "8px 14px", fontSize: 13, color: "var(--muted)" }}>
+                                        Page {page} of {Math.ceil(total / 12)}
+                                    </span>
+                                    <button
+                                        className="admin-dash__btn admin-dash__btn--ghost"
+                                        disabled={page >= Math.ceil(total / 12)}
+                                        onClick={() => setPage((p) => p + 1)}
+                                    >
+                                        Next →
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
+
+                {/* ── Recommended View ── */}
+                {
+                    activeNav === "recommended" && (
+                        <div className="admin-dash__section">
+                            <div className="admin-dash__section-header">
+                                <div className="admin-dash__section-title">
+                                    ⭐ Top Concepts by Usage
+                                    <span className="admin-dash__section-count">{recommended.length}</span>
+                                </div>
+                                <button className="admin-dash__btn admin-dash__btn--ghost" onClick={fetchRecommended}>
+                                    🔄 Refresh
+                                </button>
+                            </div>
+                            {recommended.length > 0 ? (
+                                <div className="admin-dash__grid">
+                                    {recommended.map((c) => (
+                                        <div key={c._id} className="admin-dash__concept-card">
+                                            <img
+                                                src={resolveImageUrl(c.image_url)}
+                                                alt={c.name}
+                                                className="admin-dash__concept-img"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = "none";
                                                 }}
                                             />
-                                            {(isEditing || content !== t.content || active !== t.is_active) && (
-                                                <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12 }}>
-                                                    <button
-                                                        className="admin-dash__btn admin-dash__btn--primary"
-                                                        disabled={promptSaveLoading}
-                                                        onClick={async () => {
-                                                            setPromptSaveError("");
-                                                            setPromptSaveLoading(true);
-                                                            try {
-                                                                await updatePromptTemplateAdmin(t._id, { content: promptEditContent, is_active: promptEditActive });
-                                                                setPromptEditId(null);
-                                                                fetchPromptTemplates();
-                                                            } catch (err: any) {
-                                                                setPromptSaveError(err.message || "Save failed");
-                                                            } finally {
-                                                                setPromptSaveLoading(false);
-                                                            }
-                                                        }}
-                                                    >
-                                                        {promptSaveLoading ? "Saving…" : "Save changes"}
-                                                    </button>
-                                                    <button
-                                                        className="admin-dash__btn admin-dash__btn--ghost"
-                                                        onClick={() => {
-                                                            setPromptEditId(null);
-                                                            setPromptEditContent("");
-                                                            setPromptSaveError("");
-                                                        }}
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                    {promptSaveError && <span style={{ fontSize: 13, color: "#f85149" }}>{promptSaveError}</span>}
+                                            <div className="admin-dash__concept-body">
+                                                <div className="admin-dash__concept-category">
+                                                    {getCategoryName(c.category_id, c.category_name)}
                                                 </div>
-                                            )}
+                                                <div className="admin-dash__concept-name">{c.name}</div>
+                                                <div className="admin-dash__concept-meta">
+                                                    <span className="admin-dash__concept-usage">
+                                                        🔥 {c.usage_count} uses
+                                                    </span>
+                                                    <span
+                                                        className={`admin - dash__concept - status ${c.is_active ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"} `}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                    );
-                                })}
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="admin-dash__empty">
+                                    <div className="admin-dash__empty-icon">⭐</div>
+                                    <div className="admin-dash__empty-text">No recommended concepts</div>
+                                    <div className="admin-dash__empty-hint">
+                                        Concepts will be ranked by usage_count
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
+
+                {/* ── Canva Orders View ── */}
+                {
+                    activeNav === "canva" && (
+                        <div className="admin-dash__section">
+                            <div className="admin-dash__section-header">
+                                <div className="admin-dash__section-title">
+                                    📦 Canva Orders
+                                    <span className="admin-dash__section-count">{canvaOrders.length}</span>
+                                </div>
+                                <button className="admin-dash__btn admin-dash__btn--ghost" onClick={fetchCanvaOrders} disabled={canvaOrdersLoading}>
+                                    {canvaOrdersLoading ? "…" : "🔄 Refresh"}
+                                </button>
                             </div>
-                        )}
-                    </div>
-                )}
+                            {canvaOrdersLoading ? (
+                                <div className="admin-dash__empty">
+                                    <div className="admin-dash__spinner" style={{ width: 32, height: 32 }} />
+                                    <div className="admin-dash__empty-text">Loading orders...</div>
+                                </div>
+                            ) : canvaOrders.length === 0 ? (
+                                <div className="admin-dash__empty">
+                                    <div className="admin-dash__empty-icon">📦</div>
+                                    <div className="admin-dash__empty-text">No Canva orders yet</div>
+                                    <div className="admin-dash__empty-hint">Orders will appear here when users purchase Canva templates</div>
+                                </div>
+                            ) : (
+                                <div style={{ overflowX: "auto" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", textAlign: "left" }}>
+                                                <th style={{ padding: "8px 12px", fontWeight: 500 }}>Order</th>
+                                                <th style={{ padding: "8px 12px", fontWeight: 500 }}>User</th>
+                                                <th style={{ padding: "8px 12px", fontWeight: 500 }}>Ad</th>
+                                                <th style={{ padding: "8px 12px", fontWeight: 500 }}>Status</th>
+                                                <th style={{ padding: "8px 12px", fontWeight: 500 }}>Price</th>
+                                                <th style={{ padding: "8px 12px", fontWeight: 500 }}>Created</th>
+                                                <th style={{ padding: "8px 12px", fontWeight: 500 }}>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {canvaOrders.map((order) => {
+                                                const user = order.users ?? (order as any).users;
+                                                const ad = order.generated_ads ?? (order as any).generated_ads;
+                                                const email = typeof user === "object" && user !== null ? (user as any).email : "—";
+                                                const fullName = typeof user === "object" && user !== null ? (user as any).full_name : "—";
+                                                const adName = typeof ad === "object" && ad !== null ? (ad as any).ad_name : "—";
+                                                const isPending = order.status === "pending";
+                                                const isFulfilling = canvaFulfillId === order._id;
+                                                return (
+                                                    <tr key={order._id} style={{ borderBottom: "1px solid var(--border-subtle, #21262d)" }}>
+                                                        <td style={{ padding: "10px 12px" }}><code style={{ fontSize: 11 }}>{order._id.slice(0, 8)}…</code></td>
+                                                        <td style={{ padding: "10px 12px" }}>
+                                                            <div style={{ fontWeight: 500, color: "var(--text)" }}>{fullName || "—"}</div>
+                                                            <div style={{ fontSize: 12, color: "var(--muted)" }}>{email}</div>
+                                                        </td>
+                                                        <td style={{ padding: "10px 12px" }}>{adName}</td>
+                                                        <td style={{ padding: "10px 12px" }}>
+                                                            <span className={`admin - dash__concept - status ${order.status === "fulfilled" ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"} `} style={{ marginRight: 6 }} />
+                                                            {order.status}
+                                                        </td>
+                                                        <td style={{ padding: "10px 12px" }}>{(order.price_paid_cents / 100).toFixed(2)}</td>
+                                                        <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--muted)" }}>{new Date(order.created_at).toLocaleDateString()}</td>
+                                                        <td style={{ padding: "10px 12px" }}>
+                                                            {isPending ? (
+                                                                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 280 }}>
+                                                                    <input
+                                                                        type="url"
+                                                                        placeholder="Canva link"
+                                                                        value={canvaFulfillId === order._id ? canvaFulfillLink : ""}
+                                                                        onChange={(e) => { setCanvaFulfillLink(e.target.value); setCanvaFulfillId(order._id); }}
+                                                                        className="admin-dash__search-input"
+                                                                        style={{ padding: "6px 10px", fontSize: 12 }}
+                                                                    />
+                                                                    {canvaFulfillError && canvaFulfillId === order._id && (
+                                                                        <div style={{ fontSize: 12, color: "#f85149" }}>{canvaFulfillError}</div>
+                                                                    )}
+                                                                    <button
+                                                                        className="admin-dash__btn admin-dash__btn--primary"
+                                                                        style={{ fontSize: 12, padding: "6px 12px" }}
+                                                                        disabled={isFulfilling || !canvaFulfillLink.trim()}
+                                                                        onClick={async () => {
+                                                                            setCanvaFulfillError("");
+                                                                            setCanvaFulfillId(order._id);
+                                                                            try {
+                                                                                await fulfillCanvaOrder(order._id, canvaFulfillLink.trim());
+                                                                                setCanvaFulfillLink("");
+                                                                                setCanvaFulfillId(null);
+                                                                                fetchCanvaOrders();
+                                                                            } catch (err: any) {
+                                                                                setCanvaFulfillError(err.message || "Failed");
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {isFulfilling ? "…" : "Fulfill & send email"}
+                                                                    </button>
+                                                                </div>
+                                                            ) : order.canva_link ? (
+                                                                <a href={order.canva_link} target="_blank" rel="noopener noreferrer" className="admin-dash__btn admin-dash__btn--ghost" style={{ fontSize: 12 }}>
+                                                                    View link
+                                                                </a>
+                                                            ) : (
+                                                                "—"
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
+
+                {/* ── Prompt Management View ── */}
+                {
+                    activeNav === "prompts" && (
+                        <div className="admin-dash__section">
+                            <div className="admin-dash__section-header">
+                                <div className="admin-dash__section-title">
+                                    📝 Prompt Templates
+                                    <span className="admin-dash__section-count">{promptTemplates.length}</span>
+                                </div>
+                                <button className="admin-dash__btn admin-dash__btn--ghost" onClick={fetchPromptTemplates} disabled={promptTemplatesLoading}>
+                                    {promptTemplatesLoading ? "…" : "🔄 Refresh"}
+                                </button>
+                            </div>
+                            {promptTemplatesLoading ? (
+                                <div className="admin-dash__empty">
+                                    <div className="admin-dash__spinner" style={{ width: 32, height: 32 }} />
+                                    <div className="admin-dash__empty-text">Loading prompts...</div>
+                                </div>
+                            ) : promptTemplates.length === 0 ? (
+                                <div className="admin-dash__empty">
+                                    <div className="admin-dash__empty-icon">📝</div>
+                                    <div className="admin-dash__empty-text">No prompt templates found</div>
+                                </div>
+                            ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                                    {promptTemplates.map((t) => {
+                                        const isEditing = promptEditId === t._id;
+                                        const content = isEditing ? promptEditContent : t.content;
+                                        const active = isEditing ? promptEditActive : t.is_active;
+                                        return (
+                                            <div
+                                                key={t._id}
+                                                style={{
+                                                    background: "var(--bg-card)",
+                                                    border: "1px solid var(--border)",
+                                                    borderRadius: 12,
+                                                    padding: 20,
+                                                }}
+                                            >
+                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                                                    <div>
+                                                        <span style={{ fontWeight: 600, color: "var(--text)" }}>{t.name}</span>
+                                                        <span style={{ marginLeft: 10, fontSize: 12, color: "var(--muted)", textTransform: "uppercase" }}>{t.template_type}</span>
+                                                    </div>
+                                                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer" }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={active}
+                                                            onChange={() => {
+                                                                if (!isEditing) {
+                                                                    setPromptEditId(t._id);
+                                                                    setPromptEditContent(t.content);
+                                                                    setPromptEditActive(!t.is_active);
+                                                                } else {
+                                                                    setPromptEditActive(!promptEditActive);
+                                                                }
+                                                            }}
+                                                        />
+                                                        Active
+                                                    </label>
+                                                </div>
+                                                <textarea
+                                                    value={content}
+                                                    onChange={(e) => {
+                                                        if (!isEditing) {
+                                                            setPromptEditId(t._id);
+                                                            setPromptEditContent(e.target.value);
+                                                            setPromptEditActive(t.is_active);
+                                                        } else {
+                                                            setPromptEditContent(e.target.value);
+                                                        }
+                                                    }}
+                                                    placeholder="Prompt content..."
+                                                    rows={10}
+                                                    style={{
+                                                        width: "100%",
+                                                        background: "var(--bg)",
+                                                        border: "1px solid var(--border)",
+                                                        borderRadius: 8,
+                                                        color: "var(--text)",
+                                                        padding: 12,
+                                                        fontSize: 13,
+                                                        fontFamily: "monospace",
+                                                        resize: "vertical",
+                                                        boxSizing: "border-box",
+                                                    }}
+                                                />
+                                                {(isEditing || content !== t.content || active !== t.is_active) && (
+                                                    <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12 }}>
+                                                        <button
+                                                            className="admin-dash__btn admin-dash__btn--primary"
+                                                            disabled={promptSaveLoading}
+                                                            onClick={async () => {
+                                                                setPromptSaveError("");
+                                                                setPromptSaveLoading(true);
+                                                                try {
+                                                                    await updatePromptTemplateAdmin(t._id, { content: promptEditContent, is_active: promptEditActive });
+                                                                    setPromptEditId(null);
+                                                                    fetchPromptTemplates();
+                                                                } catch (err: any) {
+                                                                    setPromptSaveError(err.message || "Save failed");
+                                                                } finally {
+                                                                    setPromptSaveLoading(false);
+                                                                }
+                                                            }}
+                                                        >
+                                                            {promptSaveLoading ? "Saving…" : "Save changes"}
+                                                        </button>
+                                                        <button
+                                                            className="admin-dash__btn admin-dash__btn--ghost"
+                                                            onClick={() => {
+                                                                setPromptEditId(null);
+                                                                setPromptEditContent("");
+                                                                setPromptSaveError("");
+                                                            }}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        {promptSaveError && <span style={{ fontSize: 13, color: "#f85149" }}>{promptSaveError}</span>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
 
                 {/* ── Categories View ── */}
-                {activeNav === "categories" && (
-                    <div className="admin-dash__section">
-                        <div className="admin-dash__section-header">
-                            <div className="admin-dash__section-title">
-                                🏷️ All Categories
-                                <span className="admin-dash__section-count">{categories.length}</span>
+                {
+                    activeNav === "categories" && (
+                        <div className="admin-dash__section">
+                            <div className="admin-dash__section-header">
+                                <div className="admin-dash__section-title">
+                                    🏷️ All Categories
+                                    <span className="admin-dash__section-count">{categories.length}</span>
+                                </div>
+                                <button
+                                    className="admin-dash__btn admin-dash__btn--primary"
+                                    onClick={() => {
+                                        setCatName("");
+                                        setCatDescription("");
+                                        setCatModalError("");
+                                        setShowCategoryModal(true);
+                                    }}
+                                >
+                                    ＋ Add Category
+                                </button>
                             </div>
-                            <button
-                                className="admin-dash__btn admin-dash__btn--primary"
-                                onClick={() => {
-                                    setCatName("");
-                                    setCatDescription("");
-                                    setCatModalError("");
-                                    setShowCategoryModal(true);
-                                }}
-                            >
-                                ＋ Add Category
-                            </button>
-                        </div>
 
-                        {categories.length > 0 ? (
-                            <div className="admin-dash__grid">
-                                {categories.map((cat) => (
-                                    <div key={cat._id} className="admin-dash__concept-card">
-                                        <div className="admin-dash__concept-body" style={{ padding: 20 }}>
-                                            <div className="admin-dash__concept-name" style={{ fontSize: 16 }}>
-                                                {cat.name}
-                                            </div>
-                                            <div className="admin-dash__concept-category" style={{ marginTop: 4 }}>
-                                                slug: {cat.slug}
-                                            </div>
-                                            {cat.description && (
-                                                <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
-                                                    {cat.description}
+                            {categories.length > 0 ? (
+                                <div className="admin-dash__grid">
+                                    {categories.map((cat) => (
+                                        <div key={cat._id} className="admin-dash__concept-card">
+                                            <div className="admin-dash__concept-body" style={{ padding: 20 }}>
+                                                <div className="admin-dash__concept-name" style={{ fontSize: 16 }}>
+                                                    {cat.name}
                                                 </div>
-                                            )}
-                                            <div className="admin-dash__concept-meta" style={{ marginTop: 8 }}>
-                                                <span className="admin-dash__concept-usage">
-                                                    Order: {cat.display_order}
-                                                </span>
+                                                <div className="admin-dash__concept-category" style={{ marginTop: 4 }}>
+                                                    slug: {cat.slug}
+                                                </div>
+                                                {cat.description && (
+                                                    <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
+                                                        {cat.description}
+                                                    </div>
+                                                )}
+                                                <div className="admin-dash__concept-meta" style={{ marginTop: 8 }}>
+                                                    <span className="admin-dash__concept-usage">
+                                                        Order: {cat.display_order}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="admin-dash__empty">
-                                <div className="admin-dash__empty-icon">🏷️</div>
-                                <div className="admin-dash__empty-text">No categories yet</div>
-                                <div className="admin-dash__empty-hint">Create your first category to organize concepts</div>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </main>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="admin-dash__empty">
+                                    <div className="admin-dash__empty-icon">🏷️</div>
+                                    <div className="admin-dash__empty-text">No categories yet</div>
+                                    <div className="admin-dash__empty-hint">Create your first category to organize concepts</div>
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
+            </main >
 
             {/* ── Create Concept Modal ── */}
-            {showModal && (
-                <div className="admin-modal__overlay" onClick={closeModal}>
-                    <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="admin-modal__header">
-                            <h2 className="admin-modal__title">🎨 Add New Concept</h2>
-                            <button className="admin-modal__close" onClick={closeModal}>✕</button>
-                        </div>
-
-                        {modalError && (
-                            <div className="admin-modal__error">⚠️ {modalError}</div>
-                        )}
-
-                        <form className="admin-modal__form" onSubmit={handleCreateConcept}>
-                            {/* Image Upload */}
-                            <div className="admin-modal__upload" onClick={() => fileInputRef.current?.click()}>
-                                {newImagePreview ? (
-                                    <img src={newImagePreview} alt="Preview" className="admin-modal__upload-preview" />
-                                ) : (
-                                    <div className="admin-modal__upload-placeholder">
-                                        <span className="admin-modal__upload-icon">📷</span>
-                                        <span className="admin-modal__upload-text">Click to upload image</span>
-                                        <span className="admin-modal__upload-hint">PNG, JPG, WEBP — max 10MB</span>
-                                    </div>
-                                )}
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/png,image/jpeg,image/webp"
-                                    onChange={handleImageSelect}
-                                    style={{ display: "none" }}
-                                />
+            {
+                showModal && (
+                    <div className="admin-modal__overlay" onClick={closeModal}>
+                        <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="admin-modal__header">
+                                <h2 className="admin-modal__title">🎨 Add New Concept</h2>
+                                <button className="admin-modal__close" onClick={closeModal}>✕</button>
                             </div>
 
-                            {/* Name */}
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Name *</label>
-                                <input
-                                    className="admin-modal__input"
-                                    placeholder="e.g. Bold Social Proof Banner"
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                />
-                            </div>
+                            {modalError && (
+                                <div className="admin-modal__error">⚠️ {modalError}</div>
+                            )}
 
-                            {/* Category */}
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Category *</label>
-                                <select
-                                    className="admin-modal__input admin-modal__select"
-                                    value={newCategoryId}
-                                    onChange={(e) => setNewCategoryId(e.target.value)}
+                            <form className="admin-modal__form" onSubmit={handleCreateConcept}>
+                                {/* Image Upload */}
+                                <div className="admin-modal__upload" onClick={() => fileInputRef.current?.click()}>
+                                    {newImagePreview ? (
+                                        <img src={newImagePreview} alt="Preview" className="admin-modal__upload-preview" />
+                                    ) : (
+                                        <div className="admin-modal__upload-placeholder">
+                                            <span className="admin-modal__upload-icon">📷</span>
+                                            <span className="admin-modal__upload-text">Click to upload image</span>
+                                            <span className="admin-modal__upload-hint">PNG, JPG, WEBP — max 10MB</span>
+                                        </div>
+                                    )}
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/webp"
+                                        onChange={handleImageSelect}
+                                        style={{ display: "none" }}
+                                    />
+                                </div>
+
+                                {/* Name */}
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Name *</label>
+                                    <input
+                                        className="admin-modal__input"
+                                        placeholder="e.g. Bold Social Proof Banner"
+                                        value={newName}
+                                        onChange={(e) => setNewName(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Category */}
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Category *</label>
+                                    <select
+                                        className="admin-modal__input admin-modal__select"
+                                        value={newCategoryId}
+                                        onChange={(e) => setNewCategoryId(e.target.value)}
+                                    >
+                                        {categories.map((cat) => (
+                                            <option key={cat._id} value={cat._id}>
+                                                {cat.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Description */}
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Description</label>
+                                    <textarea
+                                        className="admin-modal__input admin-modal__textarea"
+                                        placeholder="Describe the concept style and when to use it..."
+                                        value={newDescription}
+                                        onChange={(e) => setNewDescription(e.target.value)}
+                                        rows={3}
+                                    />
+                                </div>
+
+                                {/* Tags */}
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Tags</label>
+                                    <input
+                                        className="admin-modal__input"
+                                        placeholder="tag1, tag2, tag3 (comma-separated)"
+                                        value={newTags}
+                                        onChange={(e) => setNewTags(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Source URL */}
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Source URL</label>
+                                    <input
+                                        className="admin-modal__input"
+                                        placeholder="https://example.com/inspiration"
+                                        value={newSourceUrl}
+                                        onChange={(e) => setNewSourceUrl(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Submit */}
+                                <button
+                                    type="submit"
+                                    className="admin-modal__submit"
+                                    disabled={modalLoading}
                                 >
-                                    {categories.map((cat) => (
-                                        <option key={cat._id} value={cat._id}>
-                                            {cat.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Description */}
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Description</label>
-                                <textarea
-                                    className="admin-modal__input admin-modal__textarea"
-                                    placeholder="Describe the concept style and when to use it..."
-                                    value={newDescription}
-                                    onChange={(e) => setNewDescription(e.target.value)}
-                                    rows={3}
-                                />
-                            </div>
-
-                            {/* Tags */}
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Tags</label>
-                                <input
-                                    className="admin-modal__input"
-                                    placeholder="tag1, tag2, tag3 (comma-separated)"
-                                    value={newTags}
-                                    onChange={(e) => setNewTags(e.target.value)}
-                                />
-                            </div>
-
-                            {/* Source URL */}
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Source URL</label>
-                                <input
-                                    className="admin-modal__input"
-                                    placeholder="https://example.com/inspiration"
-                                    value={newSourceUrl}
-                                    onChange={(e) => setNewSourceUrl(e.target.value)}
-                                />
-                            </div>
-
-                            {/* Submit */}
-                            <button
-                                type="submit"
-                                className="admin-modal__submit"
-                                disabled={modalLoading}
-                            >
-                                {modalLoading ? (
-                                    <>
-                                        <span className="admin-dash__spinner" /> Creating...
-                                    </>
-                                ) : (
-                                    "Create Concept"
-                                )}
-                            </button>
-                        </form>
+                                    {modalLoading ? (
+                                        <>
+                                            <span className="admin-dash__spinner" /> Creating...
+                                        </>
+                                    ) : (
+                                        "Create Concept"
+                                    )}
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* ── Edit Concept Modal ── */}
-            {showEditModal && (
-                <div className="admin-modal__overlay" onClick={closeEditModal}>
-                    <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="admin-modal__header">
-                            <h2 className="admin-modal__title">✏️ Edit Concept</h2>
-                            <button className="admin-modal__close" onClick={closeEditModal}>✕</button>
-                        </div>
-
-                        {editError && (
-                            <div className="admin-modal__error">⚠️ {editError}</div>
-                        )}
-
-                        <form className="admin-modal__form" onSubmit={handleUpdateConcept}>
-                            {/* Image Upload */}
-                            <div className="admin-modal__upload" onClick={() => editFileInputRef.current?.click()}>
-                                {editImagePreview ? (
-                                    <img src={editImagePreview} alt="Preview" className="admin-modal__upload-preview" />
-                                ) : (
-                                    <div className="admin-modal__upload-placeholder">
-                                        <span className="admin-modal__upload-icon">📷</span>
-                                        <span className="admin-modal__upload-text">Click to change image</span>
-                                        <span className="admin-modal__upload-hint">PNG, JPG, WEBP — max 10MB</span>
-                                    </div>
-                                )}
-                                <input
-                                    ref={editFileInputRef}
-                                    type="file"
-                                    accept="image/png,image/jpeg,image/webp"
-                                    onChange={handleEditImageSelect}
-                                    style={{ display: "none" }}
-                                />
+            {
+                showEditModal && (
+                    <div className="admin-modal__overlay" onClick={closeEditModal}>
+                        <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="admin-modal__header">
+                                <h2 className="admin-modal__title">✏️ Edit Concept</h2>
+                                <button className="admin-modal__close" onClick={closeEditModal}>✕</button>
                             </div>
 
-                            {/* Name */}
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Name *</label>
-                                <input
-                                    className="admin-modal__input"
-                                    placeholder="e.g. Bold Social Proof Banner"
-                                    value={editName}
-                                    onChange={(e) => setEditName(e.target.value)}
-                                />
-                            </div>
+                            {editError && (
+                                <div className="admin-modal__error">⚠️ {editError}</div>
+                            )}
 
-                            {/* Category */}
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Category *</label>
-                                <select
-                                    className="admin-modal__input admin-modal__select"
-                                    value={editCategoryId}
-                                    onChange={(e) => setEditCategoryId(e.target.value)}
+                            <form className="admin-modal__form" onSubmit={handleUpdateConcept}>
+                                {/* Image Upload */}
+                                <div className="admin-modal__upload" onClick={() => editFileInputRef.current?.click()}>
+                                    {editImagePreview ? (
+                                        <img src={editImagePreview} alt="Preview" className="admin-modal__upload-preview" />
+                                    ) : (
+                                        <div className="admin-modal__upload-placeholder">
+                                            <span className="admin-modal__upload-icon">📷</span>
+                                            <span className="admin-modal__upload-text">Click to change image</span>
+                                            <span className="admin-modal__upload-hint">PNG, JPG, WEBP — max 10MB</span>
+                                        </div>
+                                    )}
+                                    <input
+                                        ref={editFileInputRef}
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/webp"
+                                        onChange={handleEditImageSelect}
+                                        style={{ display: "none" }}
+                                    />
+                                </div>
+
+                                {/* Name */}
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Name *</label>
+                                    <input
+                                        className="admin-modal__input"
+                                        placeholder="e.g. Bold Social Proof Banner"
+                                        value={editName}
+                                        onChange={(e) => setEditName(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Category */}
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Category *</label>
+                                    <select
+                                        className="admin-modal__input admin-modal__select"
+                                        value={editCategoryId}
+                                        onChange={(e) => setEditCategoryId(e.target.value)}
+                                    >
+                                        {categories.map((cat) => (
+                                            <option key={cat._id} value={cat._id}>
+                                                {cat.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Description */}
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Description</label>
+                                    <textarea
+                                        className="admin-modal__input admin-modal__textarea"
+                                        placeholder="Describe the concept style and when to use it..."
+                                        value={editDescription}
+                                        onChange={(e) => setEditDescription(e.target.value)}
+                                        rows={3}
+                                    />
+                                </div>
+
+                                {/* Tags */}
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Tags</label>
+                                    <input
+                                        className="admin-modal__input"
+                                        placeholder="tag1, tag2, tag3 (comma-separated)"
+                                        value={editTags}
+                                        onChange={(e) => setEditTags(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Source URL */}
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Source URL</label>
+                                    <input
+                                        className="admin-modal__input"
+                                        placeholder="https://example.com/inspiration"
+                                        value={editSourceUrl}
+                                        onChange={(e) => setEditSourceUrl(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Submit */}
+                                <button
+                                    type="submit"
+                                    className="admin-modal__submit"
+                                    disabled={editLoading}
                                 >
-                                    {categories.map((cat) => (
-                                        <option key={cat._id} value={cat._id}>
-                                            {cat.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Description */}
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Description</label>
-                                <textarea
-                                    className="admin-modal__input admin-modal__textarea"
-                                    placeholder="Describe the concept style and when to use it..."
-                                    value={editDescription}
-                                    onChange={(e) => setEditDescription(e.target.value)}
-                                    rows={3}
-                                />
-                            </div>
-
-                            {/* Tags */}
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Tags</label>
-                                <input
-                                    className="admin-modal__input"
-                                    placeholder="tag1, tag2, tag3 (comma-separated)"
-                                    value={editTags}
-                                    onChange={(e) => setEditTags(e.target.value)}
-                                />
-                            </div>
-
-                            {/* Source URL */}
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Source URL</label>
-                                <input
-                                    className="admin-modal__input"
-                                    placeholder="https://example.com/inspiration"
-                                    value={editSourceUrl}
-                                    onChange={(e) => setEditSourceUrl(e.target.value)}
-                                />
-                            </div>
-
-                            {/* Submit */}
-                            <button
-                                type="submit"
-                                className="admin-modal__submit"
-                                disabled={editLoading}
-                            >
-                                {editLoading ? (
-                                    <>
-                                        <span className="admin-dash__spinner" /> Saving...
-                                    </>
-                                ) : (
-                                    "Save Changes"
-                                )}
-                            </button>
-                        </form>
+                                    {editLoading ? (
+                                        <>
+                                            <span className="admin-dash__spinner" /> Saving...
+                                        </>
+                                    ) : (
+                                        "Save Changes"
+                                    )}
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* ── Create Category Modal ── */}
-            {showCategoryModal && (
-                <div className="admin-modal__overlay" onClick={() => setShowCategoryModal(false)}>
-                    <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="admin-modal__header">
-                            <h2 className="admin-modal__title">🏷️ New Category</h2>
-                            <button className="admin-modal__close" onClick={() => setShowCategoryModal(false)}>✕</button>
+            {
+                showCategoryModal && (
+                    <div className="admin-modal__overlay" onClick={() => setShowCategoryModal(false)}>
+                        <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="admin-modal__header">
+                                <h2 className="admin-modal__title">🏷️ New Category</h2>
+                                <button className="admin-modal__close" onClick={() => setShowCategoryModal(false)}>✕</button>
+                            </div>
+
+                            {catModalError && (
+                                <div className="admin-modal__error">⚠️ {catModalError}</div>
+                            )}
+
+                            <form className="admin-modal__form" onSubmit={handleCreateCategory}>
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Category Name *</label>
+                                    <input
+                                        className="admin-modal__input"
+                                        placeholder="e.g. Social Proof"
+                                        value={catName}
+                                        onChange={(e) => setCatName(e.target.value)}
+                                    />
+                                </div>
+                                <div className="admin-modal__field">
+                                    <label className="admin-modal__label">Description</label>
+                                    <textarea
+                                        className="admin-modal__input admin-modal__textarea"
+                                        placeholder="Describe what this category covers..."
+                                        value={catDescription}
+                                        onChange={(e) => setCatDescription(e.target.value)}
+                                        rows={2}
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="admin-modal__submit"
+                                    disabled={catModalLoading}
+                                >
+                                    {catModalLoading ? (
+                                        <>
+                                            <span className="admin-dash__spinner" /> Creating...
+                                        </>
+                                    ) : (
+                                        "Create Category"
+                                    )}
+                                </button>
+                            </form>
                         </div>
-
-                        {catModalError && (
-                            <div className="admin-modal__error">⚠️ {catModalError}</div>
-                        )}
-
-                        <form className="admin-modal__form" onSubmit={handleCreateCategory}>
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Category Name *</label>
-                                <input
-                                    className="admin-modal__input"
-                                    placeholder="e.g. Social Proof"
-                                    value={catName}
-                                    onChange={(e) => setCatName(e.target.value)}
-                                />
-                            </div>
-                            <div className="admin-modal__field">
-                                <label className="admin-modal__label">Description</label>
-                                <textarea
-                                    className="admin-modal__input admin-modal__textarea"
-                                    placeholder="Describe what this category covers..."
-                                    value={catDescription}
-                                    onChange={(e) => setCatDescription(e.target.value)}
-                                    rows={2}
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                className="admin-modal__submit"
-                                disabled={catModalLoading}
-                            >
-                                {catModalLoading ? (
-                                    <>
-                                        <span className="admin-dash__spinner" /> Creating...
-                                    </>
-                                ) : (
-                                    "Create Category"
-                                )}
-                            </button>
-                        </form>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 
     // ── Render helpers ──
@@ -1596,7 +1715,7 @@ function AdminDashboard() {
                 {concepts.map((c) => (
                     <div
                         key={c._id}
-                        className={`admin-dash__concept-card ${!c.is_active ? "admin-dash__concept-card--inactive" : ""} ${draggedId === c._id ? "admin-dash__concept-card--dragging" : ""}`}
+                        className={`admin - dash__concept - card ${!c.is_active ? "admin-dash__concept-card--inactive" : ""} ${draggedId === c._id ? "admin-dash__concept-card--dragging" : ""} `}
                         draggable={draggable}
                         onDragStart={() => draggable && handleDragStart(c._id)}
                         onDragOver={draggable ? handleDragOver : undefined}
@@ -1620,7 +1739,7 @@ function AdminDashboard() {
                                     {c.usage_count} uses
                                 </span>
                                 <span
-                                    className={`admin-dash__concept-status ${c.is_active ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"}`}
+                                    className={`admin - dash__concept - status ${c.is_active ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"} `}
                                 />
                             </div>
                             {c.tags?.length > 0 && (
@@ -1634,7 +1753,7 @@ function AdminDashboard() {
                             )}
                             <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
                                 <button
-                                    className={`admin-dash__btn ${c.is_active ? "admin-dash__btn--ghost" : "admin-dash__btn--primary"}`}
+                                    className={`admin - dash__btn ${c.is_active ? "admin-dash__btn--ghost" : "admin-dash__btn--primary"} `}
                                     style={{ flex: 1, padding: "5px 8px", fontSize: 11 }}
                                     onClick={(e) => {
                                         e.stopPropagation();

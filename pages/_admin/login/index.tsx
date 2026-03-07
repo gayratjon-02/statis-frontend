@@ -26,6 +26,7 @@ export default function AdminAuth() {
     const [signupPassword, setSignupPassword] = useState("");
     const [signupConfirm, setSignupConfirm] = useState("");
     const [signupRole, setSignupRole] = useState<AdminRole>(AdminRole.CONTENT_ADMIN);
+    const [signupInviteToken, setSignupInviteToken] = useState("");
 
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -61,6 +62,7 @@ export default function AdminAuth() {
                 password: signupPassword,
                 name: signupName,
                 role: signupRole,
+                inviteToken: signupInviteToken || undefined,
             });
             localStorage.setItem("se_admin_token", res.accessToken);
             localStorage.setItem("se_admin_user", JSON.stringify(res.admin));
