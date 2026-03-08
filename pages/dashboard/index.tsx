@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import SubscriptionGuard from "../../libs/auth/SubscriptionGuard";
 import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest, updateMemberRequest, changePasswordRequest } from "../../server/user/login";
-import { createCheckoutRequest, createPortalRequest, purchaseAddonRequest } from "../../server/user/billing";
+import { createCheckoutRequest, createPortalRequest, purchaseAddonRequest, getMyCanvaOrders, type CanvaOrder } from "../../server/user/billing";
 import { getRecentGenerationsRequest, downloadAdImage } from "../../server/user/generation";
 import { getBrands, deleteBrand } from "../../server/user/brand";
 import { getDAPresets, uploadDAImage, deleteDAPreset, type DAPreset } from "../../server/user/da";
@@ -157,6 +157,10 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
     const [pwSaving, setPwSaving] = useState(false);
     const [pwMsg, setPwMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
+    // Canva Templates page state
+    const [canvaOrders, setCanvaOrders] = useState<CanvaOrder[]>([]);
+    const [canvaLoading, setCanvaLoading] = useState(false);
+
     // DA Templates page state
     const [daPresets, setDaPresets] = useState<DAPreset[]>([]);
     const [daLoading, setDaLoading] = useState(false);
@@ -280,6 +284,17 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                 .then((res) => setFullBrands(res.list))
                 .catch(console.error)
                 .finally(() => setBrandsLoading(false));
+        }
+    }, [page]);
+
+    // When switching to Canva Templates page — load orders
+    useEffect(() => {
+        if (page === "canva") {
+            setCanvaLoading(true);
+            getMyCanvaOrders()
+                .then(setCanvaOrders)
+                .catch((err) => toast.error(err.message))
+                .finally(() => setCanvaLoading(false));
         }
     }, [page]);
 
@@ -654,7 +669,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                         </div>
                         <div className="dash-header__title">
-                            {page === "brands" ? "My Brands" : page === "billing" ? "Billing & Subscription" : page === "account" ? "Account Settings" : page === "daTemplates" ? "DA Templates" : `Welcome back, ${userName.split(" ")[0]}`}
+                            {page === "brands" ? "My Brands" : page === "billing" ? "Billing & Subscription" : page === "account" ? "Account Settings" : page === "daTemplates" ? "DA Templates" : page === "canva" ? "Canva Templates" : `Welcome back, ${userName.split(" ")[0]}`}
                         </div>
                     </div>
                     {page === "brands" ? (
@@ -671,6 +686,10 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                 onChange={(e) => { if (e.target.files?.length) handleDAFiles(e.target.files); e.target.value = ""; }}
                             />
                         </label>
+                    ) : page === "canva" ? (
+                        <button className="btn-generate" onClick={() => router.push("/generateAds")}>
+                            + Generate New Ad
+                        </button>
                     ) : page === "billing" || page === "account" ? null : (
                         <button className="btn-generate" onClick={() => router.push("/generateAds")}>+ Generate New Ad</button>
                     )}
@@ -1269,6 +1288,94 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                         )}
                                     </div>
                                 ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ===== CANVA TEMPLATES PAGE ===== */}
+                {page === "canva" && (
+                    <div style={{ padding: "0 24px 40px" }}>
+                        {canvaLoading ? (
+                            <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--dim)" }}>Loading your Canva orders...</div>
+                        ) : canvaOrders.length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "80px 20px", color: "var(--dim)" }}>
+                                <div style={{ fontSize: 40, marginBottom: 16, opacity: 0.4 }}>C</div>
+                                <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: "var(--text)" }}>No Canva templates yet</div>
+                                <div style={{ fontSize: 14, lineHeight: 1.6, maxWidth: 400, margin: "0 auto" }}>
+                                    Generate ads and purchase Canva templates to get editable designs you can customize further.
+                                </div>
+                                <button
+                                    className="btn-generate"
+                                    style={{ marginTop: 24 }}
+                                    onClick={() => router.push("/generateAds")}
+                                >
+                                    + Generate New Ad
+                                </button>
+                            </div>
+                        ) : (
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+                                {canvaOrders.map((order) => {
+                                    const statusColor = order.status === "fulfilled" ? "var(--green)" : order.status === "in_progress" ? "var(--yellow)" : "var(--accent)";
+                                    const statusLabel = order.status === "fulfilled" ? "Ready" : order.status === "in_progress" ? "In Progress" : "Pending";
+                                    return (
+                                        <div key={order._id} style={{
+                                            background: "var(--bg-card)",
+                                            border: "1px solid var(--border)",
+                                            borderRadius: 14,
+                                            overflow: "hidden",
+                                            transition: "border-color 0.2s",
+                                        }}>
+                                            <div style={{ height: 200, background: "var(--bg-input)", position: "relative" }}>
+                                                {order.generated_ads?.image_url_1x1 ? (
+                                                    <img
+                                                        src={order.generated_ads.image_url_1x1}
+                                                        alt={order.generated_ads.ad_name ?? "Ad"}
+                                                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                    />
+                                                ) : (
+                                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--dim)", fontSize: 14 }}>
+                                                        No preview
+                                                    </div>
+                                                )}
+                                                <div style={{
+                                                    position: "absolute", top: 10, right: 10,
+                                                    background: "rgba(0,0,0,0.7)", color: statusColor,
+                                                    padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                                                }}>
+                                                    {statusLabel}
+                                                </div>
+                                            </div>
+                                            <div style={{ padding: "14px 16px" }}>
+                                                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 4 }}>
+                                                    {order.generated_ads?.ad_name ?? "Canva Template"}
+                                                </div>
+                                                <div style={{ fontSize: 12, color: "var(--dim)", marginBottom: 12 }}>
+                                                    Ordered {new Date(order.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                                    {" · "}${(order.price_paid_cents / 100).toFixed(2)}
+                                                </div>
+                                                {order.status === "fulfilled" && order.canva_link ? (
+                                                    <a
+                                                        href={order.canva_link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="btn-generate"
+                                                        style={{ display: "block", textAlign: "center", textDecoration: "none", fontSize: 13, padding: "8px 0" }}
+                                                    >
+                                                        Open in Canva
+                                                    </a>
+                                                ) : (
+                                                    <div style={{
+                                                        textAlign: "center", padding: "8px 0", fontSize: 13,
+                                                        color: "var(--dim)", background: "var(--bg-input)", borderRadius: 8,
+                                                    }}>
+                                                        {order.status === "in_progress" ? "Being prepared..." : "Waiting for processing..."}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

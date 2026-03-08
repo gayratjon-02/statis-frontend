@@ -132,3 +132,30 @@ export async function createCanvaCheckoutRequest(
 
     return res.json();
 }
+
+const CANVA_API = `${API_BASE_URL}/canva`;
+
+export interface CanvaOrder {
+    _id: string;
+    generated_ad_id: string;
+    status: "pending" | "in_progress" | "fulfilled";
+    canva_link: string | null;
+    price_paid_cents: number;
+    created_at: string;
+    fulfilled_at: string | null;
+    generated_ads: { ad_name: string | null; image_url_1x1: string | null } | null;
+}
+
+export async function getMyCanvaOrders(): Promise<CanvaOrder[]> {
+    const res = await fetch(`${CANVA_API}/orders`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Failed to load orders" }));
+        throw new Error(error.message || `Failed to load orders (${res.status})`);
+    }
+
+    return res.json();
+}
