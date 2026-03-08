@@ -283,6 +283,7 @@ function GeneratePageContent() {
   const [fixModalAdId, setFixModalAdId] = useState<string | null>(null);
   const [fixDescription, setFixDescription] = useState("");
   const [isFixing, setIsFixing] = useState(false);
+  const [fixingAdIds, setFixingAdIds] = useState<Set<string>>(new Set());
 
   // Dynamic credit costs from backend
   const [creditCosts, setCreditCosts] = useState<CreditCosts>({
@@ -3100,6 +3101,23 @@ function GeneratePageContent() {
                         overflow: "hidden",
                       }}
                     >
+                      {fixingAdIds.has(result._id) && (
+                        <div style={{
+                          position: "absolute",
+                          inset: 0,
+                          background: "rgba(0,0,0,0.7)",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderRadius: 12,
+                          zIndex: 10,
+                          gap: 12,
+                        }}>
+                          <div className="gen-fix-card-spinner" />
+                          <div style={{ fontSize: 13, color: "#fff", fontWeight: 600 }}>Fixing errors...</div>
+                        </div>
+                      )}
                       {result.image_url_1x1 ? (
                         <img
                           src={result.image_url_1x1}
@@ -3680,11 +3698,60 @@ function GeneratePageContent() {
                 onClick={async () => {
                   if (!fixModalAdId || !fixDescription.trim()) return;
                   setIsFixing(true);
+                  const targetAdId = fixModalAdId;
                   try {
-                    await fixErrorRequest(fixModalAdId, fixDescription.trim());
+                    const fixRes = await fixErrorRequest(targetAdId, fixDescription.trim());
                     toast.success(`Fix started! (${creditCosts.credits_per_fix_errors} credits used)`);
                     setFixModalAdId(null);
                     setFixDescription("");
+
+                    setFixingAdIds((prev) => new Set(prev).add(targetAdId));
+
+                    const newAdId = fixRes.job_id;
+                    const pollInterval = setInterval(async () => {
+                      try {
+                        const status = await getGenerationStatus(newAdId);
+                        if (status.generation_status === "completed") {
+                          clearInterval(pollInterval);
+                          setFixingAdIds((prev) => {
+                            const next = new Set(prev);
+                            next.delete(targetAdId);
+                            return next;
+                          });
+                          setGeneratedResults((prev) =>
+                            prev.map((r) =>
+                              r._id === targetAdId
+                                ? {
+                                    ...r,
+                                    _id: status._id,
+                                    image_url_1x1: status.image_url_1x1,
+                                    image_url_9x16: status.image_url_9x16,
+                                    image_url_16x9: status.image_url_16x9,
+                                    ad_copy_json: status.ad_copy_json,
+                                    ad_name: status.ad_name,
+                                  }
+                                : r,
+                            ),
+                          );
+                          toast.success("Fix completed!");
+                        } else if (status.generation_status === "failed") {
+                          clearInterval(pollInterval);
+                          setFixingAdIds((prev) => {
+                            const next = new Set(prev);
+                            next.delete(targetAdId);
+                            return next;
+                          });
+                          toast.error("Fix generation failed");
+                        }
+                      } catch {
+                        clearInterval(pollInterval);
+                        setFixingAdIds((prev) => {
+                          const next = new Set(prev);
+                          next.delete(targetAdId);
+                          return next;
+                        });
+                      }
+                    }, 3000);
                   } catch (e: any) {
                     toast.error(e.message || "Fix failed");
                   } finally {
