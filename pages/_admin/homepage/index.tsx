@@ -3,8 +3,8 @@ import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import AdminGuard from "../../../libs/auth/AdminGuard";
 import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
-import { getConcepts, getRecommendedConcepts, getCategories, getAdminUsers, getAdminStats, getCanvaOrdersAdmin, getPromptTemplatesAdmin } from "../../../server/admin/admnGetApis";
-import type { AdminUser, AdminPlatformStats, CanvaOrderAdmin, PromptTemplateAdmin } from "../../../server/admin/admnGetApis";
+import { getConcepts, getRecommendedConcepts, getCategories, getAdminUsers, getAdminStats, getCanvaOrdersAdmin, getPromptTemplatesAdmin, getAdminInvites } from "../../../server/admin/admnGetApis";
+import type { AdminUser, AdminPlatformStats, CanvaOrderAdmin, PromptTemplateAdmin, AdminInvite } from "../../../server/admin/admnGetApis";
 import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, reorderConcepts, blockUser, unblockUser, deleteUser, fulfillCanvaOrder, updatePromptTemplateAdmin } from "../../../server/admin/adminPostApis";
 import type { AdConcept, ConceptCategoryItem } from "../../../libs/types/concept.type";
 import { AdminRole } from "../../../libs/enums/admin.enum";
@@ -26,6 +26,7 @@ const NAV_ITEMS = [
     { icon: "🏷️", label: "Categories", id: "categories" },
     { icon: "📦", label: "Canva Orders", id: "canva" },
     { icon: "📝", label: "Prompt Management", id: "prompts" },
+    { icon: "🎟️", label: "Invite Tokens", id: "invites" },
 ];
 
 function AdminDashboard() {
@@ -111,6 +112,11 @@ function AdminDashboard() {
     const [promptEditActive, setPromptEditActive] = useState(true);
     const [promptSaveLoading, setPromptSaveLoading] = useState(false);
     const [promptSaveError, setPromptSaveError] = useState("");
+
+    // ── Admin Invites tab ──
+    const [invites, setInvites] = useState<AdminInvite[]>([]);
+    const [invitesLoading, setInvitesLoading] = useState(false);
+    const [invitesError, setInvitesError] = useState("");
 
     // ── Fetch categories ──
     const fetchCategories = useCallback(async () => {
@@ -465,10 +471,24 @@ function AdminDashboard() {
         }
     }, []);
 
+    const fetchAdminInvites = async () => {
+        setInvitesLoading(true);
+        setInvitesError("");
+        try {
+            const list = await getAdminInvites();
+            setInvites(list);
+        } catch (err: any) {
+            setInvitesError(err.message || "Failed to load invites");
+        } finally {
+            setInvitesLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (activeNav === "users") fetchUsers();
         if (activeNav === "canva") fetchCanvaOrders();
         if (activeNav === "prompts") fetchPromptTemplates();
+        if (activeNav === "invites") fetchAdminInvites();
     }, [activeNav, fetchUsers, fetchCanvaOrders, fetchPromptTemplates]);
 
     useEffect(() => {
@@ -503,14 +523,16 @@ function AdminDashboard() {
         }
     };
     // ── Generate Admin Invite ──
-    const handleGenerateInvite = async () => {
+    const handleGenerateInvite = async (role: AdminRole) => {
         setIsGeneratingInvite(true);
         setGeneratedInvite("");
         try {
             const { generateAdminInvite } = await import("../../../server/admin/adminPostApis");
-            const res = await generateAdminInvite(inviteRole);
+            const res = await generateAdminInvite(role);
             setGeneratedInvite(res.inviteToken);
-            toast.success(`Invite token generated for ${inviteRole}`);
+            toast.success(`Invite token generated for ${role}`);
+            // Refresh list
+            fetchAdminInvites();
         } catch (err: any) {
             toast.error(err.message || "Failed to generate invite");
         } finally {
@@ -772,15 +794,6 @@ function AdminDashboard() {
                                 value={userSearch}
                                 onChange={(e) => { setUserSearch(e.target.value); setUsersPage(1); }}
                             />
-                            {session?.admin?.role === AdminRole.SUPER_ADMIN && (
-                                <button
-                                    className="admin-dash__btn admin-dash__btn--primary"
-                                    onClick={() => setShowInviteModal(true)}
-                                    style={{ marginLeft: 'auto' }}
-                                >
-                                    ＋ Generate Invite
-                                </button>
-                            )}
                         </div>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
                             {[
@@ -919,53 +932,7 @@ function AdminDashboard() {
                 )
                 }
 
-                {/* ── Invite Modal ── */}
-                {
-                    showInviteModal && (
-                        <div className="admin-dash__modal-backdrop" onClick={() => setShowInviteModal(false)}>
-                            <div className="admin-dash__modal" onClick={(e) => e.stopPropagation()}>
-                                <div className="admin-dash__modal-header">
-                                    <h3 className="admin-dash__modal-title">Generate Admin Invite</h3>
-                                    <button className="admin-dash__modal-close" onClick={() => setShowInviteModal(false)}>&times;</button>
-                                </div>
-                                <div className="admin-dash__form-group">
-                                    <label className="admin-dash__label">Select Role</label>
-                                    <select
-                                        className="admin-dash__select"
-                                        value={inviteRole}
-                                        onChange={(e) => setInviteRole(e.target.value as AdminRole)}
-                                    >
-                                        <option value={AdminRole.CONTENT_ADMIN}>Content Admin</option>
-                                    </select>
-                                    <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
-                                        Super Admins cannot be invited. Only one Super Admin exists.
-                                    </p>
-                                </div>
 
-                                {generatedInvite && (
-                                    <div style={{ background: "rgba(0, 255, 0, 0.1)", border: "1px solid #3fb950", padding: 12, borderRadius: 6, marginTop: 16 }}>
-                                        <div style={{ fontSize: 12, color: "#3fb950", marginBottom: 4 }}>Generated Link / Token:</div>
-                                        <code style={{ fontSize: 14, userSelect: "all", display: "block" }}>{generatedInvite}</code>
-                                        <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>This token expires in 24 hours and can only be used once.</p>
-                                    </div>
-                                )}
-
-                                <div className="admin-dash__modal-footer">
-                                    <button className="admin-dash__btn admin-dash__btn--ghost" onClick={() => setShowInviteModal(false)}>
-                                        Close
-                                    </button>
-                                    <button
-                                        className="admin-dash__btn admin-dash__btn--primary"
-                                        onClick={handleGenerateInvite}
-                                        disabled={isGeneratingInvite}
-                                    >
-                                        {isGeneratingInvite ? "Generating..." : "Generate Invite Token"}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )
-                }
 
                 {/* ── Concepts View ── */}
                 {
@@ -1394,6 +1361,113 @@ function AdminDashboard() {
                         </div>
                     )
                 }
+                {/* ── Invite Tokens View ── */}
+                {activeNav === "invites" && session?.admin?.role === AdminRole.SUPER_ADMIN && (
+                    <div className="admin-dash__section">
+                        <div className="admin-dash__section-header" style={{ marginBottom: 24 }}>
+                            <div className="admin-dash__section-title">
+                                🎟️ Manage Invite Tokens
+                            </div>
+                            <div style={{ display: "flex", gap: 12 }}>
+                                <button
+                                    className="admin-dash__btn admin-dash__btn--primary"
+                                    disabled={isGeneratingInvite}
+                                    onClick={() => handleGenerateInvite(AdminRole.CONTENT_ADMIN)}
+                                >
+                                    {isGeneratingInvite ? "Generating..." : "＋ Content Admin Token"}
+                                </button>
+                                <button
+                                    className="admin-dash__btn admin-dash__btn--primary"
+                                    disabled={isGeneratingInvite}
+                                    style={{ background: "#4B5563" }}
+                                    onClick={() => handleGenerateInvite(AdminRole.SUPER_ADMIN)}
+                                >
+                                    {isGeneratingInvite ? "Generating..." : "＋ Super Admin Token"}
+                                </button>
+                            </div>
+                        </div>
+
+                        {generatedInvite && (
+                            <div style={{ padding: "16px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "8px", marginBottom: "24px" }}>
+                                <div style={{ color: "#10B981", fontSize: "14px", fontWeight: "600", marginBottom: "8px" }}>New Token Generated Successfully</div>
+                                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                                    <code style={{ background: "rgba(0,0,0,0.3)", padding: "8px 12px", borderRadius: "6px", fontFamily: "monospace", fontSize: "16px", color: "white", flex: 1 }}>{generatedInvite}</code>
+                                    <button
+                                        className="admin-dash__btn admin-dash__btn--ghost"
+                                        onClick={() => { navigator.clipboard.writeText(generatedInvite); toast.success("Copied to clipboard"); }}
+                                    >
+                                        Copy
+                                    </button>
+                                </div>
+                                <div style={{ color: "var(--muted)", fontSize: "12px", marginTop: "8px" }}>Save this token now. It grants registration access.</div>
+                            </div>
+                        )}
+
+                        {invitesLoading ? (
+                            <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading invites...</div>
+                        ) : invitesError ? (
+                            <div style={{ padding: 40, textAlign: "center", color: "#EF4444" }}>{invitesError}</div>
+                        ) : invites.length > 0 ? (
+                            <div className="admin-dash__table-wrapper">
+                                <table className="admin-dash__table">
+                                    <thead>
+                                        <tr>
+                                            <th>Token</th>
+                                            <th>Role</th>
+                                            <th>Created At</th>
+                                            <th>Expires At (Time Remaining)</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {invites.map((inv) => {
+                                            const isExpired = new Date(inv.expires_at) < new Date();
+                                            const statusColor = inv.is_used ? "#6B7280" : isExpired ? "#EF4444" : "#10B981";
+                                            const statusText = inv.is_used ? "Used" : isExpired ? "Expired" : "Active";
+                                            const timeRemainingMs = new Date(inv.expires_at).getTime() - new Date().getTime();
+                                            const hoursRemaining = Math.max(0, Math.floor(timeRemainingMs / (1000 * 60 * 60)));
+                                            const daysRemaining = Math.max(0, Math.floor(hoursRemaining / 24));
+                                            const remainingText = timeRemainingMs > 0 ? (daysRemaining > 0 ? `${daysRemaining}d remaining` : `${hoursRemaining}h remaining`) : "Expired";
+
+                                            return (
+                                                <tr key={inv._id}>
+                                                    <td style={{ fontFamily: "monospace" }}>{inv.token}</td>
+                                                    <td>
+                                                        <span style={{
+                                                            padding: "4px 8px",
+                                                            borderRadius: "4px",
+                                                            fontSize: "11px",
+                                                            background: inv.role === AdminRole.SUPER_ADMIN ? "rgba(239, 68, 68, 0.1)" : "rgba(59, 130, 246, 0.1)",
+                                                            color: inv.role === AdminRole.SUPER_ADMIN ? "#EF4444" : "#3B82F6"
+                                                        }}>
+                                                            {inv.role}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ color: "var(--muted)" }}>{new Date(inv.created_at).toLocaleString()}</td>
+                                                    <td style={{ color: "var(--muted)" }}>
+                                                        <div>{new Date(inv.expires_at).toLocaleString()}</div>
+                                                        <div style={{ fontSize: "11px", marginTop: "2px", color: isExpired ? "#EF4444" : "var(--muted)" }}>{remainingText}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor }} />
+                                                            <span style={{ color: statusColor, fontSize: 13 }}>{statusText}</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="admin-dash__empty">
+                                <div className="admin-dash__empty-icon">🎟️</div>
+                                <div className="admin-dash__empty-text">No active invites</div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </main >
 
             {/* ── Create Concept Modal ── */}
@@ -1628,62 +1702,59 @@ function AdminDashboard() {
                 )
             }
 
-            {/* ── Create Category Modal ── */}
-            {
-                showCategoryModal && (
-                    <div className="admin-modal__overlay" onClick={() => setShowCategoryModal(false)}>
-                        <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-                            <div className="admin-modal__header">
-                                <h2 className="admin-modal__title">🏷️ New Category</h2>
-                                <button className="admin-modal__close" onClick={() => setShowCategoryModal(false)}>✕</button>
-                            </div>
-
-                            {catModalError && (
-                                <div className="admin-modal__error">⚠️ {catModalError}</div>
-                            )}
-
-                            <form className="admin-modal__form" onSubmit={handleCreateCategory}>
-                                <div className="admin-modal__field">
-                                    <label className="admin-modal__label">Category Name *</label>
-                                    <input
-                                        className="admin-modal__input"
-                                        placeholder="e.g. Social Proof"
-                                        value={catName}
-                                        onChange={(e) => setCatName(e.target.value)}
-                                    />
-                                </div>
-                                <div className="admin-modal__field">
-                                    <label className="admin-modal__label">Description</label>
-                                    <textarea
-                                        className="admin-modal__input admin-modal__textarea"
-                                        placeholder="Describe what this category covers..."
-                                        value={catDescription}
-                                        onChange={(e) => setCatDescription(e.target.value)}
-                                        rows={2}
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    className="admin-modal__submit"
-                                    disabled={catModalLoading}
-                                >
-                                    {catModalLoading ? (
-                                        <>
-                                            <span className="admin-dash__spinner" /> Creating...
-                                        </>
-                                    ) : (
-                                        "Create Category"
-                                    )}
-                                </button>
-                            </form>
+            {showCategoryModal && (
+                <div className="admin-dash__modal" onClick={() => setShowCategoryModal(false)}>
+                    <div className="admin-dash__modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
+                        <div className="admin-dash__modal-header">
+                            <h2 className="admin-dash__modal-title">🏷️ New Category</h2>
+                            <button className="admin-dash__modal-close" onClick={() => setShowCategoryModal(false)}>✕</button>
                         </div>
+
+                        {catModalError && (
+                            <div className="admin-dash__error">⚠️ {catModalError}</div>
+                        )}
+
+                        <form className="admin-dash__form" onSubmit={handleCreateCategory}>
+                            <div className="admin-dash__field">
+                                <label className="admin-dash__label">Category Name *</label>
+                                <input
+                                    className="admin-dash__input"
+                                    placeholder="e.g. Social Proof"
+                                    value={catName}
+                                    onChange={(e) => setCatName(e.target.value)}
+                                />
+                            </div>
+                            <div className="admin-dash__field">
+                                <label className="admin-dash__label">Description</label>
+                                <textarea
+                                    className="admin-dash__input admin-dash__textarea"
+                                    placeholder="Describe what this category covers..."
+                                    value={catDescription}
+                                    onChange={(e) => setCatDescription(e.target.value)}
+                                    rows={2}
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                className="admin-dash__btn admin-dash__btn--primary"
+                                style={{ width: "100%", marginTop: 8 }}
+                                disabled={catModalLoading}
+                            >
+                                {catModalLoading ? (
+                                    <>
+                                        <span className="admin-dash__spinner" /> Creating...
+                                    </>
+                                ) : (
+                                    "Create Category"
+                                )}
+                            </button>
+                        </form>
                     </div>
-                )
-            }
-        </div >
+                </div>
+            )}
+        </div>
     );
 
-    // ── Render helpers ──
     function renderConceptGrid(draggable: boolean = false) {
         if (loading) {
             return (
@@ -1714,8 +1785,6 @@ function AdminDashboard() {
             <div className="admin-dash__grid">
                 {concepts.map((c) => (
                     <div
-                        key={c._id}
-                        className={`admin-dash__concept-card ${!c.is_active ? "admin-dash__concept-card--inactive" : ""} ${draggedId === c._id ? "admin-dash__concept-card--dragging" : ""}`}
                         draggable={draggable}
                         onDragStart={() => draggable && handleDragStart(c._id)}
                         onDragOver={draggable ? handleDragOver : undefined}

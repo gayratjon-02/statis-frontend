@@ -139,6 +139,24 @@ export async function getAdminStats(): Promise<AdminPlatformStats> {
     return getRequest<AdminPlatformStats>(`${MEMBER_API}/adminStats`);
 }
 
+export interface AdminInvite {
+    _id: string;
+    token: string;
+    role: string;
+    is_used: boolean;
+    expires_at: string;
+    created_at: string;
+    created_by: string;
+}
+
+/**
+ * GET /member/adminInvites
+ * Returns all generated admin invites (Super Admin only).
+ */
+export async function getAdminInvites(): Promise<AdminInvite[]> {
+    return getRequest<AdminInvite[]>(`${MEMBER_API}/adminInvites`);
+}
+
 // =============================================
 // ADMIN — CANVA ORDERS
 // =============================================
