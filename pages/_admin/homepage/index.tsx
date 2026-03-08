@@ -1378,7 +1378,7 @@ function AdminDashboard() {
                                                     </div>
                                                     <div style={{ display: "flex", gap: 6 }}>
                                                         <button
-                                                            className="admin-dash__btn"
+                                                            className="admin-dash__btn admin-dash__btn--edit"
                                                             style={{ padding: "4px 10px", fontSize: 12 }}
                                                             onClick={() => openEditCategory(cat)}
                                                         >
@@ -1766,41 +1766,42 @@ function AdminDashboard() {
             }
 
             {showCategoryModal && (
-                <div className="admin-dash__modal" onClick={() => setShowCategoryModal(false)}>
-                    <div className="admin-dash__modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
-                        <div className="admin-dash__modal-header">
-                            <h2 className="admin-dash__modal-title">{editingCatId ? "Edit Category" : "New Category"}</h2>
-                            <button className="admin-dash__modal-close" onClick={() => { setShowCategoryModal(false); setEditingCatId(null); }}>✕</button>
+                <div className="admin-modal__overlay" onClick={() => { setShowCategoryModal(false); setEditingCatId(null); }}>
+                    <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="admin-modal__header">
+                            <div className="admin-modal__title">{editingCatId ? "Edit Category" : "New Category"}</div>
+                            <button className="admin-modal__close" onClick={() => { setShowCategoryModal(false); setEditingCatId(null); }}>✕</button>
                         </div>
 
                         {catModalError && (
-                            <div className="admin-dash__error">{catModalError}</div>
+                            <div className="admin-modal__error">{catModalError}</div>
                         )}
 
-                        <form className="admin-dash__form" onSubmit={handleCategorySubmit}>
-                            <div className="admin-dash__field">
-                                <label className="admin-dash__label">Category Name *</label>
+                        <form className="admin-modal__form" onSubmit={handleCategorySubmit}>
+                            <div className="admin-modal__field">
+                                <label className="admin-modal__label">Category Name *</label>
                                 <input
-                                    className="admin-dash__input"
+                                    className="admin-modal__input"
                                     placeholder="e.g. Social Proof"
                                     value={catName}
                                     onChange={(e) => setCatName(e.target.value)}
+                                    autoFocus
                                 />
                             </div>
-                            <div className="admin-dash__field">
-                                <label className="admin-dash__label">Description</label>
+                            <div className="admin-modal__field">
+                                <label className="admin-modal__label">Description</label>
                                 <textarea
-                                    className="admin-dash__input admin-dash__textarea"
+                                    className="admin-modal__input"
                                     placeholder="Describe what this category covers..."
                                     value={catDescription}
                                     onChange={(e) => setCatDescription(e.target.value)}
-                                    rows={2}
+                                    rows={3}
+                                    style={{ resize: "vertical" }}
                                 />
                             </div>
                             <button
                                 type="submit"
-                                className="admin-dash__btn admin-dash__btn--primary"
-                                style={{ width: "100%", marginTop: 8 }}
+                                className="admin-modal__submit"
                                 disabled={catModalLoading}
                             >
                                 {catModalLoading ? (
