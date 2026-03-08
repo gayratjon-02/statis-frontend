@@ -553,7 +553,7 @@ function AdminDashboard() {
                     {NAV_ITEMS.map((item) => (
                         <button
                             key={item.id}
-                            className={`admin - dash__nav - item ${activeNav === item.id ? "admin-dash__nav-item--active" : ""} `}
+                            className={`admin-dash__nav-item ${activeNav === item.id ? "admin-dash__nav-item--active" : ""}`}
                             onClick={() => setActiveNav(item.id)}
                         >
                             <span className="admin-dash__nav-icon">{item.icon}</span>
@@ -791,7 +791,7 @@ function AdminDashboard() {
                                 { label: "Growth", value: "growth" },
                             ].map((opt) => (
                                 <button key={opt.value}
-                                    className={`admin - dash__filter - btn ${userTierFilter === opt.value ? "admin-dash__filter-btn--active" : ""} `}
+                                    className={`admin-dash__filter-btn ${userTierFilter === opt.value ? "admin-dash__filter-btn--active" : ""}`}
                                     onClick={() => { setUserTierFilter(opt.value); setUsersPage(1); }}>
                                     {opt.label}
                                 </button>
@@ -998,7 +998,7 @@ function AdminDashboard() {
                                     {categoryFilters.map((cat) => (
                                         <button
                                             key={cat.value}
-                                            className={`admin - dash__filter - btn ${categoryFilter === cat.value ? "admin-dash__filter-btn--active" : ""} `}
+                                            className={`admin-dash__filter-btn ${categoryFilter === cat.value ? "admin-dash__filter-btn--active" : ""}`}
                                             onClick={() => {
                                                 setCategoryFilter(cat.value);
                                                 setPage(1);
@@ -1073,7 +1073,7 @@ function AdminDashboard() {
                                                         🔥 {c.usage_count} uses
                                                     </span>
                                                     <span
-                                                        className={`admin - dash__concept - status ${c.is_active ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"} `}
+                                                        className={`admin-dash__concept-status ${c.is_active ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"}`}
                                                     />
                                                 </div>
                                             </div>
@@ -1149,7 +1149,7 @@ function AdminDashboard() {
                                                         </td>
                                                         <td style={{ padding: "10px 12px" }}>{adName}</td>
                                                         <td style={{ padding: "10px 12px" }}>
-                                                            <span className={`admin - dash__concept - status ${order.status === "fulfilled" ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"} `} style={{ marginRight: 6 }} />
+                                                            <span className={`admin-dash__concept-status ${order.status === "fulfilled" ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"}`} style={{ marginRight: 6 }} />
                                                             {order.status}
                                                         </td>
                                                         <td style={{ padding: "10px 12px" }}>{(order.price_paid_cents / 100).toFixed(2)}</td>
@@ -1715,7 +1715,7 @@ function AdminDashboard() {
                 {concepts.map((c) => (
                     <div
                         key={c._id}
-                        className={`admin - dash__concept - card ${!c.is_active ? "admin-dash__concept-card--inactive" : ""} ${draggedId === c._id ? "admin-dash__concept-card--dragging" : ""} `}
+                        className={`admin-dash__concept-card ${!c.is_active ? "admin-dash__concept-card--inactive" : ""} ${draggedId === c._id ? "admin-dash__concept-card--dragging" : ""}`}
                         draggable={draggable}
                         onDragStart={() => draggable && handleDragStart(c._id)}
                         onDragOver={draggable ? handleDragOver : undefined}
@@ -1739,7 +1739,7 @@ function AdminDashboard() {
                                     {c.usage_count} uses
                                 </span>
                                 <span
-                                    className={`admin - dash__concept - status ${c.is_active ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"} `}
+                                    className={`admin-dash__concept-status ${c.is_active ? "admin-dash__concept-status--active" : "admin-dash__concept-status--inactive"}`}
                                 />
                             </div>
                             {c.tags?.length > 0 && (
@@ -1753,7 +1753,7 @@ function AdminDashboard() {
                             )}
                             <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
                                 <button
-                                    className={`admin - dash__btn ${c.is_active ? "admin-dash__btn--ghost" : "admin-dash__btn--primary"} `}
+                                    className={`admin-dash__btn ${c.is_active ? "admin-dash__btn--ghost" : "admin-dash__btn--primary"}`}
                                     style={{ flex: 1, padding: "5px 8px", fontSize: 11 }}
                                     onClick={(e) => {
                                         e.stopPropagation();
