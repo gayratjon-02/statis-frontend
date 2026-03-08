@@ -72,6 +72,13 @@ export interface CreateCategoryInput {
     display_order?: number;
 }
 
+export interface UpdateCategoryInput {
+    name?: string;
+    slug?: string;
+    description?: string;
+    display_order?: number;
+}
+
 /** POST /concept/reorderConceptsByAdmin */
 export interface ReorderConceptsInput {
     category_id: string;

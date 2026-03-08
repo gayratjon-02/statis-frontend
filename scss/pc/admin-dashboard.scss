@@ -361,6 +361,21 @@
                 border-color: var(--text);
             }
         }
+
+        &--danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+
+            &:hover:not(:disabled) {
+                background: rgba(239, 68, 68, 0.2);
+            }
+
+            &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        }
     }
 
     // ── Search Bar ──

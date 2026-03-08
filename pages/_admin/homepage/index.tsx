@@ -5,7 +5,7 @@ import AdminGuard from "../../../libs/auth/AdminGuard";
 import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
 import { getConcepts, getRecommendedConcepts, getCategories, getAdminUsers, getAdminStats, getCanvaOrdersAdmin, getPromptTemplatesAdmin, getAdminInvites } from "../../../server/admin/admnGetApis";
 import type { AdminUser, AdminPlatformStats, CanvaOrderAdmin, PromptTemplateAdmin, AdminInvite } from "../../../server/admin/admnGetApis";
-import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, reorderConcepts, blockUser, unblockUser, deleteUser, fulfillCanvaOrder, updatePromptTemplateAdmin } from "../../../server/admin/adminPostApis";
+import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, updateCategory, deleteCategory, reorderConcepts, blockUser, unblockUser, deleteUser, fulfillCanvaOrder, updatePromptTemplateAdmin } from "../../../server/admin/adminPostApis";
 import type { AdConcept, ConceptCategoryItem } from "../../../libs/types/concept.type";
 import { AdminRole } from "../../../libs/enums/admin.enum";
 import API_BASE_URL from "../../../libs/config/api.config";
@@ -96,6 +96,8 @@ function AdminDashboard() {
     const [catModalError, setCatModalError] = useState("");
     const [catName, setCatName] = useState("");
     const [catDescription, setCatDescription] = useState("");
+    const [editingCatId, setEditingCatId] = useState<string | null>(null);
+    const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
 
     // ── Canva Orders tab ──
     const [canvaOrders, setCanvaOrders] = useState<CanvaOrderAdmin[]>([]);
@@ -341,8 +343,8 @@ function AdminDashboard() {
         }
     };
 
-    // ── Create category ──
-    const handleCreateCategory = async (e: React.FormEvent) => {
+    // ── Create / Update category ──
+    const handleCategorySubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!catName.trim()) { setCatModalError("Name is required"); return; }
 
@@ -350,19 +352,52 @@ function AdminDashboard() {
         setCatModalError("");
 
         try {
-            await createCategory({
-                name: catName.trim(),
-                description: catDescription.trim() || undefined,
-            });
+            if (editingCatId) {
+                await updateCategory(editingCatId, {
+                    name: catName.trim(),
+                    description: catDescription.trim() || undefined,
+                });
+                toast.success("Category updated");
+            } else {
+                await createCategory({
+                    name: catName.trim(),
+                    description: catDescription.trim() || undefined,
+                });
+                toast.success("Category created");
+            }
             setShowCategoryModal(false);
             setCatName("");
             setCatDescription("");
+            setEditingCatId(null);
             fetchCategories();
-        } catch (err: any) {
-            setCatModalError(err.message || "Failed to create category");
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Failed to save category";
+            setCatModalError(msg);
         } finally {
             setCatModalLoading(false);
         }
+    };
+
+    const handleDeleteCategory = async (id: string) => {
+        setDeletingCatId(id);
+        try {
+            await deleteCategory(id);
+            toast.success("Category deleted");
+            fetchCategories();
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Failed to delete category";
+            toast.error(msg);
+        } finally {
+            setDeletingCatId(null);
+        }
+    };
+
+    const openEditCategory = (cat: ConceptCategoryItem) => {
+        setEditingCatId(cat._id);
+        setCatName(cat.name);
+        setCatDescription(cat.description || "");
+        setCatModalError("");
+        setShowCategoryModal(true);
     };
 
     // ── Drag & Drop reorder ──
@@ -1316,6 +1351,7 @@ function AdminDashboard() {
                                 <button
                                     className="admin-dash__btn admin-dash__btn--primary"
                                     onClick={() => {
+                                        setEditingCatId(null);
                                         setCatName("");
                                         setCatDescription("");
                                         setCatModalError("");
@@ -1331,11 +1367,36 @@ function AdminDashboard() {
                                     {categories.map((cat) => (
                                         <div key={cat._id} className="admin-dash__concept-card">
                                             <div className="admin-dash__concept-body" style={{ padding: 20 }}>
-                                                <div className="admin-dash__concept-name" style={{ fontSize: 16 }}>
-                                                    {cat.name}
-                                                </div>
-                                                <div className="admin-dash__concept-category" style={{ marginTop: 4 }}>
-                                                    slug: {cat.slug}
+                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                                    <div>
+                                                        <div className="admin-dash__concept-name" style={{ fontSize: 16 }}>
+                                                            {cat.name}
+                                                        </div>
+                                                        <div className="admin-dash__concept-category" style={{ marginTop: 4 }}>
+                                                            slug: {cat.slug}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: "flex", gap: 6 }}>
+                                                        <button
+                                                            className="admin-dash__btn"
+                                                            style={{ padding: "4px 10px", fontSize: 12 }}
+                                                            onClick={() => openEditCategory(cat)}
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            className="admin-dash__btn admin-dash__btn--danger"
+                                                            style={{ padding: "4px 10px", fontSize: 12 }}
+                                                            disabled={deletingCatId === cat._id}
+                                                            onClick={() => {
+                                                                if (confirm(`Delete "${cat.name}"? This cannot be undone.`)) {
+                                                                    handleDeleteCategory(cat._id);
+                                                                }
+                                                            }}
+                                                        >
+                                                            {deletingCatId === cat._id ? "..." : "Delete"}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 {cat.description && (
                                                     <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
@@ -1708,15 +1769,15 @@ function AdminDashboard() {
                 <div className="admin-dash__modal" onClick={() => setShowCategoryModal(false)}>
                     <div className="admin-dash__modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
                         <div className="admin-dash__modal-header">
-                            <h2 className="admin-dash__modal-title">🏷️ New Category</h2>
-                            <button className="admin-dash__modal-close" onClick={() => setShowCategoryModal(false)}>✕</button>
+                            <h2 className="admin-dash__modal-title">{editingCatId ? "Edit Category" : "New Category"}</h2>
+                            <button className="admin-dash__modal-close" onClick={() => { setShowCategoryModal(false); setEditingCatId(null); }}>✕</button>
                         </div>
 
                         {catModalError && (
-                            <div className="admin-dash__error">⚠️ {catModalError}</div>
+                            <div className="admin-dash__error">{catModalError}</div>
                         )}
 
-                        <form className="admin-dash__form" onSubmit={handleCreateCategory}>
+                        <form className="admin-dash__form" onSubmit={handleCategorySubmit}>
                             <div className="admin-dash__field">
                                 <label className="admin-dash__label">Category Name *</label>
                                 <input
@@ -1744,10 +1805,10 @@ function AdminDashboard() {
                             >
                                 {catModalLoading ? (
                                     <>
-                                        <span className="admin-dash__spinner" /> Creating...
+                                        <span className="admin-dash__spinner" /> {editingCatId ? "Saving..." : "Creating..."}
                                     </>
                                 ) : (
-                                    "Create Category"
+                                    editingCatId ? "Save Changes" : "Create Category"
                                 )}
                             </button>
                         </form>

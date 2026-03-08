@@ -11,6 +11,7 @@ import type {
     CreateConceptInput,
     UpdateConceptInput,
     CreateCategoryInput,
+    UpdateCategoryInput,
     ReorderConceptsInput,
 } from "../../libs/types/admin.type";
 
@@ -85,6 +86,14 @@ const CONCEPT_API = `${API_BASE_URL}/concept`;
  */
 export async function createCategory(input: CreateCategoryInput): Promise<ConceptCategoryItem> {
     return postRequest<ConceptCategoryItem>(`${CONCEPT_API}/createCategoryByAdmin`, input);
+}
+
+export async function updateCategory(id: string, input: UpdateCategoryInput): Promise<ConceptCategoryItem> {
+    return postRequest<ConceptCategoryItem>(`${CONCEPT_API}/updateCategoryByAdmin/${id}`, input);
+}
+
+export async function deleteCategory(id: string): Promise<{ message: string }> {
+    return postRequest<{ message: string }>(`${CONCEPT_API}/deleteCategoryByAdmin/${id}`, {});
 }
 
 // =============================================
