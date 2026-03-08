@@ -6,7 +6,8 @@ import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest
 import { createCheckoutRequest, createPortalRequest, purchaseAddonRequest, getMyCanvaOrders, type CanvaOrder } from "../../server/user/billing";
 import { getRecentGenerationsRequest, downloadAdImage } from "../../server/user/generation";
 import { getBrands, deleteBrand } from "../../server/user/brand";
-import { getDAPresets, uploadDAImage, deleteDAPreset, type DAPreset } from "../../server/user/da";
+import { getConcepts, getCategories } from "../../server/user/concept";
+import type { AdConcept, ConceptCategoryItem } from "../../libs/types/concept.type";
 import { getBrandConfig, type IndustryItem } from "../../server/user/config";
 import API_BASE_URL from "../../libs/config/api.config";
 import type { Brand } from "../../libs/types/brand.type";
@@ -34,7 +35,7 @@ const NAV_ITEMS = [
     { id: "library", label: "Ad Library", letter: "L" },
     { id: "brands", label: "Brands", letter: "B" },
     { id: "canva", label: "Canva Templates", letter: "C" },
-    { id: "daTemplates", label: "DA Templates", letter: "T" },
+    { id: "daTemplates", label: "Concept Gallery", letter: "T" },
 ];
 
 const BOTTOM_NAV = [
@@ -161,12 +162,11 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
     const [canvaOrders, setCanvaOrders] = useState<CanvaOrder[]>([]);
     const [canvaLoading, setCanvaLoading] = useState(false);
 
-    // DA Templates page state
-    const [daPresets, setDaPresets] = useState<DAPreset[]>([]);
-    const [daLoading, setDaLoading] = useState(false);
-    const [daUploading, setDaUploading] = useState(false);
-    const [daDeletingId, setDaDeletingId] = useState<string | null>(null);
-    const daFileRef = React.useRef<HTMLInputElement>(null);
+    // DA Templates (Concepts gallery) state
+    const [concepts, setConcepts] = useState<AdConcept[]>([]);
+    const [conceptCategories, setConceptCategories] = useState<ConceptCategoryItem[]>([]);
+    const [conceptCategoryFilter, setConceptCategoryFilter] = useState<string>("all");
+    const [conceptsLoading, setConceptsLoading] = useState(false);
 
     /** Get label for industry ID from fetched config */
     const getIndustryLabel = (id: string) =>
@@ -298,16 +298,23 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
         }
     }, [page]);
 
-    // When switching to DA Templates page — load presets
+    // When switching to DA Templates page — load concepts
     useEffect(() => {
         if (page === "daTemplates") {
-            setDaLoading(true);
-            getDAPresets()
-                .then((res) => setDaPresets(res.presets))
+            setConceptsLoading(true);
+            const categoryParam = conceptCategoryFilter === "all" ? undefined : conceptCategoryFilter;
+            Promise.all([
+                getConcepts(categoryParam, undefined, undefined, 1, 100),
+                getCategories(),
+            ])
+                .then(([conceptsRes, categoriesRes]) => {
+                    setConcepts(conceptsRes.list);
+                    setConceptCategories(categoriesRes.list);
+                })
                 .catch((err) => toast.error(err.message))
-                .finally(() => setDaLoading(false));
+                .finally(() => setConceptsLoading(false));
         }
-    }, [page]);
+    }, [page, conceptCategoryFilter]);
 
     // Initialize account form when page is "account"
     useEffect(() => {
@@ -388,37 +395,6 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                 setPwMsg(null);
                 setPwOld(""); setPwNew(""); setPwConfirm("");
             }
-        }
-    };
-
-    // DA Templates handlers
-    const handleDAFiles = async (files: FileList) => {
-        setDaUploading(true);
-        try {
-            for (const file of Array.from(files)) {
-                const name = file.name.replace(/\.[^.]+$/, "");
-                await uploadDAImage(file, name);
-            }
-            const data = await getDAPresets();
-            setDaPresets(data.presets);
-            toast.success("DA image uploaded successfully");
-        } catch (err: any) {
-            toast.error(err.message || "Failed to upload DA image");
-        } finally {
-            setDaUploading(false);
-        }
-    };
-
-    const handleDADelete = async (id: string) => {
-        setDaDeletingId(id);
-        try {
-            await deleteDAPreset(id);
-            setDaPresets((prev) => prev.filter((p) => p.id !== id));
-            toast.success("DA template deleted");
-        } catch (err: any) {
-            toast.error(err.message || "Failed to delete DA template");
-        } finally {
-            setDaDeletingId(null);
         }
     };
 
@@ -669,24 +645,14 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                         </div>
                         <div className="dash-header__title">
-                            {page === "brands" ? "My Brands" : page === "billing" ? "Billing & Subscription" : page === "account" ? "Account Settings" : page === "daTemplates" ? "DA Templates" : page === "canva" ? "Canva Templates" : `Welcome back, ${userName.split(" ")[0]}`}
+                            {page === "brands" ? "My Brands" : page === "billing" ? "Billing & Subscription" : page === "account" ? "Account Settings" : page === "daTemplates" ? "Concept Gallery" : page === "canva" ? "Canva Templates" : `Welcome back, ${userName.split(" ")[0]}`}
                         </div>
                     </div>
                     {page === "brands" ? (
                         <button className="btn-generate" onClick={() => router.push("/generateAds")}>
                             + Create New Brand
                         </button>
-                    ) : page === "daTemplates" ? (
-                        <label className="btn-generate" style={{ cursor: "pointer" }}>
-                            + Upload DA Image
-                            <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp"
-                                style={{ display: "none" }}
-                                onChange={(e) => { if (e.target.files?.length) handleDAFiles(e.target.files); e.target.value = ""; }}
-                            />
-                        </label>
-                    ) : page === "canva" ? (
+                    ) : page === "daTemplates" ? null : page === "canva" ? (
                         <button className="btn-generate" onClick={() => router.push("/generateAds")}>
                             + Generate New Ad
                         </button>
@@ -1226,64 +1192,65 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                     </div>
                 )}
 
-                {/* ===== DA TEMPLATES PAGE ===== */}
+                {/* ===== CONCEPT GALLERY PAGE ===== */}
                 {page === "daTemplates" && (
                     <div style={{ padding: "0 24px 40px" }}>
-                        {/* Upload Area */}
-                        <div
-                            className="da-upload-area"
-                            onClick={() => daFileRef.current?.click()}
-                            onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("da-upload-area--dragover"); }}
-                            onDragLeave={(e) => { e.currentTarget.classList.remove("da-upload-area--dragover"); }}
-                            onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("da-upload-area--dragover"); if (e.dataTransfer.files.length) handleDAFiles(e.dataTransfer.files); }}
-                        >
-                            {daUploading ? (
-                                <div style={{ fontSize: 15, color: "var(--accent)" }}>Uploading to S3...</div>
-                            ) : (
-                                <>
-                                    <div style={{ fontSize: 32, color: "var(--accent)", marginBottom: 8 }}>+</div>
-                                    <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600 }}>Drag & drop DA images here</div>
-                                    <div style={{ fontSize: 13, color: "var(--dim)", marginTop: 4 }}>or click to browse (PNG, JPG, WEBP)</div>
-                                </>
-                            )}
-                            <input
-                                ref={daFileRef}
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp"
-                                multiple
-                                style={{ display: "none" }}
-                                onChange={(e) => { if (e.target.files?.length) handleDAFiles(e.target.files); e.target.value = ""; }}
-                            />
-                        </div>
+                        {/* Category Filter */}
+                        {conceptCategories.length > 0 && (
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+                                <button
+                                    className={`concept-filter-btn ${conceptCategoryFilter === "all" ? "concept-filter-btn--active" : ""}`}
+                                    onClick={() => setConceptCategoryFilter("all")}
+                                >
+                                    All
+                                </button>
+                                {conceptCategories.map((cat) => (
+                                    <button
+                                        key={cat._id}
+                                        className={`concept-filter-btn ${conceptCategoryFilter === cat._id ? "concept-filter-btn--active" : ""}`}
+                                        onClick={() => setConceptCategoryFilter(cat._id)}
+                                    >
+                                        {cat.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
-                        {/* Presets Grid */}
-                        {daLoading ? (
-                            <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--dim)" }}>Loading DA templates...</div>
-                        ) : daPresets.length === 0 ? (
-                            <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--dim)" }}>
-                                <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No DA templates yet</div>
-                                <div style={{ fontSize: 14 }}>Upload your first DA reference image to get started</div>
+                        {/* Concepts Grid */}
+                        {conceptsLoading ? (
+                            <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--dim)" }}>Loading concepts...</div>
+                        ) : concepts.length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "80px 20px", color: "var(--dim)" }}>
+                                <div style={{ fontSize: 40, marginBottom: 16, opacity: 0.4 }}>&#9733;</div>
+                                <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: "var(--text)" }}>No concepts available</div>
+                                <div style={{ fontSize: 14, lineHeight: 1.6, maxWidth: 400, margin: "0 auto" }}>
+                                    Concepts will appear here once the admin adds them.
+                                </div>
                             </div>
                         ) : (
-                            <div className="da-templates-grid">
-                                {daPresets.map((preset) => (
-                                    <div key={preset.id} className="da-template-card">
-                                        <div className="da-template-card__image">
-                                            <img src={resolveImageUrl(preset.image_url)} alt={preset.name} loading="lazy" />
+                            <div className="concept-gallery-grid">
+                                {concepts.map((concept) => (
+                                    <div
+                                        key={concept._id}
+                                        className="concept-gallery-card"
+                                        onClick={() => setLightboxImage(concept.image_url)}
+                                    >
+                                        <div className="concept-gallery-card__image">
+                                            <img src={concept.image_url} alt={concept.name} loading="lazy" />
                                         </div>
-                                        <div className="da-template-card__info">
-                                            <div className="da-template-card__name">{preset.name}</div>
-                                            <div className="da-template-card__meta">
-                                                Added {new Date(preset.created_at).toLocaleDateString()}
-                                            </div>
+                                        <div className="concept-gallery-card__info">
+                                            <div className="concept-gallery-card__name">{concept.name}</div>
+                                            {concept.category_name && (
+                                                <div className="concept-gallery-card__category">{concept.category_name}</div>
+                                            )}
+                                            {concept.tags.length > 0 && (
+                                                <div className="concept-gallery-card__tags">
+                                                    {concept.tags.slice(0, 3).map((tag) => (
+                                                        <span key={tag} className="concept-gallery-card__tag">{tag}</span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                        <button
-                                            className="da-template-card__delete"
-                                            onClick={() => handleDADelete(preset.id)}
-                                            disabled={daDeletingId === preset.id}
-                                        >
-                                            {daDeletingId === preset.id ? "..." : "\u00d7"}
-                                        </button>
                                     </div>
                                 ))}
                             </div>
