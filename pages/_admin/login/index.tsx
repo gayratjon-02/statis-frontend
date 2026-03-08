@@ -259,6 +259,18 @@ export default function AdminAuth() {
                                 </div>
 
                                 <div className="admin-auth__field">
+                                    <label className="admin-auth__label">Invite Token</label>
+                                    <input
+                                        type="text"
+                                        className="admin-auth__input"
+                                        placeholder="Paste your 16-character invite token"
+                                        value={signupInviteToken}
+                                        onChange={(e) => setSignupInviteToken(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="admin-auth__field">
                                     <label className="admin-auth__label">Password</label>
                                     <input
                                         type={showPassword ? "text" : "password"}
