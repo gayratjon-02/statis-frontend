@@ -262,6 +262,16 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
         }
     }, [router.query]);
 
+    // Auto-dismiss success banner after 5 seconds
+    useEffect(() => {
+        if (checkoutBanner !== "success") return;
+        const timer = setTimeout(() => {
+            setCheckoutBanner(null);
+            sessionStorage.setItem("se_checkout_banner_dismissed", "true");
+        }, 5000);
+        return () => clearTimeout(timer);
+    }, [checkoutBanner]);
+
     // When switching to Brands page — load full brand list
     useEffect(() => {
         if (page === "brands") {
