@@ -1274,18 +1274,16 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                         <div className="da-template-card__info">
                                             <div className="da-template-card__name">{preset.name}</div>
                                             <div className="da-template-card__meta">
-                                                {preset.is_default ? "System" : "Custom"} &middot; {new Date(preset.created_at).toLocaleDateString()}
+                                                Added {new Date(preset.created_at).toLocaleDateString()}
                                             </div>
                                         </div>
-                                        {!preset.is_default && (
-                                            <button
-                                                className="da-template-card__delete"
-                                                onClick={() => handleDADelete(preset.id)}
-                                                disabled={daDeletingId === preset.id}
-                                            >
-                                                {daDeletingId === preset.id ? "..." : "\u00d7"}
-                                            </button>
-                                        )}
+                                        <button
+                                            className="da-template-card__delete"
+                                            onClick={() => handleDADelete(preset.id)}
+                                            disabled={daDeletingId === preset.id}
+                                        >
+                                            {daDeletingId === preset.id ? "..." : "\u00d7"}
+                                        </button>
                                     </div>
                                 ))}
                             </div>
