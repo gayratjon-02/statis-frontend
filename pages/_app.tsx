@@ -7,6 +7,7 @@ import "@/scss/pc/generate.scss";
 import "@/scss/pc/admin-auth.scss";
 import "@/scss/pc/admin-dashboard.scss";
 import "@/scss/pc/concept-library.scss";
+import { useEffect } from "react";
 import type { AppProps } from "next/app";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { PostHogProvider } from "../libs/analytics/PostHogProvider";
@@ -17,6 +18,14 @@ import { GlobalAuthInterceptor } from "../components/GlobalAuthInterceptor";
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 export default function App({ Component, pageProps }: AppProps) {
+  useEffect(() => {
+    const saved = localStorage.getItem("se_theme");
+    if (saved === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  }, []);
   const content = (
     <PostHogProvider>
       <GlobalAuthInterceptor>
