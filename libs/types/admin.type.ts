@@ -127,3 +127,33 @@ export interface DashboardProps {
   setActiveNav: (nav: string) => void;
   renderConceptGrid: (draggable: boolean) => React.ReactNode;
 }
+
+// ── Admin Users Tab Props ─────────────────────────────────
+
+export interface UsersTabUser {
+  _id: string;
+  email: string;
+  full_name: string;
+  member_status: string;
+  subscription_tier: string;
+  subscription_status: string;
+  credits_used: number;
+  credits_limit: number;
+  created_at: string;
+}
+
+export interface UsersTabProps {
+  users: UsersTabUser[];
+  usersTotal: number;
+  usersPage: number;
+  usersLoading: boolean;
+  userSearch: string;
+  userTierFilter: string;
+  userStatusFilter: string;
+  setUserSearch: (v: string) => void;
+  setUserTierFilter: (v: string) => void;
+  setUserStatusFilter: (v: string) => void;
+  setUsersPage: React.Dispatch<React.SetStateAction<number>>;
+  handleBlockUser: (user: UsersTabUser) => void;
+  handleDeleteUser: (user: UsersTabUser) => void;
+}
