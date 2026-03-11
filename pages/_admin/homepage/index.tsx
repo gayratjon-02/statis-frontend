@@ -5,7 +5,7 @@ import AdminGuard from "../../../libs/auth/AdminGuard";
 import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
 import { getConcepts, getRecommendedConcepts, getCategories, getAdminUsers, getAdminStats, getCanvaOrdersAdmin, getPromptTemplatesAdmin, getAdminInvites } from "../../../server/admin/admnGetApis";
 import type { AdminUser, AdminPlatformStats, CanvaOrderAdmin, PromptTemplateAdmin, AdminInvite } from "../../../server/admin/admnGetApis";
-import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, updateCategory, deleteCategory, reorderConcepts, blockUser, unblockUser, deleteUser, fulfillCanvaOrder, updatePromptTemplateAdmin } from "../../../server/admin/adminPostApis";
+import { deleteConcept, createConcept, uploadConceptImage, updateConcept, createCategory, updateCategory, deleteCategory, reorderConcepts, blockUser, unblockUser, deleteUser, fulfillCanvaOrder, updatePromptTemplateAdmin, normalizeCategoryOrders } from "../../../server/admin/adminPostApis";
 import type { AdConcept, ConceptCategoryItem } from "../../../libs/types/concept.type";
 import { AdminRole } from "../../../libs/enums/admin.enum";
 import API_BASE_URL from "../../../libs/config/api.config";
@@ -125,6 +125,7 @@ function AdminDashboard() {
     // ── Fetch categories ──
     const fetchCategories = useCallback(async () => {
         try {
+            await normalizeCategoryOrders().catch(() => {});
             const res = await getCategories();
             setCategories(res.list || []);
         } catch {

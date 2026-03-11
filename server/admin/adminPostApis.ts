@@ -96,6 +96,10 @@ export async function deleteCategory(id: string): Promise<{ message: string }> {
     return postRequest<{ message: string }>(`${CONCEPT_API}/deleteCategoryByAdmin/${id}`, {});
 }
 
+export async function normalizeCategoryOrders(): Promise<{ message: string }> {
+    return postRequest<{ message: string }>(`${CONCEPT_API}/normalizeCategoryOrdersByAdmin`, {});
+}
+
 // =============================================
 // 3. CONCEPTS — Admin concept management
 // =============================================
