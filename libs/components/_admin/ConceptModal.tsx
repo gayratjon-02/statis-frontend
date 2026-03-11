@@ -37,9 +37,7 @@ export default function ConceptModal({
           </button>
         </div>
 
-        {error && (
-          <div className="admin-modal__error">⚠️ {error}</div>
-        )}
+        {error && <div className="admin-modal__error">⚠️ {error}</div>}
 
         <form className="admin-modal__form" onSubmit={onSubmit}>
           <div

@@ -948,258 +948,56 @@ function AdminDashboard() {
       </main>
 
       {/* ── Create Concept Modal ── */}
-      {showModal && (
-        <div className="admin-modal__overlay" onClick={closeModal}>
-          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal__header">
-              <h2 className="admin-modal__title">🎨 Add New Concept</h2>
-              <button className="admin-modal__close" onClick={closeModal}>
-                ✕
-              </button>
-            </div>
-
-            {modalError && (
-              <div className="admin-modal__error">⚠️ {modalError}</div>
-            )}
-
-            <form className="admin-modal__form" onSubmit={handleCreateConcept}>
-              {/* Image Upload */}
-              <div
-                className="admin-modal__upload"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {newImagePreview ? (
-                  <img
-                    src={newImagePreview}
-                    alt="Preview"
-                    className="admin-modal__upload-preview"
-                  />
-                ) : (
-                  <div className="admin-modal__upload-placeholder">
-                    <span className="admin-modal__upload-icon">📷</span>
-                    <span className="admin-modal__upload-text">
-                      Click to upload image
-                    </span>
-                    <span className="admin-modal__upload-hint">
-                      PNG, JPG, WEBP — max 10MB
-                    </span>
-                  </div>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={handleImageSelect}
-                  style={{ display: "none" }}
-                />
-              </div>
-
-              {/* Name */}
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Name *</label>
-                <input
-                  className="admin-modal__input"
-                  placeholder="e.g. Bold Social Proof Banner"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                />
-              </div>
-
-              {/* Category */}
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Category *</label>
-                <select
-                  className="admin-modal__input admin-modal__select"
-                  value={newCategoryId}
-                  onChange={(e) => setNewCategoryId(e.target.value)}
-                >
-                  {categories.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Description */}
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Description</label>
-                <textarea
-                  className="admin-modal__input admin-modal__textarea"
-                  placeholder="Describe the concept style and when to use it..."
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
-
-              {/* Tags */}
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Tags</label>
-                <input
-                  className="admin-modal__input"
-                  placeholder="tag1, tag2, tag3 (comma-separated)"
-                  value={newTags}
-                  onChange={(e) => setNewTags(e.target.value)}
-                />
-              </div>
-
-              {/* Source URL */}
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Source URL</label>
-                <input
-                  className="admin-modal__input"
-                  placeholder="https://example.com/inspiration"
-                  value={newSourceUrl}
-                  onChange={(e) => setNewSourceUrl(e.target.value)}
-                />
-              </div>
-
-              {/* Submit */}
-              <button
-                type="submit"
-                className="admin-modal__submit"
-                disabled={modalLoading}
-              >
-                {modalLoading ? (
-                  <>
-                    <span className="admin-dash__spinner" /> Creating...
-                  </>
-                ) : (
-                  "Create Concept"
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <ConceptModal
+        title="🎨 Add New Concept"
+        show={showModal}
+        loading={modalLoading}
+        error={modalError}
+        name={newName}
+        categoryId={newCategoryId}
+        description={newDescription}
+        tags={newTags}
+        sourceUrl={newSourceUrl}
+        imagePreview={newImagePreview}
+        categories={categories}
+        fileInputRef={fileInputRef}
+        setName={setNewName}
+        setCategoryId={setNewCategoryId}
+        setDescription={setNewDescription}
+        setTags={setNewTags}
+        setSourceUrl={setNewSourceUrl}
+        onImageSelect={handleImageSelect}
+        onSubmit={handleCreateConcept}
+        onClose={closeModal}
+        submitLabel="Create Concept"
+        loadingLabel="Creating..."
+      />
 
       {/* ── Edit Concept Modal ── */}
-      {showEditModal && (
-        <div className="admin-modal__overlay" onClick={closeEditModal}>
-          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal__header">
-              <h2 className="admin-modal__title">✏️ Edit Concept</h2>
-              <button className="admin-modal__close" onClick={closeEditModal}>
-                ✕
-              </button>
-            </div>
-
-            {editError && (
-              <div className="admin-modal__error">⚠️ {editError}</div>
-            )}
-
-            <form className="admin-modal__form" onSubmit={handleUpdateConcept}>
-              {/* Image Upload */}
-              <div
-                className="admin-modal__upload"
-                onClick={() => editFileInputRef.current?.click()}
-              >
-                {editImagePreview ? (
-                  <img
-                    src={editImagePreview}
-                    alt="Preview"
-                    className="admin-modal__upload-preview"
-                  />
-                ) : (
-                  <div className="admin-modal__upload-placeholder">
-                    <span className="admin-modal__upload-icon">📷</span>
-                    <span className="admin-modal__upload-text">
-                      Click to change image
-                    </span>
-                    <span className="admin-modal__upload-hint">
-                      PNG, JPG, WEBP — max 10MB
-                    </span>
-                  </div>
-                )}
-                <input
-                  ref={editFileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={handleEditImageSelect}
-                  style={{ display: "none" }}
-                />
-              </div>
-
-              {/* Name */}
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Name *</label>
-                <input
-                  className="admin-modal__input"
-                  placeholder="e.g. Bold Social Proof Banner"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                />
-              </div>
-
-              {/* Category */}
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Category *</label>
-                <select
-                  className="admin-modal__input admin-modal__select"
-                  value={editCategoryId}
-                  onChange={(e) => setEditCategoryId(e.target.value)}
-                >
-                  {categories.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Description */}
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Description</label>
-                <textarea
-                  className="admin-modal__input admin-modal__textarea"
-                  placeholder="Describe the concept style and when to use it..."
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
-
-              {/* Tags */}
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Tags</label>
-                <input
-                  className="admin-modal__input"
-                  placeholder="tag1, tag2, tag3 (comma-separated)"
-                  value={editTags}
-                  onChange={(e) => setEditTags(e.target.value)}
-                />
-              </div>
-
-              {/* Source URL */}
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Source URL</label>
-                <input
-                  className="admin-modal__input"
-                  placeholder="https://example.com/inspiration"
-                  value={editSourceUrl}
-                  onChange={(e) => setEditSourceUrl(e.target.value)}
-                />
-              </div>
-
-              {/* Submit */}
-              <button
-                type="submit"
-                className="admin-modal__submit"
-                disabled={editLoading}
-              >
-                {editLoading ? (
-                  <>
-                    <span className="admin-dash__spinner" /> Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <ConceptModal
+        title="✏️ Edit Concept"
+        show={showEditModal}
+        loading={editLoading}
+        error={editError}
+        name={editName}
+        categoryId={editCategoryId}
+        description={editDescription}
+        tags={editTags}
+        sourceUrl={editSourceUrl}
+        imagePreview={editImagePreview}
+        categories={categories}
+        fileInputRef={editFileInputRef}
+        setName={setEditName}
+        setCategoryId={setEditCategoryId}
+        setDescription={setEditDescription}
+        setTags={setEditTags}
+        setSourceUrl={setEditSourceUrl}
+        onImageSelect={handleEditImageSelect}
+        onSubmit={handleUpdateConcept}
+        onClose={closeEditModal}
+        submitLabel="Save Changes"
+        loadingLabel="Saving..."
+      />
 
       {showCategoryModal && (
         <div

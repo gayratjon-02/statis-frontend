@@ -281,3 +281,13 @@ export interface ConceptModalProps {
   submitLabel: string;
   loadingLabel: string;
 }
+
+// ── Admin Sidebar Props ───────────────────────────────────
+
+export interface AdminSidebarProps {
+  activeNav: string;
+  setActiveNav: (nav: string) => void;
+  adminName: string;
+  adminRole: string;
+  onLogout: () => void;
+}
