@@ -46,6 +46,8 @@ import Dashboard from "../../../libs/components/_admin/Dashboard";
 import UsersTab from "../../../libs/components/_admin/User";
 import ConceptsTab from "../../../libs/components/_admin/Concept";
 import RecommendedTab from "../../../libs/components/_admin/Recomended";
+import CategoriesTab from "../../../libs/components/_admin/Categories";
+import CanvaOrdersTab from "../../../libs/components/_admin/Canva_Orders";
 
 /** Prepend API base URL to relative image paths */
 function resolveImageUrl(url?: string): string {
@@ -706,6 +708,25 @@ function AdminDashboard() {
     (a, b) => b[1] - a[1],
   )[0];
 
+  const handleCanvaFulfill = async (orderId: string) => {
+    setCanvaFulfillError("");
+    setCanvaFulfillId(orderId);
+    setCanvaFulfilling(true);
+    try {
+      await fulfillCanvaOrder(orderId, canvaFulfillLink.trim());
+      toast.success("Order fulfilled & email sent");
+      setCanvaFulfillLink("");
+      setCanvaFulfillId(null);
+      fetchCanvaOrders();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed";
+      setCanvaFulfillError(msg);
+      toast.error(msg);
+    } finally {
+      setCanvaFulfilling(false);
+    }
+  };
+
   // ── Build category filter tabs ──
   const categoryFilters: { value: string; label: string }[] = [
     { value: "", label: "All" },
@@ -1302,83 +1323,20 @@ function AdminDashboard() {
 
         {/* ── Categories View ── */}
         {activeNav === "categories" && (
-          <div className="admin-dash__section">
-            <div className="admin-dash__section-header">
-              <div className="admin-dash__section-title">
-                🏷️ All Categories
-                <span className="admin-dash__section-count">
-                  {categories.length}
-                </span>
-              </div>
-              <button
-                className="admin-dash__btn admin-dash__btn--primary"
-                onClick={() => {
-                  setEditingCatId(null);
-                  setCatName("");
-                  setCatDescription("");
-                  setCatDisplayOrder(categories.length + 1);
-                  setCatModalError("");
-                  setShowCategoryModal(true);
-                }}
-              >
-                ＋ Add Category
-              </button>
-            </div>
-
-            {categories.length > 0 ? (
-              <div className="admin-cat-grid">
-                {categories.map((cat) => (
-                  <div key={cat._id} className="admin-cat-card">
-                    <div className="admin-cat-card__body">
-                      <div className="admin-cat-card__name">{cat.name}</div>
-                      <div className="admin-cat-card__slug">
-                        slug: {cat.slug}
-                      </div>
-                      {cat.description && (
-                        <div className="admin-cat-card__desc">
-                          {cat.description}
-                        </div>
-                      )}
-                      <div className="admin-cat-card__order">
-                        Order: {cat.display_order}
-                      </div>
-                    </div>
-                    <div className="admin-cat-card__actions">
-                      <button
-                        className="admin-cat-card__btn admin-cat-card__btn--edit"
-                        onClick={() => openEditCategory(cat)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="admin-cat-card__btn admin-cat-card__btn--delete"
-                        disabled={deletingCatId === cat._id}
-                        onClick={() => {
-                          if (
-                            confirm(
-                              `Delete "${cat.name}"? This cannot be undone.`,
-                            )
-                          ) {
-                            handleDeleteCategory(cat._id);
-                          }
-                        }}
-                      >
-                        {deletingCatId === cat._id ? "..." : "Delete"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="admin-dash__empty">
-                <div className="admin-dash__empty-icon">🏷️</div>
-                <div className="admin-dash__empty-text">No categories yet</div>
-                <div className="admin-dash__empty-hint">
-                  Create your first category to organize concepts
-                </div>
-              </div>
-            )}
-          </div>
+          <CategoriesTab
+            categories={categories}
+            deletingCatId={deletingCatId}
+            openAddCategory={() => {
+              setEditingCatId(null);
+              setCatName("");
+              setCatDescription("");
+              setCatDisplayOrder(categories.length + 1);
+              setCatModalError("");
+              setShowCategoryModal(true);
+            }}
+            openEditCategory={openEditCategory}
+            handleDeleteCategory={handleDeleteCategory}
+          />
         )}
         {/* ── Invite Tokens View ── */}
         {activeNav === "invites" &&

@@ -181,3 +181,28 @@ export interface RecommendedTabProps {
   getCategoryName: (categoryId?: string, categoryName?: string) => string;
   fetchRecommended: () => void;
 }
+
+// ── Admin Categories Tab Props ────────────────────────────
+
+export interface CategoriesTabProps {
+  categories: import("./concept.type").ConceptCategoryItem[];
+  deletingCatId: string | null;
+  openAddCategory: () => void;
+  openEditCategory: (cat: import("./concept.type").ConceptCategoryItem) => void;
+  handleDeleteCategory: (id: string) => void;
+}
+
+// ── Admin Canva Orders Tab Props ──────────────────────────
+
+export interface CanvaOrdersTabProps {
+  canvaOrders: import("../../server/admin/admnGetApis").CanvaOrderAdmin[];
+  canvaOrdersLoading: boolean;
+  canvaFulfillId: string | null;
+  canvaFulfillLink: string;
+  canvaFulfilling: boolean;
+  canvaFulfillError: string;
+  setCanvaFulfillId: (id: string | null) => void;
+  setCanvaFulfillLink: (v: string) => void;
+  fetchCanvaOrders: () => void;
+  handleFulfill: (orderId: string) => void;
+}
