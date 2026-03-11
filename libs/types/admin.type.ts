@@ -206,3 +206,21 @@ export interface CanvaOrdersTabProps {
   fetchCanvaOrders: () => void;
   handleFulfill: (orderId: string) => void;
 }
+
+// ── Admin Prompt Management Tab Props ─────────────────────
+
+export interface PromptManageTabProps {
+  promptTemplates: import("../../server/admin/admnGetApis").PromptTemplateAdmin[];
+  promptTemplatesLoading: boolean;
+  promptEditId: string | null;
+  promptEditContent: string;
+  promptEditActive: boolean;
+  promptSaveLoading: boolean;
+  promptSaveError: string;
+  setPromptEditId: (id: string | null) => void;
+  setPromptEditContent: (v: string) => void;
+  setPromptEditActive: (v: boolean) => void;
+  setPromptSaveError: (v: string) => void;
+  fetchPromptTemplates: () => void;
+  handleSavePrompt: (templateId: string) => void;
+}
