@@ -69,7 +69,10 @@ function AdminDashboard() {
   const { session, logout } = useAdminAuth();
 
   // ── State ──
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = useState(() => {
+    const tab = router.query.tab;
+    return typeof tab === "string" ? tab : "dashboard";
+  });
   const [concepts, setConcepts] = useState<AdConcept[]>([]);
   const [recommended, setRecommended] = useState<AdConcept[]>([]);
   const [categories, setCategories] = useState<ConceptCategoryItem[]>([]);
@@ -599,6 +602,18 @@ function AdminDashboard() {
       setInvitesLoading(false);
     }
   };
+
+  useEffect(() => {
+    const tab = router.query.tab;
+    if (typeof tab === "string" && tab !== activeNav) setActiveNav(tab);
+  }, [router.query.tab]);
+
+  useEffect(() => {
+    const current = router.query.tab ?? "dashboard";
+    if (activeNav !== current) {
+      router.replace({ query: { ...router.query, tab: activeNav } }, undefined, { shallow: true });
+    }
+  }, [activeNav]);
 
   useEffect(() => {
     if (activeNav === "users") fetchUsers();
