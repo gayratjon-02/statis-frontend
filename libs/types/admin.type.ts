@@ -11,17 +11,19 @@ export interface AdminNavItem {
   icon: string;
   label: string;
   id: string;
+  title: string;
+  subtitle: string;
 }
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
-  { icon: "📊", label: "Dashboard", id: "dashboard" },
-  { icon: "👥", label: "Users", id: "users" },
-  { icon: "🎨", label: "Concepts", id: "concepts" },
-  { icon: "⭐", label: "Recommended", id: "recommended" },
-  { icon: "🏷️", label: "Categories", id: "categories" },
-  { icon: "📦", label: "Canva Orders", id: "canva" },
-  { icon: "📝", label: "Prompt Management", id: "prompts" },
-  { icon: "🎟️", label: "Invite Tokens", id: "invites" },
+  { icon: "📊", label: "Dashboard", id: "dashboard", title: "Dashboard", subtitle: "Platform overview — users, generations, and activity" },
+  { icon: "👥", label: "Users", id: "users", title: "User Management", subtitle: "Search, filter, block or reactivate user accounts" },
+  { icon: "🎨", label: "Concepts", id: "concepts", title: "Concept Library", subtitle: "Manage, search, and organize ad concepts" },
+  { icon: "⭐", label: "Recommended", id: "recommended", title: "Recommended Concepts", subtitle: "Top performing concepts by usage" },
+  { icon: "🏷️", label: "Categories", id: "categories", title: "Category Management", subtitle: "Create and manage concept categories" },
+  { icon: "📦", label: "Canva Orders", id: "canva", title: "Canva Orders", subtitle: "View and fulfill Canva template orders — set link and send email" },
+  { icon: "📝", label: "Prompt Management", id: "prompts", title: "Prompt Management", subtitle: "Edit AI system prompts used for ad generation" },
+  { icon: "🎟️", label: "Invite Tokens", id: "invites", title: "Invite Tokens", subtitle: "Generate and manage admin invite tokens" },
 ];
 
 // ── Admin User ──────────────────────────────────────────────

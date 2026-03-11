@@ -52,6 +52,7 @@ import PromptManageTab from "../../../libs/components/_admin/Prompt_manage";
 import InviteTokensTab from "../../../libs/components/_admin/Token_Invite";
 import ConceptModal from "../../../libs/components/_admin/ConceptModal";
 import AdminSidebar from "../../../libs/components/_admin/Sidebar";
+import { ADMIN_NAV_ITEMS } from "../../../libs/types/admin.type";
 
 /** Prepend API base URL to relative image paths */
 function resolveImageUrl(url?: string): string {
@@ -756,35 +757,17 @@ function AdminDashboard() {
       {/* ── Main Content ── */}
       <main className="admin-dash__main">
         {/* Header */}
-        <div className="admin-dash__header">
-          <div>
-            <h1 className="admin-dash__title">
-              {activeNav === "dashboard" && "Dashboard"}
-              {activeNav === "users" && "User Management"}
-              {activeNav === "concepts" && "Concept Library"}
-              {activeNav === "recommended" && "Recommended Concepts"}
-              {activeNav === "categories" && "Category Management"}
-              {activeNav === "canva" && "Canva Orders"}
-              {activeNav === "prompts" && "Prompt Management"}
-            </h1>
-            <p className="admin-dash__subtitle">
-              {activeNav === "dashboard" &&
-                "Platform overview — users, generations, and activity"}
-              {activeNav === "users" &&
-                "Search, filter, block or reactivate user accounts"}
-              {activeNav === "concepts" &&
-                "Manage, search, and organize ad concepts"}
-              {activeNav === "recommended" &&
-                "Top performing concepts by usage"}
-              {activeNav === "categories" &&
-                "Create and manage concept categories"}
-              {activeNav === "canva" &&
-                "View and fulfill Canva template orders — set link and send email"}
-              {activeNav === "prompts" &&
-                "Edit AI system prompts used for ad generation"}
-            </p>
-          </div>
-        </div>
+        {(() => {
+          const nav = ADMIN_NAV_ITEMS.find((n) => n.id === activeNav);
+          return nav ? (
+            <div className="admin-dash__header">
+              <div>
+                <h1 className="admin-dash__title">{nav.title}</h1>
+                <p className="admin-dash__subtitle">{nav.subtitle}</p>
+              </div>
+            </div>
+          ) : null;
+        })()}
 
         {/* ── Dashboard View ── */}
         {activeNav === "dashboard" && (
