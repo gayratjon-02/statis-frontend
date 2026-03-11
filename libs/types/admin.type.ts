@@ -2,6 +2,7 @@
 // TYPES — Admin (mirrors backend admin types & DTOs)
 // =============================================
 
+import React from "react";
 import { AdminRole } from "../enums/admin.enum";
 
 // ── Admin User ──────────────────────────────────────────────
@@ -100,4 +101,29 @@ export interface GetConceptsParams {
     tags?: string;
     page?: number;
     limit?: number;
+}
+
+// ── Admin Dashboard Props ──────────────────────────────────
+
+export interface AdminPlatformStats {
+    users: { total: number; paid: number; active: number };
+    generations: {
+        today: number;
+        this_week: number;
+        total: number;
+        completed: number;
+        failed: number;
+    };
+}
+
+export interface DashboardProps {
+    platformStats: AdminPlatformStats | null;
+    total: number;
+    activeCount: number;
+    categoriesCount: number;
+    topCategory: [string, number] | undefined;
+    recommended: import("./concept.type").AdConcept[];
+    resolveImageUrl: (url?: string) => string;
+    setActiveNav: (nav: string) => void;
+    renderConceptGrid: (draggable: boolean) => React.ReactNode;
 }

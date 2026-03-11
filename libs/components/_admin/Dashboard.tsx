@@ -1,28 +1,5 @@
 import React from "react";
-import type { AdConcept } from "../../types/concept.type";
-
-interface AdminPlatformStatsProps {
-  users: { total: number; paid: number; active: number };
-  generations: {
-    today: number;
-    this_week: number;
-    total: number;
-    completed: number;
-    failed: number;
-  };
-}
-
-interface DashboardProps {
-  platformStats: AdminPlatformStatsProps | null;
-  total: number;
-  activeCount: number;
-  categoriesCount: number;
-  topCategory: [string, number] | undefined;
-  recommended: AdConcept[];
-  resolveImageUrl: (url?: string) => string;
-  setActiveNav: (nav: string) => void;
-  renderConceptGrid: (draggable: boolean) => React.ReactNode;
-}
+import type { DashboardProps } from "../../types/admin.type";
 
 export default function Dashboard({
   platformStats,
