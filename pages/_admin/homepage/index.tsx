@@ -96,6 +96,7 @@ function AdminDashboard() {
     const [catModalError, setCatModalError] = useState("");
     const [catName, setCatName] = useState("");
     const [catDescription, setCatDescription] = useState("");
+    const [catDisplayOrder, setCatDisplayOrder] = useState<number | "">(0);
     const [editingCatId, setEditingCatId] = useState<string | null>(null);
     const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
 
@@ -353,22 +354,26 @@ function AdminDashboard() {
         setCatModalError("");
 
         try {
+            const orderVal = catDisplayOrder === "" ? undefined : catDisplayOrder;
             if (editingCatId) {
                 await updateCategory(editingCatId, {
                     name: catName.trim(),
                     description: catDescription.trim() || undefined,
+                    display_order: orderVal,
                 });
                 toast.success("Category updated");
             } else {
                 await createCategory({
                     name: catName.trim(),
                     description: catDescription.trim() || undefined,
+                    display_order: orderVal,
                 });
                 toast.success("Category created");
             }
             setShowCategoryModal(false);
             setCatName("");
             setCatDescription("");
+            setCatDisplayOrder(0);
             setEditingCatId(null);
             fetchCategories();
         } catch (err: unknown) {
@@ -397,6 +402,7 @@ function AdminDashboard() {
         setEditingCatId(cat._id);
         setCatName(cat.name);
         setCatDescription(cat.description || "");
+        setCatDisplayOrder(cat.display_order ?? 0);
         setCatModalError("");
         setShowCategoryModal(true);
     };
@@ -1361,6 +1367,7 @@ function AdminDashboard() {
                                         setEditingCatId(null);
                                         setCatName("");
                                         setCatDescription("");
+                                        setCatDisplayOrder(categories.length + 1);
                                         setCatModalError("");
                                         setShowCategoryModal(true);
                                     }}
@@ -1788,6 +1795,17 @@ function AdminDashboard() {
                                     onChange={(e) => setCatDescription(e.target.value)}
                                     rows={3}
                                     style={{ resize: "vertical" }}
+                                />
+                            </div>
+                            <div className="admin-modal__field">
+                                <label className="admin-modal__label">Display Order</label>
+                                <input
+                                    type="number"
+                                    className="admin-modal__input"
+                                    placeholder="0"
+                                    min={0}
+                                    value={catDisplayOrder}
+                                    onChange={(e) => setCatDisplayOrder(e.target.value === "" ? "" : Number(e.target.value))}
                                 />
                             </div>
                             <button
