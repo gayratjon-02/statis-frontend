@@ -172,3 +172,12 @@ export interface ConceptsTabProps {
   openModal: () => void;
   renderConceptGrid: (draggable: boolean) => React.ReactNode;
 }
+
+// ── Admin Recommended Tab Props ───────────────────────────
+
+export interface RecommendedTabProps {
+  recommended: import("./concept.type").AdConcept[];
+  resolveImageUrl: (url?: string) => string;
+  getCategoryName: (categoryId?: string, categoryName?: string) => string;
+  fetchRecommended: () => void;
+}
