@@ -78,26 +78,19 @@ export default function UsersTab({
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user._id} style={{ borderBottom: "1px solid var(--border-subtle, #21262d)" }}>
+                <tr key={user._id} style={{ borderBottom: "1px solid var(--border)" }}>
                   <td style={{ padding: "10px 12px" }}>
                     <div style={{ fontWeight: 500, color: "var(--text)" }}>{user.full_name || "—"}</div>
                     <div style={{ color: "var(--muted)", fontSize: 12 }}>{user.email}</div>
                   </td>
                   <td style={{ padding: "10px 12px" }}>
-                    <span style={{
-                      background: user.subscription_tier === "free" ? "#21262d" : user.subscription_tier === "pro" ? "#1f3a5f" : user.subscription_tier === "growth" ? "#2d1f5f" : "#1f3a2f",
-                      color: user.subscription_tier === "free" ? "var(--muted)" : user.subscription_tier === "pro" ? "#58a6ff" : user.subscription_tier === "growth" ? "#a371f7" : "#3fb950",
-                      padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, textTransform: "uppercase"
-                    }}>
+                    <span className={`admin-tier-badge admin-tier-badge--${user.subscription_tier}`}>
                       {user.subscription_tier}
                     </span>
                   </td>
                   <td style={{ padding: "10px 12px" }}>
-                    <span style={{
-                      display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12,
-                      color: user.member_status === "active" ? "#3fb950" : user.member_status === "suspended" ? "#f85149" : "var(--muted)"
-                    }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
+                    <span className={`admin-status-dot admin-status-dot--${user.member_status}`}>
+                      <span className="admin-status-dot__circle" />
                       {user.member_status}
                     </span>
                   </td>
@@ -111,24 +104,16 @@ export default function UsersTab({
                     <div style={{ display: "flex", gap: "8px" }}>
                       {user.member_status !== "deleted" && (
                         <button
+                          className={`admin-action-btn ${user.member_status === "suspended" ? "admin-action-btn--green" : "admin-action-btn--red"}`}
                           onClick={() => handleBlockUser(user)}
-                          style={{
-                            background: user.member_status === "suspended" ? "#1a3a2a" : "#3a1a1a",
-                            color: user.member_status === "suspended" ? "#3fb950" : "#f85149",
-                            border: "1px solid currentColor", borderRadius: 5,
-                            padding: "4px 10px", fontSize: 12, cursor: "pointer"
-                          }}>
+                        >
                           {user.member_status === "suspended" ? "Reactivate" : "Suspend"}
                         </button>
                       )}
                       <button
+                        className="admin-action-btn admin-action-btn--red"
                         onClick={() => handleDeleteUser(user)}
-                        style={{
-                          background: "#3a1a1a",
-                          color: "#f85149",
-                          border: "1px solid currentColor", borderRadius: 5,
-                          padding: "4px 10px", fontSize: 12, cursor: "pointer"
-                        }}>
+                      >
                         Delete
                       </button>
                     </div>
