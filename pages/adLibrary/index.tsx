@@ -340,12 +340,12 @@ function LibraryPage() {
                             onClick={() => router.push("/dashboard")}
                             style={{
                                 padding: "6px 14px", fontSize: 13, fontWeight: 500,
-                                color: "var(--muted)", background: "rgba(255,255,255,0.06)",
-                                border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+                                color: "var(--muted)", background: "var(--bg-input)",
+                                border: "1px solid var(--border)", borderRadius: 8,
                                 cursor: "pointer", marginBottom: 8, transition: "all 0.2s",
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "var(--text)"; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "var(--muted)"; }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--bg-input)"; e.currentTarget.style.color = "var(--muted)"; }}
                         >← Dashboard</button>
                         <div className="lib-topbar__title">
                             {selectedBrand ? counts.brands.find((b) => b._id === selectedBrand)?.name : "All"} Ads
@@ -799,7 +799,7 @@ function LibraryPage() {
                                 <h3 style={{ margin: "0 0 16px", fontSize: 16, color: "var(--text)" }}>Actions</h3>
                                 {/* Same actions block as before */}
                                 <div className="detail-actions">
-                                    <button onClick={(e) => handleToggleFavorite(e, detailAd._id)} style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: `1px solid ${detailAd.is_favorite ? "rgba(251,191,36,0.5)" : "rgba(255,255,255,0.1)"}`, background: detailAd.is_favorite ? "rgba(251,191,36,0.1)" : "transparent", color: detailAd.is_favorite ? "#FBBF24" : "var(--muted)", fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 16 }}>{detailAd.is_favorite ? "⭐ Remove from Favorites" : "☆ Add to Favorites"}</button>
+                                    <button onClick={(e) => handleToggleFavorite(e, detailAd._id)} style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: `1px solid ${detailAd.is_favorite ? "rgba(251,191,36,0.5)" : "var(--border)"}`, background: detailAd.is_favorite ? "rgba(251,191,36,0.1)" : "transparent", color: detailAd.is_favorite ? "#FBBF24" : "var(--muted)", fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 16 }}>{detailAd.is_favorite ? "⭐ Remove from Favorites" : "☆ Add to Favorites"}</button>
 
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
                                         {(["1:1", "9:16", "16:9"] as const).map((ratio) => (
@@ -873,14 +873,14 @@ function LibraryPage() {
             {/* Comparison Modal */}
             {isCompareOpen && detailAd && fixedAdOutput && (
                 <div className="modal-backdrop" style={{ zIndex: 9999 }}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 1000, padding: 30, background: "var(--bg-layer1)" }}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 1000, padding: 30 }}>
                         <h2 style={{ margin: "0 0 20px", fontSize: 22, color: "var(--text)", textAlign: "center" }}>Review Fixes</h2>
 
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 30 }}>
                             {/* Original */}
                             <div style={{ textAlign: "center" }}>
                                 <h3 style={{ margin: "0 0 10px", color: "var(--muted)", fontSize: 16 }}>Original</h3>
-                                <div style={{ border: "2px solid rgba(255,255,255,0.1)", borderRadius: 12, overflow: "hidden", aspectRatio: "1/1" }}>
+                                <div style={{ border: "2px solid var(--border)", borderRadius: 12, overflow: "hidden", aspectRatio: "1/1" }}>
                                     <img src={detailAd.image_url_1x1 || detailAd.image} alt="Original" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                 </div>
                             </div>
