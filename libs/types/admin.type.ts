@@ -293,3 +293,20 @@ export interface AdminSidebarProps {
   adminRole: string;
   onLogout: () => void;
 }
+
+// ── Admin Category Modal Props ────────────────────────────
+
+export interface CategoryModalProps {
+  show: boolean;
+  editingCatId: string | null;
+  catName: string;
+  catDescription: string;
+  catDisplayOrder: number | "";
+  catModalError: string;
+  catModalLoading: boolean;
+  setCatName: (v: string) => void;
+  setCatDescription: (v: string) => void;
+  setCatDisplayOrder: (v: number | "") => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onClose: () => void;
+}

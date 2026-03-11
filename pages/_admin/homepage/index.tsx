@@ -52,6 +52,7 @@ import PromptManageTab from "../../../libs/components/_admin/Prompt_manage";
 import InviteTokensTab from "../../../libs/components/_admin/Token_Invite";
 import ConceptModal from "../../../libs/components/_admin/ConceptModal";
 import AdminSidebar from "../../../libs/components/_admin/Sidebar";
+import CategoryModal from "../../../libs/components/_admin/CategoryModal";
 import { ADMIN_NAV_ITEMS } from "../../../libs/types/admin.type";
 
 /** Prepend API base URL to relative image paths */
@@ -947,91 +948,23 @@ function AdminDashboard() {
         loadingLabel="Saving..."
       />
 
-      {showCategoryModal && (
-        <div
-          className="admin-modal__overlay"
-          onClick={() => {
-            setShowCategoryModal(false);
-            setEditingCatId(null);
-          }}
-        >
-          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal__header">
-              <div className="admin-modal__title">
-                {editingCatId ? "Edit Category" : "New Category"}
-              </div>
-              <button
-                className="admin-modal__close"
-                onClick={() => {
-                  setShowCategoryModal(false);
-                  setEditingCatId(null);
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {catModalError && (
-              <div className="admin-modal__error">{catModalError}</div>
-            )}
-
-            <form className="admin-modal__form" onSubmit={handleCategorySubmit}>
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Category Name *</label>
-                <input
-                  className="admin-modal__input"
-                  placeholder="e.g. Social Proof"
-                  value={catName}
-                  onChange={(e) => setCatName(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Description</label>
-                <textarea
-                  className="admin-modal__input"
-                  placeholder="Describe what this category covers..."
-                  value={catDescription}
-                  onChange={(e) => setCatDescription(e.target.value)}
-                  rows={3}
-                  style={{ resize: "vertical" }}
-                />
-              </div>
-              <div className="admin-modal__field">
-                <label className="admin-modal__label">Display Order</label>
-                <input
-                  type="number"
-                  className="admin-modal__input"
-                  placeholder="0"
-                  min={0}
-                  value={catDisplayOrder}
-                  onChange={(e) =>
-                    setCatDisplayOrder(
-                      e.target.value === "" ? "" : Number(e.target.value),
-                    )
-                  }
-                />
-              </div>
-              <button
-                type="submit"
-                className="admin-modal__submit"
-                disabled={catModalLoading}
-              >
-                {catModalLoading ? (
-                  <>
-                    <span className="admin-dash__spinner" />{" "}
-                    {editingCatId ? "Saving..." : "Creating..."}
-                  </>
-                ) : editingCatId ? (
-                  "Save Changes"
-                ) : (
-                  "Create Category"
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <CategoryModal
+        show={showCategoryModal}
+        editingCatId={editingCatId}
+        catName={catName}
+        catDescription={catDescription}
+        catDisplayOrder={catDisplayOrder}
+        catModalError={catModalError}
+        catModalLoading={catModalLoading}
+        setCatName={setCatName}
+        setCatDescription={setCatDescription}
+        setCatDisplayOrder={setCatDisplayOrder}
+        onSubmit={handleCategorySubmit}
+        onClose={() => {
+          setShowCategoryModal(false);
+          setEditingCatId(null);
+        }}
+      />
     </div>
   );
 
