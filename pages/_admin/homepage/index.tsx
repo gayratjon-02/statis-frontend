@@ -105,6 +105,7 @@ function AdminDashboard() {
     const [canvaFulfillId, setCanvaFulfillId] = useState<string | null>(null);
     const [canvaFulfillLink, setCanvaFulfillLink] = useState("");
     const [canvaFulfillError, setCanvaFulfillError] = useState("");
+    const [canvaFulfilling, setCanvaFulfilling] = useState(false);
 
     // ── Prompt Management tab ──
     const [promptTemplates, setPromptTemplates] = useState<PromptTemplateAdmin[]>([]);
@@ -1158,44 +1159,50 @@ function AdminDashboard() {
                                                         <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--muted)" }}>{new Date(order.created_at).toLocaleDateString()}</td>
                                                         <td style={{ padding: "10px 12px" }}>
                                                             {isPending ? (
-                                                                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 280 }}>
+                                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                                     <input
                                                                         type="url"
-                                                                        placeholder="Canva link"
+                                                                        placeholder="https://www.canva.com/design/..."
                                                                         value={canvaFulfillId === order._id ? canvaFulfillLink : ""}
                                                                         onChange={(e) => { setCanvaFulfillLink(e.target.value); setCanvaFulfillId(order._id); }}
                                                                         className="admin-dash__search-input"
-                                                                        style={{ padding: "6px 10px", fontSize: 12 }}
+                                                                        style={{ padding: "7px 10px", fontSize: 12, minWidth: 200, flex: 1 }}
                                                                     />
-                                                                    {canvaFulfillError && canvaFulfillId === order._id && (
-                                                                        <div style={{ fontSize: 12, color: "#f85149" }}>{canvaFulfillError}</div>
-                                                                    )}
                                                                     <button
                                                                         className="admin-dash__btn admin-dash__btn--primary"
-                                                                        style={{ fontSize: 12, padding: "6px 12px" }}
-                                                                        disabled={isFulfilling || !canvaFulfillLink.trim()}
+                                                                        style={{ fontSize: 12, padding: "7px 14px", whiteSpace: "nowrap" }}
+                                                                        disabled={(canvaFulfilling && canvaFulfillId === order._id) || !(canvaFulfillId === order._id && canvaFulfillLink.trim())}
                                                                         onClick={async () => {
                                                                             setCanvaFulfillError("");
                                                                             setCanvaFulfillId(order._id);
+                                                                            setCanvaFulfilling(true);
                                                                             try {
                                                                                 await fulfillCanvaOrder(order._id, canvaFulfillLink.trim());
+                                                                                toast.success("Order fulfilled & email sent");
                                                                                 setCanvaFulfillLink("");
                                                                                 setCanvaFulfillId(null);
                                                                                 fetchCanvaOrders();
-                                                                            } catch (err: any) {
-                                                                                setCanvaFulfillError(err.message || "Failed");
+                                                                            } catch (err: unknown) {
+                                                                                const msg = err instanceof Error ? err.message : "Failed";
+                                                                                setCanvaFulfillError(msg);
+                                                                                toast.error(msg);
+                                                                            } finally {
+                                                                                setCanvaFulfilling(false);
                                                                             }
                                                                         }}
                                                                     >
-                                                                        {isFulfilling ? "…" : "Fulfill & send email"}
+                                                                        {canvaFulfilling && canvaFulfillId === order._id ? "Sending..." : "Send"}
                                                                     </button>
                                                                 </div>
                                                             ) : order.canva_link ? (
-                                                                <a href={order.canva_link} target="_blank" rel="noopener noreferrer" className="admin-dash__btn admin-dash__btn--ghost" style={{ fontSize: 12 }}>
-                                                                    View link
+                                                                <a href={order.canva_link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", fontSize: 12, textDecoration: "underline" }}>
+                                                                    Open in Canva
                                                                 </a>
                                                             ) : (
-                                                                "—"
+                                                                <span style={{ color: "var(--muted)" }}>—</span>
+                                                            )}
+                                                            {canvaFulfillError && canvaFulfillId === order._id && (
+                                                                <div style={{ fontSize: 11, color: "#f85149", marginTop: 4 }}>{canvaFulfillError}</div>
                                                             )}
                                                         </td>
                                                     </tr>
