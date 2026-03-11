@@ -74,6 +74,10 @@ export async function generateAdminInvite(role: AdminRole): Promise<{ inviteToke
     return postRequest<{ inviteToken: string, expiresAt: string }>(`${MEMBER_API}/generateAdminInvite`, { role });
 }
 
+export async function deleteAdminInvite(id: string): Promise<{ message: string }> {
+    return postRequest<{ message: string }>(`${MEMBER_API}/deleteAdminInvite/${id}`, {});
+}
+
 // =============================================
 // 2. CATEGORIES — Admin category management
 // =============================================

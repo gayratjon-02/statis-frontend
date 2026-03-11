@@ -9,7 +9,9 @@ export default function InviteTokensTab({
   invitesError,
   generatedInvite,
   isGeneratingInvite,
+  deletingInviteId,
   handleGenerateInvite,
+  handleDeleteInvite,
 }: InviteTokensTabProps) {
   return (
     <div className="admin-dash__section">
@@ -49,7 +51,7 @@ export default function InviteTokensTab({
           >
             <div
               style={{
-                color: "#10B981",
+                color: "var(--green)",
                 fontSize: "14px",
                 fontWeight: "600",
                 marginBottom: "8px",
@@ -66,13 +68,14 @@ export default function InviteTokensTab({
             >
               <code
                 style={{
-                  background: "rgba(0,0,0,0.3)",
+                  background: "var(--bg-input)",
                   padding: "10px 14px",
                   borderRadius: "6px",
                   fontFamily: "monospace",
                   fontSize: "15px",
-                  color: "white",
+                  color: "var(--text)",
                   flex: 1,
+                  border: "1px solid var(--border)",
                 }}
               >
                 {generatedInvite}
@@ -114,7 +117,7 @@ export default function InviteTokensTab({
             style={{
               padding: 40,
               textAlign: "center",
-              color: "#EF4444",
+              color: "var(--red)",
             }}
           >
             {invitesError}
@@ -129,22 +132,18 @@ export default function InviteTokensTab({
                   <th>Created At</th>
                   <th>Expires At (Time Remaining)</th>
                   <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {invites.map((inv) => {
                   const isExpired =
                     new Date(inv.expires_at) < new Date();
-                  const statusColor = inv.is_used
-                    ? "#6B7280"
-                    : isExpired
-                    ? "#EF4444"
-                    : "#10B981";
                   const statusText = inv.is_used
                     ? "Used"
                     : isExpired
-                    ? "Expired"
-                    : "Active";
+                      ? "Expired"
+                      : "Active";
                   const timeRemainingMs =
                     new Date(inv.expires_at).getTime() -
                     new Date().getTime();
@@ -170,19 +169,11 @@ export default function InviteTokensTab({
                       </td>
                       <td>
                         <span
-                          style={{
-                            padding: "4px 8px",
-                            borderRadius: "4px",
-                            fontSize: "11px",
-                            background:
-                              inv.role === AdminRole.SUPER_ADMIN
-                                ? "rgba(239, 68, 68, 0.1)"
-                                : "rgba(59, 130, 246, 0.1)",
-                            color:
-                              inv.role === AdminRole.SUPER_ADMIN
-                                ? "#EF4444"
-                                : "#3B82F6",
-                          }}
+                          className={`admin-tier-badge ${
+                            inv.role === AdminRole.SUPER_ADMIN
+                              ? "admin-tier-badge--growth"
+                              : "admin-tier-badge--pro"
+                          }`}
                         >
                           {inv.role}
                         </span>
@@ -199,7 +190,7 @@ export default function InviteTokensTab({
                             fontSize: "11px",
                             marginTop: "2px",
                             color: isExpired
-                              ? "#EF4444"
+                              ? "var(--red)"
                               : "var(--muted)",
                           }}
                         >
@@ -207,27 +198,27 @@ export default function InviteTokensTab({
                         </div>
                       </td>
                       <td>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                          }}
+                        <span
+                          className={`admin-status-dot ${
+                            inv.is_used
+                              ? ""
+                              : isExpired
+                                ? "admin-status-dot--suspended"
+                                : "admin-status-dot--active"
+                          }`}
                         >
-                          <span
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: "50%",
-                              background: statusColor,
-                            }}
-                          />
-                          <span
-                            style={{ color: statusColor, fontSize: 13 }}
-                          >
-                            {statusText}
-                          </span>
-                        </div>
+                          <span className="admin-status-dot__circle" />
+                          {statusText}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          className="admin-action-btn admin-action-btn--red"
+                          disabled={deletingInviteId === inv._id}
+                          onClick={() => handleDeleteInvite(inv._id)}
+                        >
+                          {deletingInviteId === inv._id ? "..." : "Delete"}
+                        </button>
                       </td>
                     </tr>
                   );

@@ -254,7 +254,9 @@ export interface InviteTokensTabProps {
   invitesError: string;
   generatedInvite: string;
   isGeneratingInvite: boolean;
+  deletingInviteId: string | null;
   handleGenerateInvite: (role: AdminRole) => void;
+  handleDeleteInvite: (id: string) => void;
 }
 
 // ── Admin Concept Modal Props ─────────────────────────────

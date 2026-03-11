@@ -35,6 +35,7 @@ import {
   fulfillCanvaOrder,
   updatePromptTemplateAdmin,
   normalizeCategoryOrders,
+  deleteAdminInvite,
 } from "../../../server/admin/adminPostApis";
 import type {
   AdConcept,
@@ -102,6 +103,7 @@ function AdminDashboard() {
   );
   const [generatedInvite, setGeneratedInvite] = useState("");
   const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
+  const [deletingInviteId, setDeletingInviteId] = useState<string | null>(null);
 
   // ── Create Concept Modal ──
   const [showModal, setShowModal] = useState(false);
@@ -685,6 +687,20 @@ function AdminDashboard() {
     }
   };
 
+  const handleDeleteInvite = async (id: string) => {
+    if (!confirm("Delete this invite token?")) return;
+    setDeletingInviteId(id);
+    try {
+      await deleteAdminInvite(id);
+      toast.success("Invite token deleted");
+      fetchAdminInvites();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete invite");
+    } finally {
+      setDeletingInviteId(null);
+    }
+  };
+
   // ── Logout ──
   const handleLogout = () => {
     logout();
@@ -891,7 +907,9 @@ function AdminDashboard() {
               invitesError={invitesError}
               generatedInvite={generatedInvite}
               isGeneratingInvite={isGeneratingInvite}
+              deletingInviteId={deletingInviteId}
               handleGenerateInvite={handleGenerateInvite}
+              handleDeleteInvite={handleDeleteInvite}
             />
           )}
       </main>
