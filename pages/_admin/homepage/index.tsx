@@ -41,7 +41,6 @@ import type {
   ConceptCategoryItem,
 } from "../../../libs/types/concept.type";
 import { AdminRole } from "../../../libs/enums/admin.enum";
-import { ADMIN_NAV_ITEMS } from "../../../libs/types/admin.type";
 import API_BASE_URL from "../../../libs/config/api.config";
 import Dashboard from "../../../libs/components/_admin/Dashboard";
 import UsersTab from "../../../libs/components/_admin/User";
@@ -52,6 +51,7 @@ import CanvaOrdersTab from "../../../libs/components/_admin/Canva_Orders";
 import PromptManageTab from "../../../libs/components/_admin/Prompt_manage";
 import InviteTokensTab from "../../../libs/components/_admin/Token_Invite";
 import ConceptModal from "../../../libs/components/_admin/ConceptModal";
+import AdminSidebar from "../../../libs/components/_admin/Sidebar";
 
 /** Prepend API base URL to relative image paths */
 function resolveImageUrl(url?: string): string {
@@ -745,48 +745,13 @@ function AdminDashboard() {
   return (
     <div className="admin-dash">
       {/* ── Sidebar ── */}
-      <aside className="admin-dash__sidebar">
-        <div className="admin-dash__logo">
-          <span className="admin-dash__logo-icon">⚡</span>
-          <span className="admin-dash__logo-text">Static Engine</span>
-          <span className="admin-dash__logo-badge">Admin</span>
-        </div>
-
-        <nav className="admin-dash__nav">
-          {ADMIN_NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              className={`admin-dash__nav-item ${
-                activeNav === item.id ? "admin-dash__nav-item--active" : ""
-              }`}
-              onClick={() => setActiveNav(item.id)}
-            >
-              <span className="admin-dash__nav-icon">{item.icon}</span>
-              {item.label}
-              <span className="admin-dash__nav-dot" />
-            </button>
-          ))}
-        </nav>
-
-        <div className="admin-dash__sidebar-footer">
-          <div className="admin-dash__user-info">
-            <div className="admin-dash__avatar">
-              {session?.admin?.name?.charAt(0)?.toUpperCase() || "A"}
-            </div>
-            <div>
-              <div className="admin-dash__user-name">
-                {session?.admin?.name || "Admin"}
-              </div>
-              <div className="admin-dash__user-role">
-                {session?.admin?.role || "ADMIN"}
-              </div>
-            </div>
-          </div>
-          <button className="admin-dash__logout-btn" onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
-      </aside>
+      <AdminSidebar
+        activeNav={activeNav}
+        setActiveNav={setActiveNav}
+        adminName={session?.admin?.name || ""}
+        adminRole={session?.admin?.role || ""}
+        onLogout={handleLogout}
+      />
 
       {/* ── Main Content ── */}
       <main className="admin-dash__main">
