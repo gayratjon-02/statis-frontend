@@ -1,11 +1,18 @@
 import React, { useEffect, useRef } from "react";
+import { useRouter } from "next/router";
 import { useAuth } from "../libs/hooks/useAuth";
 import toast from "react-hot-toast";
 import API_BASE_URL from "../libs/config/api.config";
 
 export const GlobalAuthInterceptor: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const router = useRouter();
     const { logout } = useAuth();
     const isIntercepting = useRef(false);
+    const pathnameRef = useRef(router.pathname);
+
+    useEffect(() => {
+        pathnameRef.current = router.pathname;
+    }, [router.pathname]);
 
     useEffect(() => {
         if (typeof window === "undefined" || isIntercepting.current) return;
@@ -13,17 +20,19 @@ export const GlobalAuthInterceptor: React.FC<{ children: React.ReactNode }> = ({
 
         const originalFetch = window.fetch;
 
-        window.fetch = (async (...args: any[]) => {
+        window.fetch = (async (...args: Parameters<typeof fetch>) => {
             const [resource] = args;
             const requestUrl = typeof resource === "string" ? resource : (resource instanceof Request ? resource.url : "");
 
             try {
-                const response = await originalFetch(...(args as [any]));
+                const response = await originalFetch(...args);
 
-                // Check if this request is to our API and returned a 401
-                if (response.status === 401 && requestUrl.startsWith(API_BASE_URL)) {
+                if (response.status === 401 && requestUrl.startsWith(API_BASE_URL ?? "")) {
+                    // Skip interceptor on admin pages — admin has its own auth flow
+                    if (pathnameRef.current.startsWith("/_admin")) {
+                        return response;
+                    }
 
-                    // We need to clone the response to read the body without consuming the original stream
                     const clonedResponse = response.clone();
                     let errorMessage = "Session expired or unauthorized. Please log in again.";
 
@@ -32,23 +41,20 @@ export const GlobalAuthInterceptor: React.FC<{ children: React.ReactNode }> = ({
                         if (errorData?.message) {
                             errorMessage = errorData.message;
                         }
-                    } catch (e) {
+                    } catch {
                         // Not JSON, ignore
                     }
 
-                    // Avoid duplicate toasts if multiple requests fail at the same time
                     toast.error(errorMessage, { id: "global-unauthorized-toast" });
                     logout();
                 }
 
                 return response;
             } catch (error) {
-                // Return the error to the original caller
                 throw error;
             }
-        }) as any;
+        }) as typeof fetch;
 
-        // Cleanup on unmount
         return () => {
             window.fetch = originalFetch;
             isIntercepting.current = false;
