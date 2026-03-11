@@ -259,14 +259,13 @@ export default function AdminAuth() {
                                 </div>
 
                                 <div className="admin-auth__field">
-                                    <label className="admin-auth__label">Invite Token</label>
+                                    <label className="admin-auth__label">Invite Token <span style={{ fontSize: 11, color: "var(--dim)", fontWeight: 400 }}>(not required for first admin)</span></label>
                                     <input
                                         type="text"
                                         className="admin-auth__input"
-                                        placeholder="Paste your 16-character invite token"
+                                        placeholder="Leave empty if you are the first admin"
                                         value={signupInviteToken}
                                         onChange={(e) => setSignupInviteToken(e.target.value)}
-                                        required
                                     />
                                 </div>
 
