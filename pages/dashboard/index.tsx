@@ -132,6 +132,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
     const router = useRouter();
     const [brandFilter, setBrandFilter] = useState("all");
     const [collapsed, setCollapsed] = useState(false);
+    const [isDark, setIsDark] = useState(true);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [page, setPageState] = useState(initialTab);
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -203,6 +204,25 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
             setPageState(tab);
         }
     }, [router.query.tab]);
+
+    useEffect(() => {
+        const saved = localStorage.getItem("se_theme");
+        if (saved === "light") {
+            document.documentElement.setAttribute("data-theme", "light");
+            setIsDark(false);
+        }
+    }, []);
+
+    const toggleTheme = () => {
+        const next = isDark ? "light" : "dark";
+        if (next === "light") {
+            document.documentElement.setAttribute("data-theme", "light");
+        } else {
+            document.documentElement.removeAttribute("data-theme");
+        }
+        localStorage.setItem("se_theme", next);
+        setIsDark(!isDark);
+    };
 
     useEffect(() => {
         async function fetchData() {
@@ -582,20 +602,54 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                     ))}
 
                     {/* Logout */}
-                    <div
-                        className="nav-item"
-                        onClick={handleLogout}
-                        style={{
-                            padding: collapsed ? "10px 0" : "10px 14px",
-                            justifyContent: collapsed ? "center" : "flex-start",
-                            cursor: "pointer",
-                            marginTop: 4,
-                        }}
-                    >
-                        <span style={{ fontSize: 13, width: 28, textAlign: "center", color: "#EF4444", fontWeight: 600 }}>
-                            ⏻
-                        </span>
-                        {!collapsed && <span style={{ fontSize: 13, color: "#EF4444", fontWeight: 500 }}>Logout</span>}
+                    <div style={{ display: "flex", gap: 4, padding: collapsed ? "0" : "0 8px" }}>
+                        <div
+                            className="nav-item"
+                            onClick={handleLogout}
+                            style={{
+                                flex: 1,
+                                padding: collapsed ? "10px 0" : "10px 14px",
+                                justifyContent: collapsed ? "center" : "flex-start",
+                                cursor: "pointer",
+                                marginTop: 4,
+                            }}
+                        >
+                            <span style={{ fontSize: 13, width: 28, textAlign: "center", color: "#EF4444", fontWeight: 600 }}>
+                                ⏻
+                            </span>
+                            {!collapsed && <span style={{ fontSize: 13, color: "#EF4444", fontWeight: 500 }}>Logout</span>}
+                        </div>
+                        <div
+                            className="nav-item"
+                            onClick={toggleTheme}
+                            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                            style={{
+                                width: collapsed ? "100%" : 40,
+                                padding: "10px 0",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                                marginTop: 4,
+                                flexShrink: 0,
+                            }}
+                        >
+                            {isDark ? (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="5" />
+                                    <line x1="12" y1="1" x2="12" y2="3" />
+                                    <line x1="12" y1="21" x2="12" y2="23" />
+                                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                                    <line x1="1" y1="12" x2="3" y2="12" />
+                                    <line x1="21" y1="12" x2="23" y2="12" />
+                                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                                </svg>
+                            ) : (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                                </svg>
+                            )}
+                        </div>
                     </div>
                 </div>
 
