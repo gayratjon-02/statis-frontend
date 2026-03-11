@@ -6,10 +6,13 @@ import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest
 import { createCheckoutRequest, createPortalRequest, purchaseAddonRequest, getMyCanvaOrders, type CanvaOrder } from "../../server/user/billing";
 import { getRecentGenerationsRequest, downloadAdImage } from "../../server/user/generation";
 import { getBrands, deleteBrand } from "../../server/user/brand";
+import { getProducts, deleteProduct } from "../../server/user/product";
+import type { Product } from "../../libs/types/product.type";
 import { getConcepts, getCategories } from "../../server/user/concept";
 import type { AdConcept, ConceptCategoryItem } from "../../libs/types/concept.type";
 import { getBrandConfig, type IndustryItem } from "../../server/user/config";
 import API_BASE_URL from "../../libs/config/api.config";
+import ProductsTab from "../../libs/components/_dashboard/ProductsTab";
 import type { Brand } from "../../libs/types/brand.type";
 import type { Member } from "../../libs/types/member.type";
 import { track, identifyUser, EVENTS } from "../../libs/analytics/analytics";
@@ -19,6 +22,7 @@ const ROUTES: Record<string, string> = {
     generate: "/generateAds",
     library: "/adLibrary",
     brands: "/brands",
+    products: "/products",
     daTemplates: "/da-templates",
     account: "/account",
     billing: "/billing",
@@ -34,6 +38,7 @@ const NAV_ITEMS = [
     { id: "generate", label: "Generate Ads", letter: "+", badge: "NEW" },
     { id: "library", label: "Ad Library", letter: "L" },
     { id: "brands", label: "Brands", letter: "B" },
+    { id: "products", label: "Products", letter: "P" },
     { id: "canva", label: "Canva Templates", letter: "C" },
     { id: "daTemplates", label: "Concept Gallery", letter: "T" },
 ];
@@ -147,6 +152,12 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
     const [brandsLoading, setBrandsLoading] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [industryList, setIndustryList] = useState<IndustryItem[]>([]);
+
+    // Products page state
+    const [products, setProducts] = useState<Product[]>([]);
+    const [productsLoading, setProductsLoading] = useState(false);
+    const [productsBrandFilter, setProductsBrandFilter] = useState<string>("all");
+    const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
 
     // Account page state
     const [acctName, setAcctName] = useState("");
@@ -287,6 +298,30 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
         }
     }, [page]);
 
+    // When switching to Products page — load products for all brands or filtered brand
+    useEffect(() => {
+        if (page === "products") {
+            setProductsLoading(true);
+            getBrands(1, 100)
+                .then(async (brandsRes) => {
+                    setFullBrands(brandsRes.list);
+                    if (brandsRes.list.length === 0) {
+                        setProducts([]);
+                        return;
+                    }
+                    const targetBrands = productsBrandFilter === "all"
+                        ? brandsRes.list
+                        : brandsRes.list.filter((b) => b._id === productsBrandFilter);
+                    const results = await Promise.all(
+                        targetBrands.map((b) => getProducts(b._id, 1, 100)),
+                    );
+                    setProducts(results.flatMap((r) => r.list));
+                })
+                .catch((err) => toast.error(err.message))
+                .finally(() => setProductsLoading(false));
+        }
+    }, [page, productsBrandFilter]);
+
     // When switching to Canva Templates page — load orders
     useEffect(() => {
         if (page === "canva") {
@@ -340,6 +375,24 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
             setDeletingId(null);
         }
     };
+
+    const handleDeleteProduct = async (id: string) => {
+        if (!confirm("Do you want to delete this product?")) return;
+        setDeletingProductId(id);
+        try {
+            await deleteProduct(id);
+            setProducts((prev) => prev.filter((p) => p._id !== id));
+            toast.success("Product deleted");
+        } catch (err) {
+            console.error("Delete product error:", err);
+            toast.error("Failed to delete product");
+        } finally {
+            setDeletingProductId(null);
+        }
+    };
+
+    const getBrandName = (brandId: string) =>
+        fullBrands.find((b) => b._id === brandId)?.name ?? "Unknown";
 
     const handleUpgrade = async (tier: string, interval: "monthly" | "annual" = "monthly") => {
         setBillingLoading(`upgrade-${tier}`);
@@ -645,12 +698,16 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                         </div>
                         <div className="dash-header__title">
-                            {page === "brands" ? "My Brands" : page === "billing" ? "Billing & Subscription" : page === "account" ? "Account Settings" : page === "daTemplates" ? "Concept Gallery" : page === "canva" ? "Canva Templates" : `Welcome back, ${userName.split(" ")[0]}`}
+                            {page === "brands" ? "My Brands" : page === "products" ? "My Products" : page === "billing" ? "Billing & Subscription" : page === "account" ? "Account Settings" : page === "daTemplates" ? "Concept Gallery" : page === "canva" ? "Canva Templates" : `Welcome back, ${userName.split(" ")[0]}`}
                         </div>
                     </div>
                     {page === "brands" ? (
                         <button className="btn-generate" onClick={() => router.push("/generateAds")}>
                             + Create New Brand
+                        </button>
+                    ) : page === "products" ? (
+                        <button className="btn-generate" onClick={() => router.push("/generateAds")}>
+                            + Add New Product
                         </button>
                     ) : page === "daTemplates" ? null : page === "canva" ? (
                         <button className="btn-generate" onClick={() => router.push("/generateAds")}>
@@ -782,6 +839,22 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                             </div>
                         )}
                     </div>
+                )}
+
+                {/* ===== PRODUCTS PAGE ===== */}
+                {page === "products" && (
+                    <ProductsTab
+                        products={products}
+                        brands={fullBrands}
+                        loading={productsLoading}
+                        brandFilter={productsBrandFilter}
+                        deletingProductId={deletingProductId}
+                        setBrandFilter={setProductsBrandFilter}
+                        onEdit={(product) => router.push(`/generateAds?brandId=${product.brand_id}&productId=${product._id}`)}
+                        onDelete={handleDeleteProduct}
+                        onCreateNew={() => router.push("/generateAds")}
+                        getBrandName={getBrandName}
+                    />
                 )}
 
                 {/* ===== ACCOUNT PAGE ===== */}
