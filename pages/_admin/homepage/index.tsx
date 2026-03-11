@@ -51,6 +51,7 @@ import CategoriesTab from "../../../libs/components/_admin/Categories";
 import CanvaOrdersTab from "../../../libs/components/_admin/Canva_Orders";
 import PromptManageTab from "../../../libs/components/_admin/Prompt_manage";
 import InviteTokensTab from "../../../libs/components/_admin/Token_Invite";
+import ConceptModal from "../../../libs/components/_admin/ConceptModal";
 
 /** Prepend API base URL to relative image paths */
 function resolveImageUrl(url?: string): string {

@@ -254,3 +254,30 @@ export interface InviteTokensTabProps {
   isGeneratingInvite: boolean;
   handleGenerateInvite: (role: AdminRole) => void;
 }
+
+// ── Admin Concept Modal Props ─────────────────────────────
+
+export interface ConceptModalProps {
+  title: string;
+  show: boolean;
+  loading: boolean;
+  error: string;
+  name: string;
+  categoryId: string;
+  description: string;
+  tags: string;
+  sourceUrl: string;
+  imagePreview: string;
+  categories: import("./concept.type").ConceptCategoryItem[];
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  setName: (v: string) => void;
+  setCategoryId: (v: string) => void;
+  setDescription: (v: string) => void;
+  setTags: (v: string) => void;
+  setSourceUrl: (v: string) => void;
+  onImageSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onClose: () => void;
+  submitLabel: string;
+  loadingLabel: string;
+}
