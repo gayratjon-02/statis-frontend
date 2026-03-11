@@ -35,6 +35,36 @@
   --font-display: 'Space Grotesk', sans-serif;
 }
 
+[data-theme="light"] {
+  /* Background */
+  --bg: #F5F7FA;
+  --bg-card: #FFFFFF;
+  --bg-hover: #EEF0F5;
+  --bg-input: #F0F2F7;
+
+  /* Border */
+  --border: #D8DCE6;
+  --border-focus: #2BA8A8;
+
+  /* Text */
+  --text: #1A1D2E;
+  --muted: #6B7194;
+  --dim: #8E93B0;
+
+  /* Accent & Gradient */
+  --accent: #2BA8A8;
+  --accent-hover: #239494;
+  --g1: #2563EB;
+  --g2: #2BA8A8;
+  --gradient: linear-gradient(135deg, var(--g1), var(--g2));
+
+  /* Semantic */
+  --red: #DC2626;
+  --green: #16A34A;
+  --yellow: #D97706;
+  --purple: #9333EA;
+}
+
 /* ===== Keyframes ===== */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(10px); }

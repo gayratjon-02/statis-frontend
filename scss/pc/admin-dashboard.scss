@@ -159,8 +159,13 @@
         letter-spacing: 0.5px;
     }
 
+    &__footer-actions {
+        display: flex;
+        gap: 8px;
+    }
+
     &__logout-btn {
-        width: 100%;
+        flex: 1;
         padding: 8px;
         background: none;
         border: 1px solid rgba(239, 68, 68, 0.25);
@@ -175,6 +180,27 @@
         &:hover {
             background: rgba(239, 68, 68, 0.08);
             border-color: rgba(239, 68, 68, 0.4);
+        }
+    }
+
+    &__theme-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: none;
+        color: var(--muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+        flex-shrink: 0;
+
+        &:hover {
+            background: var(--bg-hover);
+            color: var(--accent);
+            border-color: var(--accent);
         }
     }
 
