@@ -224,3 +224,14 @@ export interface PromptManageTabProps {
   fetchPromptTemplates: () => void;
   handleSavePrompt: (templateId: string) => void;
 }
+
+// ── Admin Invite Tokens Tab Props ─────────────────────────
+
+export interface InviteTokensTabProps {
+  invites: import("../../server/admin/admnGetApis").AdminInvite[];
+  invitesLoading: boolean;
+  invitesError: string;
+  generatedInvite: string;
+  isGeneratingInvite: boolean;
+  handleGenerateInvite: (role: AdminRole) => void;
+}
