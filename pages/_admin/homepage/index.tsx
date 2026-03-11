@@ -1849,6 +1849,7 @@ function AdminDashboard() {
             <div className="admin-dash__grid">
                 {concepts.map((c) => (
                     <div
+                        key={c._id}
                         draggable={draggable}
                         onDragStart={() => draggable && handleDragStart(c._id)}
                         onDragOver={draggable ? handleDragOver : undefined}
