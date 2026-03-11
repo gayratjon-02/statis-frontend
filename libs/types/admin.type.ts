@@ -157,3 +157,18 @@ export interface UsersTabProps {
   handleBlockUser: (user: UsersTabUser) => void;
   handleDeleteUser: (user: UsersTabUser) => void;
 }
+
+// ── Admin Concepts Tab Props ──────────────────────────────
+
+export interface ConceptsTabProps {
+  total: number;
+  search: string;
+  setSearch: (v: string) => void;
+  page: number;
+  setPage: React.Dispatch<React.SetStateAction<number>>;
+  categoryFilter: string;
+  setCategoryFilter: (v: string) => void;
+  categoryFilters: { value: string; label: string }[];
+  openModal: () => void;
+  renderConceptGrid: (draggable: boolean) => React.ReactNode;
+}

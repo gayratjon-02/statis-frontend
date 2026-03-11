@@ -44,6 +44,7 @@ import { AdminRole } from "../../../libs/enums/admin.enum";
 import API_BASE_URL from "../../../libs/config/api.config";
 import Dashboard from "../../../libs/components/_admin/Dashboard";
 import UsersTab from "../../../libs/components/_admin/User";
+import ConceptsTab from "../../../libs/components/_admin/Concept";
 
 /** Prepend API base URL to relative image paths */
 function resolveImageUrl(url?: string): string {
@@ -821,91 +822,18 @@ function AdminDashboard() {
 
         {/* ── Concepts View ── */}
         {activeNav === "concepts" && (
-          <div className="admin-dash__section">
-            <div className="admin-dash__section-header">
-              <div className="admin-dash__section-title">
-                🎨 All Concepts
-                <span className="admin-dash__section-count">{total}</span>
-              </div>
-              <div className="admin-dash__section-actions">
-                <button
-                  className="admin-dash__btn admin-dash__btn--primary"
-                  onClick={openModal}
-                >
-                  ＋ Add Concept
-                </button>
-              </div>
-            </div>
-
-            {/* Search & Filter */}
-            <div className="admin-dash__search">
-              <input
-                className="admin-dash__search-input"
-                placeholder="Search concepts by name..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-              />
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {categoryFilters.map((cat) => (
-                  <button
-                    key={cat.value}
-                    className={`admin-dash__filter-btn ${
-                      categoryFilter === cat.value
-                        ? "admin-dash__filter-btn--active"
-                        : ""
-                    }`}
-                    onClick={() => {
-                      setCategoryFilter(cat.value);
-                      setPage(1);
-                    }}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {renderConceptGrid(true)}
-
-            {/* Pagination */}
-            {total > 12 && (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  gap: 8,
-                  padding: "16px 0",
-                }}
-              >
-                <button
-                  className="admin-dash__btn admin-dash__btn--ghost"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  ← Previous
-                </button>
-                <span
-                  style={{
-                    padding: "8px 14px",
-                    fontSize: 13,
-                    color: "var(--muted)",
-                  }}
-                >
-                  Page {page} of {Math.ceil(total / 12)}
-                </span>
-                <button
-                  className="admin-dash__btn admin-dash__btn--ghost"
-                  disabled={page >= Math.ceil(total / 12)}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next →
-                </button>
-              </div>
-            )}
-          </div>
+          <ConceptsTab
+            total={total}
+            search={search}
+            setSearch={setSearch}
+            page={page}
+            setPage={setPage}
+            categoryFilter={categoryFilter}
+            setCategoryFilter={setCategoryFilter}
+            categoryFilters={categoryFilters}
+            openModal={openModal}
+            renderConceptGrid={renderConceptGrid}
+          />
         )}
 
         {/* ── Recommended View ── */}
