@@ -41,6 +41,7 @@ import type {
   ConceptCategoryItem,
 } from "../../../libs/types/concept.type";
 import { AdminRole } from "../../../libs/enums/admin.enum";
+import { ADMIN_NAV_ITEMS } from "../../../libs/types/admin.type";
 import API_BASE_URL from "../../../libs/config/api.config";
 import Dashboard from "../../../libs/components/_admin/Dashboard";
 import UsersTab from "../../../libs/components/_admin/User";
@@ -57,18 +58,6 @@ function resolveImageUrl(url?: string): string {
   if (url.startsWith("http")) return url;
   return `${API_BASE_URL}${url} `;
 }
-
-// ── Nav items ──
-const NAV_ITEMS = [
-  { icon: "📊", label: "Dashboard", id: "dashboard" },
-  { icon: "👥", label: "Users", id: "users" },
-  { icon: "🎨", label: "Concepts", id: "concepts" },
-  { icon: "⭐", label: "Recommended", id: "recommended" },
-  { icon: "🏷️", label: "Categories", id: "categories" },
-  { icon: "📦", label: "Canva Orders", id: "canva" },
-  { icon: "📝", label: "Prompt Management", id: "prompts" },
-  { icon: "🎟️", label: "Invite Tokens", id: "invites" },
-];
 
 function AdminDashboard() {
   const router = useRouter();
@@ -763,7 +752,7 @@ function AdminDashboard() {
         </div>
 
         <nav className="admin-dash__nav">
-          {NAV_ITEMS.map((item) => (
+          {ADMIN_NAV_ITEMS.map((item) => (
             <button
               key={item.id}
               className={`admin-dash__nav-item ${

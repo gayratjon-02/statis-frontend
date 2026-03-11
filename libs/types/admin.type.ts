@@ -5,6 +5,25 @@
 import React from "react";
 import { AdminRole } from "../enums/admin.enum";
 
+// ── Admin Nav Items ────────────────────────────────────────
+
+export interface AdminNavItem {
+  icon: string;
+  label: string;
+  id: string;
+}
+
+export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
+  { icon: "📊", label: "Dashboard", id: "dashboard" },
+  { icon: "👥", label: "Users", id: "users" },
+  { icon: "🎨", label: "Concepts", id: "concepts" },
+  { icon: "⭐", label: "Recommended", id: "recommended" },
+  { icon: "🏷️", label: "Categories", id: "categories" },
+  { icon: "📦", label: "Canva Orders", id: "canva" },
+  { icon: "📝", label: "Prompt Management", id: "prompts" },
+  { icon: "🎟️", label: "Invite Tokens", id: "invites" },
+];
+
 // ── Admin User ──────────────────────────────────────────────
 
 /** Admin user returned from API (no password_hash) */
