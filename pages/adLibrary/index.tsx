@@ -754,7 +754,7 @@ function LibraryPage() {
                         style={{ maxWidth: 1200, width: "95%", height: "85vh", display: "flex", flexDirection: "column", padding: 0 }}
                     >
                         {/* Header */}
-                        <div style={{ padding: "20px 24px", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <h2 style={{ margin: 0, fontSize: 20, color: "var(--text)" }}>{detailAd.name}</h2>
                             <button onClick={() => setDetailId(null)} style={{ background: "transparent", border: "none", color: "var(--muted)", fontSize: 24, cursor: "pointer" }}>×</button>
                         </div>
@@ -762,15 +762,15 @@ function LibraryPage() {
                         {/* Body */}
                         <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
                             {/* Left: Images */}
-                            <div style={{ flex: 1, padding: 24, overflowY: "auto", borderRight: "1px solid rgba(255,255,255,0.1)" }}>
+                            <div style={{ flex: 1, padding: 24, overflowY: "auto", borderRight: "1px solid var(--border)" }}>
                                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
                                     {[
                                         { ratio: "1:1", url: detailAd.image_url_1x1 || detailAd.image },
                                         { ratio: "9:16", url: detailAd.image_url_9x16 },
                                         { ratio: "16:9", url: detailAd.image_url_16x9 }
                                     ].filter(x => x.url).map((img, i) => (
-                                        <div key={i} style={{ background: "rgba(0,0,0,0.2)", borderRadius: 12, overflow: "hidden", border: "1px solid rgba(255,255,255,0.05)" }}>
-                                            <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", fontSize: 13, fontWeight: 600, color: "var(--text)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                                        <div key={i} style={{ background: "var(--bg-input)", borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)" }}>
+                                            <div style={{ padding: "10px 14px", background: "var(--bg-hover)", fontSize: 13, fontWeight: 600, color: "var(--text)", borderBottom: "1px solid var(--border)" }}>
                                                 {img.ratio}
                                             </div>
                                             <img src={img.url} alt={img.ratio} style={{ width: "100%", height: "auto", display: "block", objectFit: "contain", maxHeight: "60vh" }} />
@@ -780,9 +780,9 @@ function LibraryPage() {
                             </div>
 
                             {/* Right: Meta & Actions */}
-                            <div style={{ width: 350, padding: 24, overflowY: "auto", background: "rgba(255,255,255,0.01)" }}>
+                            <div style={{ width: 350, padding: 24, overflowY: "auto", background: "var(--bg-hover)" }}>
                                 <h3 style={{ margin: "0 0 16px", fontSize: 16, color: "var(--text)" }}>Metadata</h3>
-                                <div style={{ marginBottom: 30, padding: 20, background: "rgba(0,0,0,0.2)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.03)" }}>
+                                <div style={{ marginBottom: 30, padding: 20, background: "var(--bg-input)", borderRadius: 10, border: "1px solid var(--border)" }}>
                                     {[
                                         { label: "Brand", value: detailAd.brand_name },
                                         { label: "Product", value: detailAd.product_name },
@@ -845,8 +845,8 @@ function LibraryPage() {
                             onChange={(e) => setFixDescription(e.target.value)}
                             placeholder="Describe your fix here..."
                             style={{
-                                width: "100%", minHeight: 120, background: "rgba(255,255,255,0.05)",
-                                border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 12,
+                                width: "100%", minHeight: 120, background: "var(--bg-input)",
+                                border: "1px solid var(--border)", borderRadius: 12, padding: 12,
                                 color: "var(--text)", fontSize: 14, outline: "none", resize: "none", marginBottom: 20
                             }}
                         />
