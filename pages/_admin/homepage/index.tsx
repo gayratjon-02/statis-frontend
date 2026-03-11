@@ -1370,51 +1370,35 @@ function AdminDashboard() {
                             </div>
 
                             {categories.length > 0 ? (
-                                <div className="admin-dash__grid">
+                                <div className="admin-cat-grid">
                                     {categories.map((cat) => (
-                                        <div key={cat._id} className="admin-dash__concept-card">
-                                            <div className="admin-dash__concept-body" style={{ padding: 20 }}>
-                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                                    <div>
-                                                        <div className="admin-dash__concept-name" style={{ fontSize: 16 }}>
-                                                            {cat.name}
-                                                        </div>
-                                                        <div className="admin-dash__concept-category" style={{ marginTop: 4 }}>
-                                                            slug: {cat.slug}
-                                                        </div>
-                                                    </div>
-                                                    <div style={{ display: "flex", gap: 6 }}>
-                                                        <button
-                                                            className="admin-dash__btn admin-dash__btn--edit"
-                                                            style={{ padding: "4px 10px", fontSize: 12 }}
-                                                            onClick={() => openEditCategory(cat)}
-                                                        >
-                                                            Edit
-                                                        </button>
-                                                        <button
-                                                            className="admin-dash__btn admin-dash__btn--danger"
-                                                            style={{ padding: "4px 10px", fontSize: 12 }}
-                                                            disabled={deletingCatId === cat._id}
-                                                            onClick={() => {
-                                                                if (confirm(`Delete "${cat.name}"? This cannot be undone.`)) {
-                                                                    handleDeleteCategory(cat._id);
-                                                                }
-                                                            }}
-                                                        >
-                                                            {deletingCatId === cat._id ? "..." : "Delete"}
-                                                        </button>
-                                                    </div>
-                                                </div>
+                                        <div key={cat._id} className="admin-cat-card">
+                                            <div className="admin-cat-card__body">
+                                                <div className="admin-cat-card__name">{cat.name}</div>
+                                                <div className="admin-cat-card__slug">slug: {cat.slug}</div>
                                                 {cat.description && (
-                                                    <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
-                                                        {cat.description}
-                                                    </div>
+                                                    <div className="admin-cat-card__desc">{cat.description}</div>
                                                 )}
-                                                <div className="admin-dash__concept-meta" style={{ marginTop: 8 }}>
-                                                    <span className="admin-dash__concept-usage">
-                                                        Order: {cat.display_order}
-                                                    </span>
-                                                </div>
+                                                <div className="admin-cat-card__order">Order: {cat.display_order}</div>
+                                            </div>
+                                            <div className="admin-cat-card__actions">
+                                                <button
+                                                    className="admin-cat-card__btn admin-cat-card__btn--edit"
+                                                    onClick={() => openEditCategory(cat)}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="admin-cat-card__btn admin-cat-card__btn--delete"
+                                                    disabled={deletingCatId === cat._id}
+                                                    onClick={() => {
+                                                        if (confirm(`Delete "${cat.name}"? This cannot be undone.`)) {
+                                                            handleDeleteCategory(cat._id);
+                                                        }
+                                                    }}
+                                                >
+                                                    {deletingCatId === cat._id ? "..." : "Delete"}
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
