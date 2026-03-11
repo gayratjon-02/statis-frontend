@@ -587,60 +587,17 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                     {BOTTOM_NAV.map((item) => (
                         <div
                             key={item.id}
-                            style={{ display: "flex", alignItems: "center" }}
+                            className={`nav-item ${page === item.id ? "nav-item--active" : ""}`}
+                            onClick={() => handleNav(item.id)}
+                            style={{
+                                padding: collapsed ? "10px 0" : "10px 14px",
+                                justifyContent: collapsed ? "center" : "flex-start",
+                            }}
                         >
-                            <div
-                                className={`nav-item ${page === item.id ? "nav-item--active" : ""}`}
-                                onClick={() => handleNav(item.id)}
-                                style={{
-                                    flex: 1,
-                                    padding: collapsed ? "10px 0" : "10px 14px",
-                                    justifyContent: collapsed ? "center" : "flex-start",
-                                }}
-                            >
-                                <span style={{ fontSize: 13, width: 28, textAlign: "center", color: page === item.id ? "var(--accent)" : "var(--dim)", fontWeight: 600 }}>
-                                    {item.letter}
-                                </span>
-                                {!collapsed && <span style={{ fontSize: 13, color: page === item.id ? "var(--text)" : "var(--dim)", fontWeight: page === item.id ? 600 : 400 }}>{item.label}</span>}
-                            </div>
-                            {item.id === "billing" && !collapsed && (
-                                <div
-                                    onClick={toggleTheme}
-                                    title={isDark ? "Light Mode" : "Dark Mode"}
-                                    style={{
-                                        width: 32,
-                                        height: 32,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        cursor: "pointer",
-                                        borderRadius: 8,
-                                        marginRight: 8,
-                                        flexShrink: 0,
-                                        transition: "background 0.15s",
-                                    }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                                >
-                                    {isDark ? (
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <circle cx="12" cy="12" r="5" />
-                                            <line x1="12" y1="1" x2="12" y2="3" />
-                                            <line x1="12" y1="21" x2="12" y2="23" />
-                                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                                            <line x1="1" y1="12" x2="3" y2="12" />
-                                            <line x1="21" y1="12" x2="23" y2="12" />
-                                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                                        </svg>
-                                    ) : (
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                                        </svg>
-                                    )}
-                                </div>
-                            )}
+                            <span style={{ fontSize: 13, width: 28, textAlign: "center", color: page === item.id ? "var(--accent)" : "var(--dim)", fontWeight: 600 }}>
+                                {item.letter}
+                            </span>
+                            {!collapsed && <span style={{ fontSize: 13, color: page === item.id ? "var(--text)" : "var(--dim)", fontWeight: page === item.id ? 600 : 400 }}>{item.label}</span>}
                         </div>
                     ))}
 
@@ -672,10 +629,47 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                 >
                     <div className="sidebar-user__avatar">{userInitial}</div>
                     {!collapsed && (
-                        <div>
-                            <div className="sidebar-user__name">{userName}</div>
-                            <div className="sidebar-user__plan">{tierLabel(tier)} Plan</div>
-                        </div>
+                        <>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div className="sidebar-user__name">{userName}</div>
+                                <div className="sidebar-user__plan">{tierLabel(tier)} Plan</div>
+                            </div>
+                            <div
+                                onClick={toggleTheme}
+                                title={isDark ? "Light Mode" : "Dark Mode"}
+                                style={{
+                                    width: 32,
+                                    height: 32,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    cursor: "pointer",
+                                    borderRadius: 8,
+                                    flexShrink: 0,
+                                    transition: "background 0.15s",
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                            >
+                                {isDark ? (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="5" />
+                                        <line x1="12" y1="1" x2="12" y2="3" />
+                                        <line x1="12" y1="21" x2="12" y2="23" />
+                                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                                        <line x1="1" y1="12" x2="3" y2="12" />
+                                        <line x1="21" y1="12" x2="23" y2="12" />
+                                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                                    </svg>
+                                ) : (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                                    </svg>
+                                )}
+                            </div>
+                        </>
                     )}
                 </div>
             </div>

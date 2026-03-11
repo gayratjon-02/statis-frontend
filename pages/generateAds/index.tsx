@@ -249,6 +249,7 @@ function GeneratePageContent() {
   } | null>(null);
   const [ratioModalLoading, setRatioModalLoading] = useState(false);
   const [zipDownloading, setZipDownloading] = useState(false);
+  const [allZipDownloading, setAllZipDownloading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerationActive, setIsGenerationActive] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
@@ -654,6 +655,40 @@ function GeneratePageContent() {
       toast.error("Failed to create ZIP");
     } finally {
       setZipDownloading(false);
+    }
+  };
+
+  const downloadAllVariationsAsZip = async () => {
+    if (allZipDownloading || generatedResults.length === 0) return;
+    setAllZipDownloading(true);
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      for (const result of generatedResults) {
+        const name = (result.ad_name || "ad").replace(/[^a-zA-Z0-9_-]/g, "_");
+        const ratios = [
+          { key: "1x1", url: result.image_url_1x1 },
+          { key: "9x16", url: result.image_url_9x16 },
+          { key: "16x9", url: result.image_url_16x9 },
+        ];
+        for (const { key, url } of ratios) {
+          if (!url) continue;
+          const blob = await fetchRatioBlob(result._id, key);
+          if (blob) zip.file(`${name}_${key}.png`, blob);
+        }
+      }
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(zipBlob);
+      a.download = "all_variations.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      console.error("ZIP download failed", e);
+      toast.error("Failed to create ZIP");
+    } finally {
+      setAllZipDownloading(false);
     }
   };
 
@@ -1120,18 +1155,18 @@ function GeneratePageContent() {
               fontSize: 13,
               fontWeight: 500,
               color: "var(--muted)",
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: "var(--bg-hover)",
+              border: "1px solid var(--border)",
               borderRadius: 8,
               cursor: "pointer",
               transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+              e.currentTarget.style.background = "var(--bg-input)";
               e.currentTarget.style.color = "var(--text)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+              e.currentTarget.style.background = "var(--bg-hover)";
               e.currentTarget.style.color = "var(--muted)";
             }}
           >
@@ -1330,8 +1365,8 @@ function GeneratePageContent() {
                     {/* URL Import UI */}
                     <div
                       style={{
-                        background: "rgba(255,255,255,0.03)",
-                        border: "1px dashed #30363d",
+                        background: "var(--bg-input)",
+                        border: "1px dashed var(--border)",
                         padding: 16,
                         borderRadius: 8,
                         marginBottom: 24,
@@ -1340,7 +1375,7 @@ function GeneratePageContent() {
                       <div
                         style={{
                           fontSize: 13,
-                          color: "#8b949e",
+                          color: "var(--muted)",
                           marginBottom: 4,
                         }}
                       >
@@ -1349,7 +1384,7 @@ function GeneratePageContent() {
                       <div
                         style={{
                           fontSize: 11,
-                          color: "#6e7681",
+                          color: "var(--dim)",
                           marginBottom: 8,
                         }}
                       >
@@ -1371,7 +1406,7 @@ function GeneratePageContent() {
                           onClick={handleImportUrl}
                           disabled={importLoading || !importUrl.trim()}
                           style={{
-                            background: importLoading ? "#21262d" : "#238636",
+                            background: importLoading ? "var(--border)" : "var(--green)",
                             color: "#fff",
                             border: "none",
                             borderRadius: 8,
@@ -1394,8 +1429,8 @@ function GeneratePageContent() {
                                 style={{
                                   width: 14,
                                   height: 14,
-                                  border: "2px solid rgba(255,255,255,0.3)",
-                                  borderTopColor: "#fff",
+                                  border: "2px solid var(--border)",
+                                  borderTopColor: "var(--text)",
                                   borderRadius: "50%",
                                   display: "inline-block",
                                   animation: "spin 0.8s linear infinite",
@@ -1923,20 +1958,20 @@ function GeneratePageContent() {
               {/* URL Import UI for Product */}
               <div
                 style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px dashed #30363d",
+                  background: "var(--bg-input)",
+                  border: "1px dashed var(--border)",
                   padding: 16,
                   borderRadius: 8,
                   marginBottom: 20,
                 }}
               >
                 <div
-                  style={{ fontSize: 13, color: "#8b949e", marginBottom: 4 }}
+                  style={{ fontSize: 13, color: "var(--muted)", marginBottom: 4 }}
                 >
                   Auto-fill from product page URL
                 </div>
                 <div
-                  style={{ fontSize: 11, color: "#6e7681", marginBottom: 8 }}
+                  style={{ fontSize: 11, color: "var(--dim)", marginBottom: 8 }}
                 >
                   Paste a direct link to your product page. We'll extract the name, description, price, and photo.
                 </div>
@@ -1956,7 +1991,7 @@ function GeneratePageContent() {
                     onClick={handleProductImportUrl}
                     disabled={productImportLoading || !productImportUrl.trim()}
                     style={{
-                      background: productImportLoading ? "#21262d" : "#238636",
+                      background: productImportLoading ? "var(--border)" : "var(--green)",
                       color: "#fff",
                       border: "none",
                       borderRadius: 8,
@@ -1979,8 +2014,8 @@ function GeneratePageContent() {
                           style={{
                             width: 14,
                             height: 14,
-                            border: "2px solid rgba(255,255,255,0.3)",
-                            borderTopColor: "#fff",
+                            border: "2px solid var(--border)",
+                            borderTopColor: "var(--text)",
                             borderRadius: "50%",
                             display: "inline-block",
                             animation: "spin 0.8s linear infinite",
@@ -2060,7 +2095,7 @@ function GeneratePageContent() {
                   )}
                 </div>
                 <div>
-                  <label className="gen-label">Price Point <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+                  <label className="gen-label">Price Point <span style={{ color: "var(--dim)", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
                   <input
                     className="gen-input"
                     placeholder="e.g., $29.99"
@@ -2151,7 +2186,7 @@ function GeneratePageContent() {
                     ? "Hero Image (Optional)"
                     : "Product Images *"}
                 </label>
-                <div style={{ fontSize: 11, color: "#6e7681", marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: "var(--dim)", marginBottom: 10 }}>
                   {product.noPhysicalProduct
                     ? "Upload a screenshot, mockup, or lifestyle image."
                     : "Upload product photos. More angles = better AI-generated ads."}
@@ -2192,7 +2227,7 @@ function GeneratePageContent() {
                     {!product.photoPreview && (
                       <>
                         <div style={{ fontSize: 24, marginBottom: 4 }}>📷</div>
-                        <div style={{ fontSize: 11, color: "#8b949e", textAlign: "center", padding: "0 8px" }}>
+                        <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", padding: "0 8px" }}>
                           Front Photo
                         </div>
                       </>
@@ -2269,7 +2304,7 @@ function GeneratePageContent() {
                       {!product.backImagePreview && (
                         <>
                           <div style={{ fontSize: 24, marginBottom: 4, opacity: 0.5 }}>🔄</div>
-                          <div style={{ fontSize: 11, color: "#6e7681", textAlign: "center", padding: "0 8px" }}>
+                          <div style={{ fontSize: 11, color: "var(--dim)", textAlign: "center", padding: "0 8px" }}>
                             Back Image
                           </div>
                           <div style={{ fontSize: 9, color: "#484f58" }}>optional</div>
@@ -2404,7 +2439,7 @@ function GeneratePageContent() {
                       }}
                     >
                       <div style={{ fontSize: 24, marginBottom: 4, opacity: 0.4 }}>+</div>
-                      <div style={{ fontSize: 11, color: "#6e7681", textAlign: "center", padding: "0 8px" }}>
+                      <div style={{ fontSize: 11, color: "var(--dim)", textAlign: "center", padding: "0 8px" }}>
                         More Angles
                       </div>
                       <div style={{ fontSize: 9, color: "#484f58" }}>optional</div>
@@ -2492,7 +2527,7 @@ function GeneratePageContent() {
 
               <div className="gen-grid-3" style={{ marginBottom: 16 }}>
                 <div>
-                  <label className="gen-label">Star Rating <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+                  <label className="gen-label">Star Rating <span style={{ color: "var(--dim)", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
                   <select
                     className="gen-select"
                     value={product.starRating}
@@ -2511,7 +2546,7 @@ function GeneratePageContent() {
                   </select>
                 </div>
                 <div>
-                  <label className="gen-label">Review Count <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+                  <label className="gen-label">Review Count <span style={{ color: "var(--dim)", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
                   <input
                     className="gen-input"
                     placeholder="e.g., 2400"
@@ -2522,7 +2557,7 @@ function GeneratePageContent() {
                   />
                 </div>
                 <div>
-                  <label className="gen-label">Offer / Discount <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+                  <label className="gen-label">Offer / Discount <span style={{ color: "var(--dim)", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
                   <input
                     className="gen-input"
                     placeholder="e.g., 20% off first order"
@@ -2536,7 +2571,7 @@ function GeneratePageContent() {
 
               {/* Product URL */}
               <div className="gen-mb-20">
-                <label className="gen-label">Product URL <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+                <label className="gen-label">Product URL <span style={{ color: "var(--dim)", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
                 <input
                   className="gen-input"
                   placeholder="https://yourbrand.com/products/your-product"
@@ -2549,7 +2584,7 @@ function GeneratePageContent() {
 
               {/* Key Ingredients / Features */}
               <div className="gen-mb-20">
-                <label className="gen-label">Key Ingredients / Features <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+                <label className="gen-label">Key Ingredients / Features <span style={{ color: "var(--dim)", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
                 <input
                   className="gen-input"
                   placeholder="e.g., Vitamin C, Hyaluronic Acid, Niacinamide, SPF 30"
@@ -2558,15 +2593,15 @@ function GeneratePageContent() {
                     setProduct((p) => ({ ...p, ingredientsFeatures: e.target.value }))
                   }
                 />
-                <div style={{ fontSize: 11, color: "#6e7681", marginTop: 4 }}>
+                <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>
                   Separate with commas. Used for ingredient spotlight and feature pointer ads.
                 </div>
               </div>
 
               {/* Before / After Description */}
               <div className="gen-mb-20">
-                <label className="gen-label">Before / After Description <span style={{ color: "#6e7681", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
-                <div style={{ fontSize: 11, color: "#6e7681", marginBottom: 8 }}>
+                <label className="gen-label">Before / After Description <span style={{ color: "var(--dim)", fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+                <div style={{ fontSize: 11, color: "var(--dim)", marginBottom: 8 }}>
                   For transformation-style ads. Describe the problem state and the result after using your product.
                 </div>
                 <div className="gen-grid-2">
@@ -2786,7 +2821,7 @@ function GeneratePageContent() {
                       cy="60"
                       r="54"
                       fill="none"
-                      stroke="rgba(255,255,255,0.05)"
+                      stroke="var(--border)"
                       strokeWidth="8"
                     />
                     <circle
@@ -2855,7 +2890,7 @@ function GeneratePageContent() {
                   <div
                     style={{
                       height: 6,
-                      background: "rgba(255,255,255,0.06)",
+                      background: "var(--border)",
                       borderRadius: 3,
                       overflow: "hidden",
                     }}
@@ -2924,7 +2959,7 @@ function GeneratePageContent() {
                   </div>
                   <p style={{
                     fontSize: 12,
-                    color: "rgba(255,255,255,0.45)",
+                    color: "var(--dim)",
                     marginTop: 6,
                     fontVariantNumeric: "tabular-nums",
                   }}>
@@ -3042,13 +3077,13 @@ function GeneratePageContent() {
                             <div
                               style={{
                                 fontWeight: 700,
-                                color: "#e6f1ff",
+                                color: "var(--text)",
                                 marginBottom: 2,
                               }}
                             >
                               {result.ad_copy_json.headline}
                             </div>
-                            <div style={{ color: "#8892b0", fontSize: 11 }}>
+                            <div style={{ color: "var(--muted)", fontSize: 11 }}>
                               {result.ad_copy_json.subheadline}
                             </div>
                           </div>
@@ -3073,15 +3108,25 @@ function GeneratePageContent() {
                   used
                 </p>
               </div>
-              <button
-                className="gen-results-regen"
-                onClick={() => {
-                  setStep(4);
-                  startGeneration();
-                }}
-              >
-                🔄 Regenerate All ({creditCosts.credits_per_generation} credits)
-              </button>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  className="gen-results-regen"
+                  onClick={downloadAllVariationsAsZip}
+                  disabled={allZipDownloading}
+                  style={{ opacity: allZipDownloading ? 0.6 : 1 }}
+                >
+                  {allZipDownloading ? "⏳ Creating ZIP..." : "⤓ Download All (ZIP)"}
+                </button>
+                <button
+                  className="gen-results-regen"
+                  onClick={() => {
+                    setStep(4);
+                    startGeneration();
+                  }}
+                >
+                  🔄 Regenerate All ({creditCosts.credits_per_generation} credits)
+                </button>
+              </div>
             </div>
 
             <div className="gen-ad-grid">
@@ -3205,13 +3250,13 @@ function GeneratePageContent() {
                         <div
                           style={{
                             fontWeight: 700,
-                            color: "#e6f1ff",
+                            color: "var(--text)",
                             marginBottom: 4,
                           }}
                         >
                           {result.ad_copy_json.headline}
                         </div>
-                        <div style={{ color: "#8892b0", fontSize: 11 }}>
+                        <div style={{ color: "var(--muted)", fontSize: 11 }}>
                           {result.ad_copy_json.subheadline}
                         </div>
                       </div>
@@ -3349,7 +3394,7 @@ function GeneratePageContent() {
                     padding: 60,
                   }}
                 >
-                  <p style={{ color: "#8892b0" }}>
+                  <p style={{ color: "var(--muted)" }}>
                     No results yet. Generate some ads first!
                   </p>
                 </div>
@@ -3394,8 +3439,8 @@ function GeneratePageContent() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: "#0d1117",
-              border: "1px solid #30363d",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
               borderRadius: 12,
               padding: 28,
               maxWidth: 900,
@@ -3411,10 +3456,10 @@ function GeneratePageContent() {
             >
               ×
             </div>
-            <h3 style={{ color: "#e6edf3", marginBottom: 4, fontSize: 18 }}>
+            <h3 style={{ color: "var(--text)", marginBottom: 4, fontSize: 18 }}>
               All Ratios — {ratioModal.adName || "Ad"}
             </h3>
-            <p style={{ color: "#8b949e", marginBottom: 20, fontSize: 13 }}>
+            <p style={{ color: "var(--muted)", marginBottom: 20, fontSize: 13 }}>
               Preview and export for every platform
             </p>
 
@@ -3425,8 +3470,8 @@ function GeneratePageContent() {
                 disabled={zipDownloading}
                 style={{
                   background: zipDownloading
-                    ? "#30363d"
-                    : "linear-gradient(135deg, #3ECFCF, #3B82F6)",
+                    ? "var(--border)"
+                    : "linear-gradient(135deg, var(--g2), var(--g1))",
                   color: "#fff",
                   border: "none",
                   borderRadius: 8,
@@ -3439,7 +3484,7 @@ function GeneratePageContent() {
               >
                 {zipDownloading ? "⏳ Creating ZIP..." : "⤓ Download All (ZIP)"}
               </button>
-              <span style={{ color: "#6e7681", fontSize: 12, marginLeft: 12 }}>
+              <span style={{ color: "var(--dim)", fontSize: 12, marginLeft: 12 }}>
                 All 3 formats in one file
               </span>
             </div>
@@ -3482,8 +3527,8 @@ function GeneratePageContent() {
                 <div
                   key={ratio}
                   style={{
-                    background: "#161b22",
-                    border: "1px solid #21262d",
+                    background: "var(--bg-hover)",
+                    border: "1px solid var(--border)",
                     borderRadius: 10,
                     overflow: "hidden",
                   }}
@@ -3492,7 +3537,7 @@ function GeneratePageContent() {
                   <div
                     style={{
                       position: "relative",
-                      background: "#0d1117",
+                      background: "var(--bg-input)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -3516,7 +3561,7 @@ function GeneratePageContent() {
                     ) : (
                       <div
                         style={{
-                          color: "#6e7681",
+                          color: "var(--dim)",
                           fontSize: 12,
                           textAlign: "center",
                         }}
@@ -3531,7 +3576,7 @@ function GeneratePageContent() {
                   <div style={{ padding: "10px 12px 6px" }}>
                     <div
                       style={{
-                        color: "#e6edf3",
+                        color: "var(--text)",
                         fontSize: 13,
                         fontWeight: 600,
                       }}
@@ -3540,7 +3585,7 @@ function GeneratePageContent() {
                     </div>
                     <div
                       style={{
-                        color: "#8b949e",
+                        color: "var(--muted)",
                         fontSize: 11,
                         marginBottom: 4,
                       }}
@@ -3549,7 +3594,7 @@ function GeneratePageContent() {
                     </div>
                     <div
                       style={{
-                        color: "#6e7681",
+                        color: "var(--dim)",
                         fontSize: 11,
                         fontFamily: "monospace",
                       }}
@@ -3645,7 +3690,7 @@ function GeneratePageContent() {
                     </div>
                   ) : (
                     <div style={{ padding: "6px 12px 12px" }}>
-                      <span style={{ color: "#6e7681", fontSize: 12 }}>
+                      <span style={{ color: "var(--dim)", fontSize: 12 }}>
                         Not available
                       </span>
                     </div>
