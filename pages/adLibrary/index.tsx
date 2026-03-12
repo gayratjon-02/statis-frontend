@@ -852,21 +852,32 @@ function LibraryPage() {
                             }}
                         />
 
-                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                            <button
-                                onClick={() => setFixModalOpen(false)}
-                                disabled={isFixing}
-                                style={{ padding: "10px 16px", background: "transparent", color: "var(--muted)", border: "none", cursor: "pointer", fontWeight: 500 }}
-                            >Cancel</button>
-                            <button
-                                onClick={handleStartFix}
-                                disabled={isFixing || !fixDescription.trim()}
-                                style={{
-                                    padding: "10px 20px", background: "var(--primary)", color: "#fff", border: "none",
-                                    borderRadius: 8, cursor: "pointer", fontWeight: 600, opacity: (isFixing || !fixDescription.trim()) ? 0.6 : 1
-                                }}
-                            >{isFixing ? "Fixing image..." : "Start Fix"}</button>
-                        </div>
+                        {isFixing ? (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "20px 0" }}>
+                                <div style={{
+                                    width: 40, height: 40, borderRadius: "50%",
+                                    border: "3px solid var(--border)",
+                                    borderTopColor: "var(--accent)",
+                                    animation: "spin 0.8s linear infinite",
+                                }} />
+                                <div style={{ color: "var(--muted)", fontSize: 14, fontWeight: 500 }}>Fixing image...</div>
+                            </div>
+                        ) : (
+                            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                                <button
+                                    onClick={() => setFixModalOpen(false)}
+                                    style={{ padding: "10px 16px", background: "transparent", color: "var(--muted)", border: "none", cursor: "pointer", fontWeight: 500 }}
+                                >Cancel</button>
+                                <button
+                                    onClick={handleStartFix}
+                                    disabled={!fixDescription.trim()}
+                                    style={{
+                                        padding: "10px 20px", background: "var(--primary)", color: "#fff", border: "none",
+                                        borderRadius: 8, cursor: "pointer", fontWeight: 600, opacity: !fixDescription.trim() ? 0.6 : 1
+                                    }}
+                                >Start Fix</button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
