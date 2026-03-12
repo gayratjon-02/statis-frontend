@@ -466,7 +466,7 @@ function LibraryPage() {
                             <div
                                 key={ad._id}
                                 className={`lib-ad-card ${selectedIds.includes(ad._id) ? "lib-ad-card--selected" : ""}`}
-                                onClick={() => setLightboxId(ad._id)}
+                                onClick={() => setDetailId(ad._id)}
                             >
                                 <div
                                     className="lib-ad-card__image"
@@ -549,7 +549,7 @@ function LibraryPage() {
                             <div
                                 key={ad._id}
                                 className={`lib-list-item ${selectedIds.includes(ad._id) ? "lib-list-item--selected" : ""}`}
-                                onClick={() => setLightboxId(ad._id)}
+                                onClick={() => setDetailId(ad._id)}
                             >
                                 <div
                                     className={`lib-list-item__select ${selectedIds.includes(ad._id) ? "lib-list-item__select--checked" : ""}`}
