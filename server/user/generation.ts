@@ -256,7 +256,7 @@ export async function deleteAdsRequest(ids: string[]): Promise<{ deleted: number
 /** GET /generation/download/:adId/:ratio — proxy download for a specific ratio */
 export async function downloadAdImageByRatio(adId: string, ratio: string, filename?: string): Promise<void> {
     const safeRatio = ratio.replace(":", "x");
-    const res = await fetch(`${GENERATION_API}/download/${adId}/${ratio}`, {
+    const res = await fetch(`${GENERATION_API}/download/${adId}/${safeRatio}`, {
         method: "GET",
         headers: { Authorization: `Bearer ${localStorage.getItem("se_access_token")}` },
     });

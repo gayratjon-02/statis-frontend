@@ -213,9 +213,10 @@ function LibraryPage() {
 
     const fetchRatioBlob = async (adId: string, ratio: string): Promise<Blob | null> => {
         const token = localStorage.getItem("se_access_token");
+        const safeRatio = ratio.replace(":", "x");
         try {
             const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3007";
-            const res = await fetch(`${API_BASE_URL}/generation/download/${adId}/${ratio}`, {
+            const res = await fetch(`${API_BASE_URL}/generation/download/${adId}/${safeRatio}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (!res.ok) return null;
