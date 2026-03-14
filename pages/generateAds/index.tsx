@@ -212,6 +212,7 @@ function GeneratePageContent() {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
   const [conceptFilter, setConceptFilter] = useState("All");
   const [notes, setNotes] = useState("");
+  const [selectedRatio, setSelectedRatio] = useState<"1:1" | "9:16" | "16:9">("1:1");
   const [generatingAds, setGeneratingAds] = useState([
     false,
     false,
@@ -802,6 +803,7 @@ function GeneratePageContent() {
         product_id: product._id,
         concept_id: selectedConcept,
         important_notes: notes,
+        selected_ratio: selectedRatio,
       });
 
       // Claude finished, Gemini jobs queued — show skeleton cards
@@ -2635,7 +2637,7 @@ function GeneratePageContent() {
             </div>
 
             <div className="gen-nav">
-              <button className="gen-btn-back" onClick={() => setStep(0)}>
+              <button className="gen-btn-back" onClick={() => { setSelectedRatio("1:1"); setStep(0); }}>
                 ← Back
               </button>
               <button
@@ -2751,6 +2753,73 @@ function GeneratePageContent() {
                 fine-tune your results.
               </div>
 
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 10 }}>
+                  Ad Ratio
+                </div>
+                <div style={{ display: "flex", gap: 12 }}>
+                  {([
+                    { ratio: "1:1" as const, label: "Square", sublabel: "1080 × 1080", desc: "Feed Posts", icon: "□" },
+                    { ratio: "9:16" as const, label: "Vertical", sublabel: "1080 × 1920", desc: "Stories / Reels", icon: "▯" },
+                    { ratio: "16:9" as const, label: "Horizontal", sublabel: "1920 × 1080", desc: "Landscape", icon: "▭" },
+                  ]).map(({ ratio, label, sublabel, desc, icon }) => (
+                    <button
+                      key={ratio}
+                      type="button"
+                      onClick={() => setSelectedRatio(ratio)}
+                      style={{
+                        flex: 1,
+                        padding: "14px 12px",
+                        borderRadius: 10,
+                        border: selectedRatio === ratio
+                          ? "2px solid var(--cyan)"
+                          : "1.5px solid var(--border)",
+                        background: selectedRatio === ratio
+                          ? "rgba(0, 229, 204, 0.06)"
+                          : "var(--card)",
+                        cursor: "pointer",
+                        textAlign: "center" as const,
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <div style={{
+                        fontSize: 28,
+                        marginBottom: 6,
+                        color: selectedRatio === ratio ? "var(--cyan)" : "var(--dim)",
+                        lineHeight: 1,
+                      }}>
+                        {icon}
+                      </div>
+                      <div style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: selectedRatio === ratio ? "var(--cyan)" : "var(--text)",
+                        marginBottom: 2,
+                      }}>
+                        {label}
+                      </div>
+                      <div style={{
+                        fontSize: 11,
+                        color: "var(--dim)",
+                        marginBottom: 2,
+                      }}>
+                        {sublabel}
+                      </div>
+                      <div style={{
+                        fontSize: 10,
+                        color: selectedRatio === ratio ? "var(--cyan)" : "var(--muted)",
+                        opacity: 0.8,
+                      }}>
+                        {desc}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 8 }}>
+                  Other ratios can be generated later from the download menu
+                </div>
+              </div>
+
               <textarea
                 className="gen-textarea"
                 style={{ height: 160, fontSize: 15, lineHeight: 1.6 }}
@@ -2775,6 +2844,7 @@ function GeneratePageContent() {
                           concepts.find((c) => c._id === selectedConcept)?.name
                         : "Not selected",
                     },
+                    { label: "Ratio", value: selectedRatio === "1:1" ? "Square (1080×1080)" : selectedRatio === "9:16" ? "Vertical (1080×1920)" : "Horizontal (1920×1080)" },
                     { label: "Credit Cost", value: `${creditCosts.credits_per_generation} credits (6 variations)` },
                   ].map(({ label, value }) => (
                     <div key={label} className="gen-summary__row">

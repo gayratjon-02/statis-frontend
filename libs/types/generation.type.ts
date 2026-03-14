@@ -15,6 +15,7 @@ export interface CreateGenerationInput {
     product_id: string;
     concept_id: string;
     important_notes?: string;
+    selected_ratio?: "1:1" | "9:16" | "16:9";
 }
 
 /** POST /generation/createGeneration response */
