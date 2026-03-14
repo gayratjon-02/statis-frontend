@@ -794,7 +794,6 @@ function GeneratePageContent() {
     smoothRef.current = 0;
     setGeneratingAds([false, false, false, false, false, false]);
     setCompletedAds([false, false, false, false, false, false]);
-    setSavedAds([false, false, false, false, false, false]);
     setGeneratedResults([]);
 
     try {
@@ -884,6 +883,7 @@ function GeneratePageContent() {
             activeBatchIdRef.current = null;
             setIsGenerationComplete(true);
             setIsGenerationActive(false);
+            setSavedAds([true, true, true, true, true, true]);
 
             if (batchStatus.status === "completed") {
               setTimeout(() => setStep(5), 1000);
@@ -3224,7 +3224,7 @@ function GeneratePageContent() {
                   return (<div
                     key={result._id}
                     className={`gen-ad-card ${
-                      savedAds[i] ? "gen-ad-card--saved" : ""
+                      completedAds[i] ? "gen-ad-card--saved" : ""
                     }`}
                   >
                     <div
@@ -3321,7 +3321,7 @@ function GeneratePageContent() {
                           </button>
                         </div>
                       )}
-                      {savedAds[i] && (
+                      {completedAds[i] && (
                         <div className="gen-ad-card__saved-badge">SAVED</div>
                       )}
                       {resultImageUrl && (
@@ -3402,21 +3402,7 @@ function GeneratePageContent() {
                         </button>
                       </div>
 
-                      {!savedAds[i] ? (
-                        <button
-                          className="gen-ad-btn--save"
-                          onClick={() =>
-                            setSavedAds((prev) => {
-                              const n = [...prev];
-                              n[i] = true;
-                              return n;
-                            })
-                          }
-                        >
-                          Save Ad
-                        </button>
-                      ) : (
-                        <div style={{ display: "flex", gap: 6 }}>
+                      <div style={{ display: "flex", gap: 6 }}>
                           <button
                             className="gen-ad-btn--ratio"
                             disabled={ratioModalLoading}
@@ -3434,10 +3420,9 @@ function GeneratePageContent() {
                                   image_url_9x16: data.image_url_9x16,
                                   image_url_16x9: data.image_url_16x9,
                                 });
-                              } catch (e: any) {
-                                toast.error(
-                                  e.message || "Failed to load ratios",
-                                );
+                              } catch (e: unknown) {
+                                const msg = e instanceof Error ? e.message : "Failed to load ratios";
+                                toast.error(msg);
                               } finally {
                                 setRatioModalLoading(false);
                               }
@@ -3488,7 +3473,6 @@ function GeneratePageContent() {
                             Requires Canva Enterprise
                           </span>
                         </div>
-                      )}
                     </div>
                   </div>
                   );
