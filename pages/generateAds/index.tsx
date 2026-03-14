@@ -107,13 +107,6 @@ function getStepInfo(percent: number): { label: string; stepIndex: number } {
   return { label: "Finalizing & saving...", stepIndex: 4 };
 }
 
-const DISPLAY_STEPS = [
-  "Analyzing brand identity",
-  "Crafting ad copy",
-  "Preparing image prompts",
-  "Generating ad variations",
-  "Finalizing & saving",
-];
 
 interface BrandState {
   _id?: string; // If set, it's an existing brand
@@ -255,6 +248,8 @@ function GeneratePageContent() {
   const [zipDownloading, setZipDownloading] = useState(false);
   const [allZipDownloading, setAllZipDownloading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isMerging, setIsMerging] = useState(false);
+  const [mergePercent, setMergePercent] = useState(0);
   const [isGenerationActive, setIsGenerationActive] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
   const [displayPercent, setDisplayPercent] = useState(0);
@@ -789,6 +784,8 @@ function GeneratePageContent() {
     if (!brand._id || !product._id || !selectedConcept) return;
 
     setStep(4);
+    setIsMerging(true);
+    setMergePercent(0);
     setIsAnalyzing(true);
     setIsGenerationActive(true);
     setIsGenerationComplete(false);
@@ -797,6 +794,20 @@ function GeneratePageContent() {
     setGeneratingAds([false, false, false, false, false, false]);
     setCompletedAds([false, false, false, false, false, false]);
     setGeneratedResults([]);
+
+    const mergeStart = Date.now();
+    const mergeDuration = 20000;
+    const mergeTimer = setInterval(() => {
+      const elapsed = Date.now() - mergeStart;
+      const pct = Math.min(Math.floor((elapsed / mergeDuration) * 100), 99);
+      setMergePercent(pct);
+      if (elapsed >= mergeDuration) {
+        clearInterval(mergeTimer);
+        setMergePercent(100);
+        setIsMerging(false);
+        setIsAnalyzing(false);
+      }
+    }, 200);
 
     try {
       const result = await createGeneration({
@@ -807,8 +818,6 @@ function GeneratePageContent() {
         selected_ratio: selectedRatio,
       });
 
-      // Claude finished, Gemini jobs queued — show skeleton cards
-      setIsAnalyzing(false);
       setGeneratingAds([true, true, true, true, true, true]);
 
       setCredits((prev) => ({ ...prev, used: prev.used + creditCosts.credits_per_generation }));
@@ -914,13 +923,15 @@ function GeneratePageContent() {
           console.error("Polling error:", pollErr);
         }
       }, 3000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to start generation", error);
+      setIsMerging(false);
+      setMergePercent(0);
       setIsAnalyzing(false);
       setIsGenerationActive(false);
       setStep(3);
 
-      const msg = error?.message || "";
+      const msg = error instanceof Error ? error.message : "";
       if (
         msg.toLowerCase().includes("insufficient credits") ||
         msg.toLowerCase().includes("credit")
@@ -2872,145 +2883,57 @@ function GeneratePageContent() {
         {/* ══════ STEP 4: GENERATING ══════ */}
         {step === 4 && (
           <div style={{ animation: "fadeIn 0.4s ease" }}>
-            {isAnalyzing ? (
+            {isMerging ? (
               <div className="gen-analyzing">
-                {/* Progress circle with percentage */}
-                <div
-                  style={{
-                    position: "relative",
-                    width: 120,
-                    height: 120,
-                    margin: "0 auto 20px",
-                  }}
-                >
-                  <svg
-                    width="120"
-                    height="120"
-                    viewBox="0 0 120 120"
-                    style={{ transform: "rotate(-90deg)" }}
-                  >
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="54"
-                      fill="none"
-                      stroke="var(--border)"
-                      strokeWidth="8"
-                    />
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="54"
-                      fill="none"
-                      stroke="url(#analyzeGrad)"
-                      strokeWidth="8"
-                      strokeLinecap="round"
-                      strokeDasharray={`${2 * Math.PI * 54}`}
-                      strokeDashoffset={`${
-                        2 * Math.PI * 54 * (1 - displayPercent / 100)
-                      }`}
+                <div style={{ position: "relative", width: 140, height: 140, margin: "0 auto 24px" }}>
+                  <svg width="140" height="140" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+                    <circle cx="70" cy="70" r="62" fill="none" stroke="var(--border)" strokeWidth="8" />
+                    <circle cx="70" cy="70" r="62" fill="none" stroke="url(#mergeGrad)" strokeWidth="8" strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 62}`}
+                      strokeDashoffset={`${2 * Math.PI * 62 * (1 - mergePercent / 100)}`}
                       style={{ transition: "stroke-dashoffset 0.3s ease" }}
                     />
                     <defs>
-                      <linearGradient
-                        id="analyzeGrad"
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="100%"
-                      >
-                        <stop offset="0%" stopColor="#3B82F6" />
-                        <stop offset="100%" stopColor="#3ECFCF" />
+                      <linearGradient id="mergeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="var(--g1)" />
+                        <stop offset="100%" stopColor="var(--g2)" />
                       </linearGradient>
                     </defs>
                   </svg>
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 28,
-                        fontWeight: 700,
-                        color: "#fff",
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {displayPercent}%
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 30, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+                      {mergePercent}%
                     </span>
                   </div>
                 </div>
-                <h2 className="gen-analyzing__title">
-                  {getStepInfo(displayPercent).label}
-                </h2>
+                <h2 className="gen-analyzing__title">Merging...</h2>
                 <p className="gen-analyzing__desc">
-                  Our AI is studying your brand, product, and concept to craft
-                  the perfect ad variations.
+                  Combining your brand, product, and concept into unique ad variations.
                 </p>
-                {/* Progress bar */}
-                <div
-                  style={{
-                    width: "100%",
-                    maxWidth: 400,
-                    margin: "16px auto 0",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: 6,
-                      background: "var(--border)",
-                      borderRadius: 3,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        borderRadius: 3,
-                        background: "linear-gradient(90deg, #3B82F6, #3ECFCF)",
-                        width: `${displayPercent}%`,
-                        transition: "width 0.3s ease",
-                      }}
-                    />
+                <div style={{ width: "100%", maxWidth: 400, margin: "16px auto 0" }}>
+                  <div style={{ height: 6, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%", borderRadius: 3,
+                      background: "linear-gradient(90deg, var(--g1), var(--g2))",
+                      width: `${mergePercent}%`, transition: "width 0.3s ease",
+                    }} />
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginTop: 6,
-                      fontSize: 11,
-                      color: "#6B7194",
-                    }}
-                  >
-                    <span>{displayPercent}% complete</span>
-                    <span>{getStepInfo(displayPercent).label}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, color: "var(--dim)" }}>
+                    <span>{mergePercent}% complete</span>
+                    <span>
+                      {mergePercent < 15 ? "Analyzing brand identity" :
+                       mergePercent < 35 ? "Crafting ad copy" :
+                       mergePercent < 55 ? "Preparing image prompts" :
+                       mergePercent < 80 ? "Sending to AI engine" :
+                       "Almost ready..."}
+                    </span>
                   </div>
                 </div>
-                <div className="gen-analyzing__steps">
-                  {DISPLAY_STEPS.map((label, idx) => {
-                    const currentStepIdx = getStepInfo(displayPercent).stepIndex;
-                    return (
-                      <div
-                        key={idx}
-                        className={`gen-analyzing__step ${
-                          idx <= currentStepIdx
-                            ? "gen-analyzing__step--active"
-                            : ""
-                        } ${
-                          idx < currentStepIdx ? "gen-analyzing__step--done" : ""
-                        }`}
-                      >
-                        {idx < currentStepIdx ? "\u2713 " : ""}
-                        {label}
-                      </div>
-                    );
-                  })}
-                </div>
+              </div>
+            ) : isAnalyzing ? (
+              <div className="gen-analyzing">
+                <div style={{ width: 48, height: 48, borderRadius: "50%", border: "3px solid var(--border)", borderTopColor: "var(--accent)", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
+                <h2 className="gen-analyzing__title">Starting generation...</h2>
               </div>
             ) : (
               <>
