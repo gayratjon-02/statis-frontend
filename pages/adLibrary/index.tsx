@@ -77,16 +77,27 @@ function LibraryPage() {
     const [fixedAdOutput, setFixedAdOutput] = useState<any | null>(null);
     const [isCompareOpen, setIsCompareOpen] = useState(false);
 
-    const handleBuyCanva = async (adId?: string) => {
+    const handleEditInCanva = async (adId?: string) => {
         const targetId = adId ?? detailAd?._id;
         if (!targetId || canvaLoading) return;
         setCanvaLoading(true);
         try {
-            const { createCanvaCheckoutRequest } = await import("../../server/user/billing");
-            const data = await createCanvaCheckoutRequest(targetId);
-            if (data.checkout_url) window.location.href = data.checkout_url;
+            const { editInCanva } = await import("../../server/user/canva");
+            const result = await editInCanva(targetId);
+            if ("needs_auth" in result) {
+                window.location.href = result.auth_url;
+            } else {
+                window.open(result.canva_edit_url, "_blank");
+                setAds((prev) =>
+                    prev.map((a) =>
+                        a._id === targetId
+                            ? { ...a, canva_status: "fulfilled", canva_link: result.canva_edit_url }
+                            : a,
+                    ),
+                );
+            }
         } catch (e: unknown) {
-            const message = e instanceof Error ? e.message : "Failed to start Canva checkout";
+            const message = e instanceof Error ? e.message : "Failed to open in Canva";
             toast.error(message);
         } finally {
             setCanvaLoading(false);
@@ -695,22 +706,16 @@ function LibraryPage() {
                                         className="lightbox-bar__btn"
                                         style={{ borderColor: "rgba(16,185,129,0.4)", color: "#10B981" }}
                                         onClick={() => window.open(lightboxAd.canva_link!, "_blank")}
-                                        title="Open Canva Template"
-                                    >Open Template</button>
-                                ) : lightboxAd.canva_status === 'pending' ? (
-                                    <button
-                                        className="lightbox-bar__btn"
-                                        style={{ borderColor: "rgba(245,158,11,0.3)", color: "#F59E0B", opacity: 0.7, cursor: "not-allowed" }}
-                                        disabled
-                                    >Pending...</button>
+                                        title="Open in Canva"
+                                    >Open in Canva</button>
                                 ) : (
                                     <button
                                         className="lightbox-bar__btn"
                                         style={{ borderColor: "rgba(245,158,11,0.3)", color: "#F59E0B" }}
-                                        onClick={() => handleBuyCanva(lightboxAd._id)}
+                                        onClick={() => handleEditInCanva(lightboxAd._id)}
                                         disabled={canvaLoading}
-                                        title="Buy Canva Template"
-                                    >{canvaLoading ? "Redirecting..." : "Canva Template"}</button>
+                                        title="Edit in Canva"
+                                    >{canvaLoading ? "Loading..." : "Edit in Canva"}</button>
                                 )}
                                 <button
                                     className="lightbox-bar__btn lightbox-bar__btn--primary"
@@ -818,11 +823,9 @@ function LibraryPage() {
 
                                     <div className="detail-actions__row">
                                         {detailAd.canva_status === 'fulfilled' && detailAd.canva_link ? (
-                                            <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(16,185,129,0.3)", color: "#10B981" }} onClick={() => window.open(detailAd.canva_link!, "_blank")}>Open Canva Template</button>
-                                        ) : detailAd.canva_status === 'pending' ? (
-                                            <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(245,158,11,0.27)", color: "var(--yellow)", opacity: 0.7, cursor: "not-allowed" }} disabled>Canva Template Pending...</button>
+                                            <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(16,185,129,0.3)", color: "#10B981" }} onClick={() => window.open(detailAd.canva_link!, "_blank")}>Open in Canva</button>
                                         ) : (
-                                            <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(245,158,11,0.27)", color: "var(--yellow)" }} onClick={() => handleBuyCanva()} disabled={canvaLoading}>{canvaLoading ? "Redirecting..." : "Buy Canva Template"}</button>
+                                            <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(245,158,11,0.27)", color: "var(--yellow)" }} onClick={() => handleEditInCanva()} disabled={canvaLoading}>{canvaLoading ? "Loading..." : "Edit in Canva"}</button>
                                         )}
                                     </div>
                                 </div>

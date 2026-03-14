@@ -173,6 +173,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
     // Canva Templates page state
     const [canvaOrders, setCanvaOrders] = useState<CanvaOrder[]>([]);
     const [canvaLoading, setCanvaLoading] = useState(false);
+    const [canvaConnected, setCanvaConnected] = useState(false);
 
     // DA Templates (Concepts gallery) state
     const [concepts, setConcepts] = useState<AdConcept[]>([]);
@@ -378,8 +379,20 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
             setAcctMsg(null);
             setPwMsg(null);
             setPwOld(""); setPwNew(""); setPwConfirm("");
+
+            import("../../server/user/canva").then(({ getCanvaConnectionStatus }) => {
+                getCanvaConnectionStatus().then((r) => setCanvaConnected(r.connected)).catch(() => {});
+            });
         }
     }, [page, member]);
+
+    // Check URL params for Canva callback result
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("canva") === "connected") {
+            setCanvaConnected(true);
+        }
+    }, []);
 
     const handleDeleteBrand = async (id: string) => {
         if (!confirm("Do you want to delete this brand?")) return;
@@ -1064,6 +1077,58 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                     }}
                                 >{pwSaving ? "Changing..." : "Change Password"}</button>
                             </div>
+                        </div>
+
+                        {/* Canva Integration */}
+                        <div style={{
+                            background: "var(--card)", border: "1px solid var(--border)",
+                            borderRadius: 16, padding: 24, marginBottom: 20,
+                        }}>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>Canva Integration</div>
+                            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
+                                Connect your Canva account to edit generated ads directly in Canva. Requires Canva Enterprise subscription.
+                            </div>
+                            {canvaConnected ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                    <span style={{ color: "#22C55E", fontSize: 14, fontWeight: 600 }}>Connected</span>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const { disconnectCanva } = await import("../../server/user/canva");
+                                                await disconnectCanva();
+                                                setCanvaConnected(false);
+                                                toast.success("Canva disconnected");
+                                            } catch (e: unknown) {
+                                                const msg = e instanceof Error ? e.message : "Failed to disconnect";
+                                                toast.error(msg);
+                                            }
+                                        }}
+                                        style={{
+                                            padding: "6px 16px", borderRadius: 8,
+                                            border: "1px solid var(--border)", background: "transparent",
+                                            color: "var(--text)", fontSize: 13, cursor: "pointer",
+                                        }}
+                                    >Disconnect</button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const { getCanvaAuthUrl } = await import("../../server/user/canva");
+                                            const { authUrl } = await getCanvaAuthUrl();
+                                            window.location.href = authUrl;
+                                        } catch (e: unknown) {
+                                            const msg = e instanceof Error ? e.message : "Failed to connect";
+                                            toast.error(msg);
+                                        }
+                                    }}
+                                    style={{
+                                        padding: "10px 24px", borderRadius: 10, border: "none",
+                                        background: "linear-gradient(135deg, var(--accent), var(--g1))",
+                                        color: "#0a0a0f", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                                    }}
+                                >Connect Canva</button>
+                            )}
                         </div>
 
                         {/* Danger Zone */}

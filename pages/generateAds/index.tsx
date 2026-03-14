@@ -33,6 +33,7 @@ import {
   fixErrorRequest,
 } from "../../server/user/generation";
 import { createCanvaCheckoutRequest } from "../../server/user/billing";
+import { editInCanva } from "../../server/user/canva";
 import {
   getBrandConfig,
   getCreditCosts,
@@ -3363,24 +3364,41 @@ function GeneratePageContent() {
                             onClick={async () => {
                               if (!result._id) return;
                               try {
-                                toast.loading("Redirecting to checkout...", {
+                                toast.loading("Opening in Canva...", {
                                   id: "canva",
                                 });
-                                const data = await createCanvaCheckoutRequest(
-                                  result._id,
-                                );
-                                if (data.checkout_url) {
-                                  window.location.href = data.checkout_url;
+                                const data = await editInCanva(result._id);
+                                if ("needs_auth" in data) {
+                                  toast.dismiss("canva");
+                                  window.location.href = data.auth_url;
+                                } else {
+                                  toast.success("Canva design ready!", {
+                                    id: "canva",
+                                  });
+                                  window.open(data.canva_edit_url, "_blank");
                                 }
-                              } catch (e: any) {
-                                toast.error(e.message || "Checkout failed", {
-                                  id: "canva",
-                                });
+                              } catch (e: unknown) {
+                                const message =
+                                  e instanceof Error
+                                    ? e.message
+                                    : "Failed to open in Canva";
+                                toast.error(message, { id: "canva" });
                               }
                             }}
                           >
-                            Buy Canva Template
+                            Edit in Canva
                           </button>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: "var(--dim)",
+                              marginTop: 4,
+                              display: "block",
+                              textAlign: "center",
+                            }}
+                          >
+                            Requires Canva Enterprise
+                          </span>
                         </div>
                       )}
                     </div>
