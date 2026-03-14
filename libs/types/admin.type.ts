@@ -273,7 +273,7 @@ export interface ConceptModalProps {
   sourceUrl: string;
   imagePreview: string;
   categories: import("./concept.type").ConceptCategoryItem[];
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   setName: (v: string) => void;
   setCategoryId: (v: string) => void;
   setDescription: (v: string) => void;
