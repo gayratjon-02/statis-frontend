@@ -3038,12 +3038,20 @@ function GeneratePageContent() {
                   </p>
                 </div>
 
-                <div className="gen-ad-grid">
+                <div
+                  className="gen-ad-grid"
+                  style={selectedRatio === '16:9' ? { gridTemplateColumns: 'repeat(2, 1fr)' } : undefined}
+                >
                   {Array.from({ length: 6 }).map((_, i) => {
                     const result = generatedResults[i];
                     const isCompleted = completedAds[i];
                     const isGenerating = generatingAds[i];
-                    const hasImage = result?.image_url_1x1;
+                    const imageUrl = selectedRatio === '9:16'
+                      ? result?.image_url_9x16
+                      : selectedRatio === '16:9'
+                      ? result?.image_url_16x9
+                      : result?.image_url_1x1;
+                    const hasImage = !!imageUrl;
 
                     return (
                       <div
@@ -3061,7 +3069,7 @@ function GeneratePageContent() {
                         <div
                           className="gen-ad-card__preview"
                           style={{
-                            height: 280,
+                            height: selectedRatio === '9:16' ? 420 : selectedRatio === '16:9' ? 220 : 280,
                             position: "relative",
                             overflow: "hidden",
                           }}
@@ -3069,19 +3077,20 @@ function GeneratePageContent() {
                           {isCompleted && hasImage ? (
                             <>
                               <img
-                                src={result.image_url_1x1!}
+                                src={imageUrl!}
                                 alt={result?.ad_name || `Variation ${i + 1}`}
                                 style={{
                                   width: "100%",
                                   height: "100%",
-                                  objectFit: "cover",
+                                  objectFit: selectedRatio === '1:1' ? "cover" : "contain",
                                   borderRadius: 12,
+                                  background: "var(--bg-hover)",
                                 }}
                               />
                               <div
                                 className="gen-ad-card__overlay"
                                 onClick={() =>
-                                  setLightboxImage(result.image_url_1x1)
+                                  setLightboxImage(imageUrl)
                                 }
                               >
                                 <div className="gen-ad-card__eye">👁</div>
@@ -3200,10 +3209,19 @@ function GeneratePageContent() {
               </div>
             </div>
 
-            <div className="gen-ad-grid">
+            <div
+              className="gen-ad-grid"
+              style={selectedRatio === '16:9' ? { gridTemplateColumns: 'repeat(2, 1fr)' } : undefined}
+            >
               {generatedResults.length > 0 ? (
-                generatedResults.map((result, i) => (
-                  <div
+                generatedResults.map((result, i) => {
+                  const resultImageUrl = selectedRatio === '9:16'
+                    ? result.image_url_9x16
+                    : selectedRatio === '16:9'
+                    ? result.image_url_16x9
+                    : result.image_url_1x1;
+
+                  return (<div
                     key={result._id}
                     className={`gen-ad-card ${
                       savedAds[i] ? "gen-ad-card--saved" : ""
@@ -3212,7 +3230,7 @@ function GeneratePageContent() {
                     <div
                       className="gen-ad-card__preview"
                       style={{
-                        height: 280,
+                        height: selectedRatio === '9:16' ? 420 : selectedRatio === '16:9' ? 220 : 280,
                         position: "relative",
                         overflow: "hidden",
                       }}
@@ -3234,15 +3252,16 @@ function GeneratePageContent() {
                           <div style={{ fontSize: 13, color: "#fff", fontWeight: 600 }}>Fixing errors...</div>
                         </div>
                       )}
-                      {result.image_url_1x1 ? (
+                      {resultImageUrl ? (
                         <img
-                          src={result.image_url_1x1}
+                          src={resultImageUrl}
                           alt={result.ad_name || `Variation ${i + 1} `}
                           style={{
                             width: "100%",
                             height: "100%",
-                            objectFit: "cover",
+                            objectFit: selectedRatio === '1:1' ? "cover" : "contain",
                             borderRadius: 12,
+                            background: "var(--bg-hover)",
                           }}
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display =
@@ -3253,7 +3272,7 @@ function GeneratePageContent() {
                           }}
                         />
                       ) : null}
-                      {!result.image_url_1x1 && (
+                      {!resultImageUrl && (
                         <div
                           style={{
                             background: `linear-gradient(135deg, ${
@@ -3305,10 +3324,10 @@ function GeneratePageContent() {
                       {savedAds[i] && (
                         <div className="gen-ad-card__saved-badge">SAVED</div>
                       )}
-                      {result.image_url_1x1 && (
+                      {resultImageUrl && (
                         <div
                           className="gen-ad-card__overlay"
-                          onClick={() => setLightboxImage(result.image_url_1x1)}
+                          onClick={() => setLightboxImage(resultImageUrl)}
                         >
                           <div className="gen-ad-card__eye">👁</div>
                         </div>
@@ -3371,12 +3390,11 @@ function GeneratePageContent() {
                             try {
                               await downloadAdImage(
                                 result._id,
-                                `${result.ad_name || "ad"}_1x1.png`,
+                                `${result.ad_name || "ad"}_${selectedRatio.replace(':', 'x')}.png`,
                               );
                             } catch {
-                              // Fallback: open image in new tab
-                              if (result.image_url_1x1)
-                                window.open(result.image_url_1x1, "_blank");
+                              if (resultImageUrl)
+                                window.open(resultImageUrl, "_blank");
                             }
                           }}
                         >
@@ -3473,7 +3491,8 @@ function GeneratePageContent() {
                       )}
                     </div>
                   </div>
-                ))
+                  );
+                })
               ) : (
                 <div
                   style={{
