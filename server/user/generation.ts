@@ -176,6 +176,24 @@ export async function exportRatiosRequest(adId: string): Promise<{
 }
 
 /**
+ * POST /generation/generateRatio/:adId/:ratio
+ * Generate a missing ratio for an existing ad.
+ */
+export async function generateMissingRatio(adId: string, ratio: string): Promise<{ status: string }> {
+    const res = await fetch(`${GENERATION_API}/generateRatio/${adId}/${ratio}`, {
+        method: "POST",
+        headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Generate ratio failed" }));
+        throw new Error(error.message || `Generate ratio failed (${res.status})`);
+    }
+
+    return res.json();
+}
+
+/**
  * GET /generation/getBatchStatus/:batchId
  * Poll for batch generation status + image URLs.
  */

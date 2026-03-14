@@ -27,6 +27,7 @@ import {
   getGenerationStatus,
   getGenerationBatchStatus,
   exportRatiosRequest,
+  generateMissingRatio,
   cancelBatchRequest,
   downloadAdImage,
   regenerateSingleRequest,
@@ -250,6 +251,7 @@ function GeneratePageContent() {
     image_url_16x9: string | null;
   } | null>(null);
   const [ratioModalLoading, setRatioModalLoading] = useState(false);
+  const [generatingRatio, setGeneratingRatio] = useState<string | null>(null);
   const [zipDownloading, setZipDownloading] = useState(false);
   const [allZipDownloading, setAllZipDownloading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -3649,16 +3651,59 @@ function GeneratePageContent() {
                         }}
                         onClick={() => setLightboxImage(url)}
                       />
+                    ) : generatingRatio === ratio ? (
+                      <div style={{ color: "var(--muted)", fontSize: 12, textAlign: "center" }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: "50%",
+                          border: "3px solid var(--border)", borderTopColor: "var(--accent)",
+                          animation: "spin 0.8s linear infinite",
+                          margin: "0 auto 10px",
+                        }} />
+                        Generating {label}...
+                      </div>
                     ) : (
-                      <div
-                        style={{
-                          color: "var(--dim)",
-                          fontSize: 12,
-                          textAlign: "center",
-                        }}
-                      >
+                      <div style={{ textAlign: "center" }}>
                         <div style={{ fontSize: 28, marginBottom: 6 }}>🖼</div>
-                        Not generated
+                        <button
+                          onClick={async () => {
+                            if (!ratioModal || generatingRatio) return;
+                            setGeneratingRatio(ratio);
+                            try {
+                              await generateMissingRatio(ratioModal.adId, ratio);
+                              const poll = setInterval(async () => {
+                                try {
+                                  const updated = await exportRatiosRequest(ratioModal.adId);
+                                  const newUrl = updated[`image_url_${ratio}` as keyof typeof updated] as string | null;
+                                  if (newUrl) {
+                                    clearInterval(poll);
+                                    setGeneratingRatio(null);
+                                    setRatioModal((prev) => prev ? { ...prev, [`image_url_${ratio}`]: newUrl } : prev);
+                                  }
+                                } catch {
+                                  // keep polling
+                                }
+                              }, 3000);
+                              setTimeout(() => {
+                                clearInterval(poll);
+                                setGeneratingRatio(null);
+                              }, 120000);
+                            } catch (e: unknown) {
+                              const msg = e instanceof Error ? e.message : "Generation failed";
+                              toast.error(msg);
+                              setGeneratingRatio(null);
+                            }
+                          }}
+                          disabled={!!generatingRatio}
+                          style={{
+                            background: "linear-gradient(135deg, var(--g2), var(--g1))",
+                            color: "#fff", border: "none", borderRadius: 6,
+                            padding: "6px 16px", fontSize: 12, fontWeight: 600,
+                            cursor: generatingRatio ? "not-allowed" : "pointer",
+                            opacity: generatingRatio ? 0.5 : 1,
+                          }}
+                        >
+                          Generate {label}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -3782,7 +3827,7 @@ function GeneratePageContent() {
                   ) : (
                     <div style={{ padding: "6px 12px 12px" }}>
                       <span style={{ color: "var(--dim)", fontSize: 12 }}>
-                        Not available
+                        {generatingRatio === ratio ? "Generating..." : "Not yet generated"}
                       </span>
                     </div>
                   )}
