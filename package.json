@@ -40,13 +40,13 @@
     "@tailwindcss/postcss": "^4",
     "@types/axios": "^0.14.0",
     "@types/js-cookie": "^3.0.2",
-    "@types/node": "20.10.0",
-    "@types/react": "18.2.0",
+    "@types/node": "25.5.0",
+    "@types/react": "19.2.14",
     "@types/react-dom": "18.2.7",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "prettier": "2.7.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "5.9.3"
   }
 }
