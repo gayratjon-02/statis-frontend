@@ -26,7 +26,6 @@ import {
   createGeneration,
   getGenerationStatus,
   getGenerationBatchStatus,
-  exportRatiosRequest,
   cancelBatchRequest,
   downloadAdImage,
   regenerateSingleRequest,
@@ -235,14 +234,6 @@ function GeneratePageContent() {
   const activeBatchIdRef = useRef<string | null>(null);
   const generationInProgressRef = useRef(false);
 
-  const [ratioModal, setRatioModal] = useState<{
-    adId: string;
-    adName: string | null;
-    image_url_1x1: string | null;
-    image_url_9x16: string | null;
-    image_url_16x9: string | null;
-  } | null>(null);
-  const [ratioModalLoading, setRatioModalLoading] = useState(false);
   const [allZipDownloading, setAllZipDownloading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
@@ -665,94 +656,6 @@ function GeneratePageContent() {
   };
 
   /** Download image as JPG at 85% quality using Canvas */
-  const downloadAsJpg = async (
-    adId: string,
-    ratio: string,
-    adName: string | null,
-  ) => {
-    const blob = await fetchRatioBlob(adId, ratio);
-    if (!blob) {
-      toast.error("Image not available");
-      return;
-    }
-    const blobUrl = URL.createObjectURL(blob);
-    await new Promise<void>((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.getContext("2d")!.drawImage(img, 0, 0);
-        canvas.toBlob(
-          (jpgBlob) => {
-            if (jpgBlob) {
-              const safeName = (adName || "ad").replace(/[^a-zA-Z0-9_-]/g, "_");
-              const a = document.createElement("a");
-              a.href = URL.createObjectURL(jpgBlob);
-              a.download = `${safeName}_${ratio}.jpg`;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-            }
-            URL.revokeObjectURL(blobUrl);
-            resolve();
-          },
-          "image/jpeg",
-          0.85,
-        );
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(blobUrl);
-        resolve();
-      };
-      img.src = blobUrl;
-    });
-  };
-
-  /** Download image at 2x resolution using Canvas upscale */
-  const downloadAs2x = async (
-    adId: string,
-    ratio: string,
-    adName: string | null,
-  ) => {
-    const blob = await fetchRatioBlob(adId, ratio);
-    if (!blob) {
-      toast.error("Image not available");
-      return;
-    }
-    const blobUrl = URL.createObjectURL(blob);
-    await new Promise<void>((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width * 2;
-        canvas.height = img.height * 2;
-        const ctx = canvas.getContext("2d")!;
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((pngBlob) => {
-          if (pngBlob) {
-            const safeName = (adName || "ad").replace(/[^a-zA-Z0-9_-]/g, "_");
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(pngBlob);
-            a.download = `${safeName}_${ratio}@2x.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-          }
-          URL.revokeObjectURL(blobUrl);
-          resolve();
-        }, "image/png");
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(blobUrl);
-        resolve();
-      };
-      img.src = blobUrl;
-    });
-  };
-
   const startGeneration = async () => {
     if (!brand._id || !product._id || !selectedConcept) return;
 
@@ -3302,35 +3205,6 @@ function GeneratePageContent() {
 
                       <div style={{ display: "flex", gap: 6 }}>
                           <button
-                            className="gen-ad-btn--ratio"
-                            disabled={ratioModalLoading}
-                            onClick={async () => {
-                              if (!result._id) return;
-                              setRatioModalLoading(true);
-                              try {
-                                const data = await exportRatiosRequest(
-                                  result._id,
-                                );
-                                setRatioModal({
-                                  adId: data._id,
-                                  adName: data.ad_name,
-                                  image_url_1x1: data.image_url_1x1,
-                                  image_url_9x16: data.image_url_9x16,
-                                  image_url_16x9: data.image_url_16x9,
-                                });
-                              } catch (e: unknown) {
-                                const msg = e instanceof Error ? e.message : "Failed to load ratios";
-                                toast.error(msg);
-                              } finally {
-                                setRatioModalLoading(false);
-                              }
-                            }}
-                          >
-                            {ratioModalLoading
-                              ? "Loading..."
-                              : "Get All Ratios"}
-                          </button>
-                          <button
                             className="gen-ad-btn--canva"
                             onClick={async () => {
                               if (!result._id) return;
@@ -3422,173 +3296,6 @@ function GeneratePageContent() {
         </div>
       )}
 
-      {/* ===== RATIO MODAL ===== */}
-      {ratioModal && (
-        <div className="gen-lightbox" onClick={() => setRatioModal(null)}>
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              borderRadius: 12,
-              padding: 28,
-              maxWidth: 900,
-              width: "95%",
-              position: "relative",
-              maxHeight: "90vh",
-              overflowY: "auto",
-            }}
-          >
-            <div
-              className="gen-lightbox__close"
-              onClick={() => setRatioModal(null)}
-            >
-              ×
-            </div>
-            <h3 style={{ color: "var(--text)", marginBottom: 4, fontSize: 18 }}>
-              All Ratios — {ratioModal.adName || "Ad"}
-            </h3>
-            <p style={{ color: "var(--muted)", marginBottom: 20, fontSize: 13 }}>
-              Preview and export for every platform
-            </p>
-
-            {/* 3 Ratio Comparison View */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 16,
-                marginBottom: 24,
-              }}
-            >
-              {[
-                {
-                  label: "1:1",
-                  sublabel: "Instagram / Facebook",
-                  ratio: "1x1",
-                  url: ratioModal.image_url_1x1,
-                  size: "1080×1080",
-                  aspect: "1/1",
-                },
-                {
-                  label: "9:16",
-                  sublabel: "Stories / Reels / TikTok",
-                  ratio: "9x16",
-                  url: ratioModal.image_url_9x16,
-                  size: "1080×1920",
-                  aspect: "9/16",
-                },
-                {
-                  label: "16:9",
-                  sublabel: "YouTube / LinkedIn",
-                  ratio: "16x9",
-                  url: ratioModal.image_url_16x9,
-                  size: "1920×1080",
-                  aspect: "16/9",
-                },
-              ].filter(({ url }) => !!url).map(({ label, sublabel, ratio, url, size, aspect }) => (
-                <div
-                  key={ratio}
-                  style={{
-                    background: "var(--bg-hover)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 10,
-                    overflow: "hidden",
-                  }}
-                >
-                  {/* Thumbnail preview */}
-                  <div
-                    style={{
-                      position: "relative",
-                      background: "var(--bg-input)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "12px",
-                      minHeight: 140,
-                    }}
-                  >
-                    <img
-                      src={url!}
-                      alt={`${label} preview`}
-                      style={{
-                        maxWidth: "100%",
-                        maxHeight: 180,
-                        objectFit: "contain",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                      }}
-                      onClick={() => setLightboxImage(url!)}
-                    />
-                  </div>
-
-                  {/* Info */}
-                  <div style={{ padding: "10px 12px 6px" }}>
-                    <div
-                      style={{
-                        color: "var(--text)",
-                        fontSize: 13,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {label}
-                    </div>
-                    <div
-                      style={{
-                        color: "var(--muted)",
-                        fontSize: 11,
-                        marginBottom: 4,
-                      }}
-                    >
-                      {sublabel}
-                    </div>
-                    <div
-                      style={{
-                        color: "var(--dim)",
-                        fontSize: 11,
-                        fontFamily: "monospace",
-                      }}
-                    >
-                      {size}
-                    </div>
-                  </div>
-
-                  {/* Download button */}
-                  <div style={{ padding: "6px 12px 12px", display: "flex", justifyContent: "flex-end" }}>
-                    <button
-                      onClick={() =>
-                        downloadAsJpg(
-                          ratioModal.adId,
-                          ratio,
-                          ratioModal.adName,
-                        )
-                      }
-                      title="Download JPG"
-                      style={{
-                        background: "transparent",
-                        border: "1px solid var(--border)",
-                        borderRadius: 6,
-                        padding: "6px 8px",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "var(--muted)",
-                      }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Fix Errors Modal */}
       {fixModalAdId && (
