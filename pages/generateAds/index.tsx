@@ -27,7 +27,6 @@ import {
   getGenerationStatus,
   getGenerationBatchStatus,
   exportRatiosRequest,
-  generateMissingRatio,
   cancelBatchRequest,
   downloadAdImage,
   regenerateSingleRequest,
@@ -244,7 +243,6 @@ function GeneratePageContent() {
     image_url_16x9: string | null;
   } | null>(null);
   const [ratioModalLoading, setRatioModalLoading] = useState(false);
-  const [generatingRatio, setGeneratingRatio] = useState<string | null>(null);
   const [allZipDownloading, setAllZipDownloading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
@@ -3488,7 +3486,7 @@ function GeneratePageContent() {
                   size: "1920×1080",
                   aspect: "16/9",
                 },
-              ].map(({ label, sublabel, ratio, url, size, aspect }) => (
+              ].filter(({ url }) => !!url).map(({ label, sublabel, ratio, url, size, aspect }) => (
                 <div
                   key={ratio}
                   style={{
@@ -3510,74 +3508,18 @@ function GeneratePageContent() {
                       minHeight: 140,
                     }}
                   >
-                    {url ? (
-                      <img
-                        src={url}
-                        alt={`${label} preview`}
-                        style={{
-                          maxWidth: "100%",
-                          maxHeight: 180,
-                          objectFit: "contain",
-                          borderRadius: 6,
-                          cursor: "pointer",
-                        }}
-                        onClick={() => setLightboxImage(url)}
-                      />
-                    ) : generatingRatio === ratio ? (
-                      <div style={{ color: "var(--muted)", fontSize: 12, textAlign: "center" }}>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: "50%",
-                          border: "3px solid var(--border)", borderTopColor: "var(--accent)",
-                          animation: "spin 0.8s linear infinite",
-                          margin: "0 auto 10px",
-                        }} />
-                        Generating {label}...
-                      </div>
-                    ) : (
-                      <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 28, marginBottom: 6 }}>🖼</div>
-                        <button
-                          onClick={async () => {
-                            if (!ratioModal || generatingRatio) return;
-                            setGeneratingRatio(ratio);
-                            try {
-                              await generateMissingRatio(ratioModal.adId, ratio);
-                              const poll = setInterval(async () => {
-                                try {
-                                  const updated = await exportRatiosRequest(ratioModal.adId);
-                                  const newUrl = updated[`image_url_${ratio}` as keyof typeof updated] as string | null;
-                                  if (newUrl) {
-                                    clearInterval(poll);
-                                    setGeneratingRatio(null);
-                                    setRatioModal((prev) => prev ? { ...prev, [`image_url_${ratio}`]: newUrl } : prev);
-                                  }
-                                } catch {
-                                  // keep polling
-                                }
-                              }, 3000);
-                              setTimeout(() => {
-                                clearInterval(poll);
-                                setGeneratingRatio(null);
-                              }, 120000);
-                            } catch (e: unknown) {
-                              const msg = e instanceof Error ? e.message : "Generation failed";
-                              toast.error(msg);
-                              setGeneratingRatio(null);
-                            }
-                          }}
-                          disabled={!!generatingRatio}
-                          style={{
-                            background: "linear-gradient(135deg, var(--g2), var(--g1))",
-                            color: "#fff", border: "none", borderRadius: 6,
-                            padding: "6px 16px", fontSize: 12, fontWeight: 600,
-                            cursor: generatingRatio ? "not-allowed" : "pointer",
-                            opacity: generatingRatio ? 0.5 : 1,
-                          }}
-                        >
-                          Generate {label}
-                        </button>
-                      </div>
-                    )}
+                    <img
+                      src={url!}
+                      alt={`${label} preview`}
+                      style={{
+                        maxWidth: "100%",
+                        maxHeight: 180,
+                        objectFit: "contain",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                      }}
+                      onClick={() => setLightboxImage(url!)}
+                    />
                   </div>
 
                   {/* Info */}
@@ -3612,43 +3554,35 @@ function GeneratePageContent() {
                   </div>
 
                   {/* Download button */}
-                  {url ? (
-                    <div style={{ padding: "6px 12px 12px", display: "flex", justifyContent: "flex-end" }}>
-                      <button
-                        onClick={() =>
-                          downloadAsJpg(
-                            ratioModal.adId,
-                            ratio,
-                            ratioModal.adName,
-                          )
-                        }
-                        title="Download JPG"
-                        style={{
-                          background: "transparent",
-                          border: "1px solid var(--border)",
-                          borderRadius: 6,
-                          padding: "6px 8px",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "var(--muted)",
-                        }}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ padding: "6px 12px 12px" }}>
-                      <span style={{ color: "var(--dim)", fontSize: 12 }}>
-                        {generatingRatio === ratio ? "Generating..." : "Not yet generated"}
-                      </span>
-                    </div>
-                  )}
+                  <div style={{ padding: "6px 12px 12px", display: "flex", justifyContent: "flex-end" }}>
+                    <button
+                      onClick={() =>
+                        downloadAsJpg(
+                          ratioModal.adId,
+                          ratio,
+                          ratioModal.adName,
+                        )
+                      }
+                      title="Download JPG"
+                      style={{
+                        background: "transparent",
+                        border: "1px solid var(--border)",
+                        borderRadius: 6,
+                        padding: "6px 8px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "var(--muted)",
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
