@@ -771,7 +771,7 @@ function GeneratePageContent() {
     setGeneratedResults([]);
 
     const mergeStart = Date.now();
-    const mergeDuration = 20000;
+    const mergeDuration = 30000;
     const mergeTimer = setInterval(() => {
       const elapsed = Date.now() - mergeStart;
       const pct = Math.min(Math.floor((elapsed / mergeDuration) * 100), 99);
