@@ -1445,6 +1445,15 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                                     ))}
                                                 </div>
                                             )}
+                                            <button
+                                                className="concept-gallery-card__generate-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    router.push(`/generateAds?concept=${concept._id}`);
+                                                }}
+                                            >
+                                                Generate with this concept
+                                            </button>
                                         </div>
                                     </div>
                                 ))}

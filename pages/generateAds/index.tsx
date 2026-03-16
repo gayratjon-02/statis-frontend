@@ -546,6 +546,17 @@ function GeneratePageContent() {
     }
   }, [router.query.brandId, brands]);
 
+  // Pre-select concept from URL query param (e.g. /generateAds?concept=xxx)
+  useEffect(() => {
+    const conceptId = router.query.concept as string | undefined;
+    if (conceptId && concepts.length > 0 && !selectedConcept) {
+      const found = concepts.find((c) => c._id === conceptId);
+      if (found) {
+        setSelectedConcept(found._id);
+      }
+    }
+  }, [router.query.concept, concepts]);
+
   // Cancel active batch if user refreshes or navigates away mid-generation
   useEffect(() => {
     const handleUnload = () => {
