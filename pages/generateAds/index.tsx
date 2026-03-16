@@ -272,6 +272,7 @@ function GeneratePageContent() {
   const [fixDescription, setFixDescription] = useState("");
   const [isFixing, setIsFixing] = useState(false);
   const [fixingAdIds, setFixingAdIds] = useState<Set<string>>(new Set());
+  const [redoingAdIds, setRedoingAdIds] = useState<Set<string>>(new Set());
 
   // Dynamic credit costs from backend
   const [creditCosts, setCreditCosts] = useState<CreditCosts>({
@@ -3036,7 +3037,7 @@ function GeneratePageContent() {
                         overflow: "hidden",
                       }}
                     >
-                      {fixingAdIds.has(result._id) && (
+                      {(fixingAdIds.has(result._id) || redoingAdIds.has(result._id)) && (
                         <div style={{
                           position: "absolute",
                           inset: 0,
@@ -3050,7 +3051,9 @@ function GeneratePageContent() {
                           gap: 12,
                         }}>
                           <div className="gen-fix-card-spinner" />
-                          <div style={{ fontSize: 13, color: "#fff", fontWeight: 600 }}>Fixing errors...</div>
+                          <div style={{ fontSize: 13, color: "#fff", fontWeight: 600 }}>
+                            {redoingAdIds.has(result._id) ? "Regenerating..." : "Fixing errors..."}
+                          </div>
                         </div>
                       )}
                       {resultImageUrl ? (
@@ -3167,22 +3170,72 @@ function GeneratePageContent() {
                         </button>
                         <button
                           className="gen-ad-btn"
+                          disabled={redoingAdIds.has(result._id)}
                           onClick={async () => {
-                            if (!result._id) return;
+                            if (!result._id || redoingAdIds.has(result._id)) return;
                             try {
-                              toast.loading("Regenerating...", { id: "redo" });
+                              setRedoingAdIds((prev) => new Set(prev).add(result._id));
+                              setGeneratedResults((prev) =>
+                                prev.map((r) =>
+                                  r._id === result._id
+                                    ? { ...r, image_url_1x1: null, image_url_9x16: null, image_url_16x9: null, generation_status: "pending" }
+                                    : r,
+                                ),
+                              );
+                              toast.loading("Regenerating...", { id: `redo-${result._id}` });
                               await regenerateSingleRequest(result._id);
-                              toast.success(`Redo started! (${creditCosts.credits_per_regenerate_single} credits used)`, {
-                                id: "redo",
+
+                              const pollInterval = setInterval(async () => {
+                                try {
+                                  const status = await getGenerationStatus(result._id);
+                                  if (status.generation_status === "completed") {
+                                    clearInterval(pollInterval);
+                                    setGeneratedResults((prev) =>
+                                      prev.map((r) =>
+                                        r._id === result._id
+                                          ? { ...r, ...status, generation_status: "completed" }
+                                          : r,
+                                      ),
+                                    );
+                                    setRedoingAdIds((prev) => {
+                                      const next = new Set(prev);
+                                      next.delete(result._id);
+                                      return next;
+                                    });
+                                    toast.success("Redo complete!", { id: `redo-${result._id}` });
+                                  } else if (status.generation_status === "failed") {
+                                    clearInterval(pollInterval);
+                                    setRedoingAdIds((prev) => {
+                                      const next = new Set(prev);
+                                      next.delete(result._id);
+                                      return next;
+                                    });
+                                    toast.error("Redo failed", { id: `redo-${result._id}` });
+                                  }
+                                } catch {
+                                  // keep polling
+                                }
+                              }, 3000);
+                              setTimeout(() => {
+                                clearInterval(pollInterval);
+                                setRedoingAdIds((prev) => {
+                                  const next = new Set(prev);
+                                  next.delete(result._id);
+                                  return next;
+                                });
+                              }, 180000);
+                            } catch (e: unknown) {
+                              const msg = e instanceof Error ? e.message : "Redo failed";
+                              setRedoingAdIds((prev) => {
+                                const next = new Set(prev);
+                                next.delete(result._id);
+                                return next;
                               });
-                            } catch (e: any) {
-                              toast.error(e.message || "Redo failed", {
-                                id: "redo",
-                              });
+                              toast.error(msg, { id: `redo-${result._id}` });
                             }
                           }}
                         >
-                          ↻ Redo
+                          {redoingAdIds.has(result._id) ? "Generating..." : "↻ Redo"}
                         </button>
                         <button
                           className="gen-ad-btn"
