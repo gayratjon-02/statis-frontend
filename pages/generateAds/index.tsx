@@ -245,7 +245,6 @@ function GeneratePageContent() {
   } | null>(null);
   const [ratioModalLoading, setRatioModalLoading] = useState(false);
   const [generatingRatio, setGeneratingRatio] = useState<string | null>(null);
-  const [zipDownloading, setZipDownloading] = useState(false);
   const [allZipDownloading, setAllZipDownloading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
@@ -621,41 +620,6 @@ function GeneratePageContent() {
     }
   };
 
-  /** Download all 3 ratios as a ZIP file (browser-side) */
-  const downloadAllAsZip = async () => {
-    if (!ratioModal || zipDownloading) return;
-    setZipDownloading(true);
-    try {
-      const JSZip = (await import("jszip")).default;
-      const zip = new JSZip();
-      const adName = (ratioModal.adName || "ad").replace(
-        /[^a-zA-Z0-9_-]/g,
-        "_",
-      );
-      const entries = [
-        { ratio: "1x1", url: ratioModal.image_url_1x1 },
-        { ratio: "9x16", url: ratioModal.image_url_9x16 },
-        { ratio: "16x9", url: ratioModal.image_url_16x9 },
-      ];
-      for (const { ratio, url } of entries) {
-        if (!url) continue;
-        const blob = await fetchRatioBlob(ratioModal.adId, ratio);
-        if (blob) zip.file(`${adName}_${ratio}.png`, blob);
-      }
-      const zipBlob = await zip.generateAsync({ type: "blob" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(zipBlob);
-      a.download = `${adName}_all_ratios.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (e) {
-      console.error("ZIP download failed", e);
-      toast.error("Failed to create ZIP");
-    } finally {
-      setZipDownloading(false);
-    }
-  };
 
   const downloadAllVariationsAsZip = async () => {
     if (allZipDownloading || generatedResults.length === 0) return;
@@ -3479,32 +3443,6 @@ function GeneratePageContent() {
               Preview and export for every platform
             </p>
 
-            {/* Download All ZIP button */}
-            <div style={{ marginBottom: 24 }}>
-              <button
-                onClick={downloadAllAsZip}
-                disabled={zipDownloading}
-                style={{
-                  background: zipDownloading
-                    ? "var(--border)"
-                    : "linear-gradient(135deg, var(--g2), var(--g1))",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "10px 22px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: zipDownloading ? "not-allowed" : "pointer",
-                  opacity: zipDownloading ? 0.7 : 1,
-                }}
-              >
-                {zipDownloading ? "⏳ Creating ZIP..." : "⤓ Download All (ZIP)"}
-              </button>
-              <span style={{ color: "var(--dim)", fontSize: 12, marginLeft: 12 }}>
-                All 3 formats in one file
-              </span>
-            </div>
-
             {/* 3 Ratio Comparison View */}
             <div
               style={{
@@ -3662,48 +3600,9 @@ function GeneratePageContent() {
                     </div>
                   </div>
 
-                  {/* Download buttons */}
+                  {/* Download button */}
                   {url ? (
-                    <div
-                      style={{
-                        padding: "6px 12px 12px",
-                        display: "flex",
-                        gap: 6,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <button
-                        onClick={async () => {
-                          const blob = await fetchRatioBlob(
-                            ratioModal.adId,
-                            ratio,
-                          );
-                          if (!blob) return;
-                          const blobUrl = URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = blobUrl;
-                          a.download = `${(ratioModal.adName || "ad").replace(
-                            /[^a-zA-Z0-9_-]/g,
-                            "_",
-                          )}_${ratio}.png`;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                          URL.revokeObjectURL(blobUrl);
-                        }}
-                        style={{
-                          flex: 1,
-                          background: "#238636",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 5,
-                          padding: "5px 0",
-                          fontSize: 12,
-                          cursor: "pointer",
-                        }}
-                      >
-                        PNG
-                      </button>
+                    <div style={{ padding: "6px 12px 12px", display: "flex", justifyContent: "flex-end" }}>
                       <button
                         onClick={() =>
                           downloadAsJpg(
@@ -3712,39 +3611,24 @@ function GeneratePageContent() {
                             ratioModal.adName,
                           )
                         }
+                        title="Download JPG"
                         style={{
-                          flex: 1,
-                          background: "#1f6feb",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 5,
-                          padding: "5px 0",
-                          fontSize: 12,
+                          background: "transparent",
+                          border: "1px solid var(--border)",
+                          borderRadius: 6,
+                          padding: "6px 8px",
                           cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "var(--muted)",
                         }}
                       >
-                        JPG 85%
-                      </button>
-                      <button
-                        onClick={() =>
-                          downloadAs2x(
-                            ratioModal.adId,
-                            ratio,
-                            ratioModal.adName,
-                          )
-                        }
-                        style={{
-                          flex: 1,
-                          background: "#6e40c9",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 5,
-                          padding: "5px 0",
-                          fontSize: 12,
-                          cursor: "pointer",
-                        }}
-                      >
-                        @2x
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
                       </button>
                     </div>
                   ) : (
