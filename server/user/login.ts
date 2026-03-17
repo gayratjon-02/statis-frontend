@@ -90,6 +90,26 @@ export async function googleLoginRequest(input: GoogleLoginInput): Promise<AuthR
 }
 
 /**
+ * POST /member/refresh
+ * Refresh the access token before it expires.
+ */
+export async function refreshTokenRequest(): Promise<{ accessToken: string }> {
+    const token = localStorage.getItem("se_access_token");
+    if (!token) throw new Error("No token");
+
+    const res = await fetch(`${MEMBER_API}/refresh`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!res.ok) throw new Error("Token refresh failed");
+    return res.json();
+}
+
+/**
  * GET /member/getMember
  * Fetch the authenticated user's profile using the stored access token.
  */
