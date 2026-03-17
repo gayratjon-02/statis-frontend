@@ -3,6 +3,7 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
+import { fetchWithTimeout } from "../../libs/config/fetchWithTimeout";
 import type { Brand, CreateBrandInput, UpdateBrandInput } from "../../libs/types/brand.type";
 
 const BRAND_API = `${API_BASE_URL}/brand`;
@@ -35,7 +36,7 @@ export async function uploadBrandLogo(file: File): Promise<{ logo_url: string }>
     console.log('  API URL:', `${BRAND_API}/uploadLogo`);
     console.log('  token exists:', !!token);
 
-    const res = await fetch(`${BRAND_API}/uploadLogo`, {
+    const res = await fetchWithTimeout(`${BRAND_API}/uploadLogo`, {
         method: "POST",
         headers: {
             Authorization: `Bearer ${token}`,
@@ -72,7 +73,7 @@ export async function uploadBrandLogo(file: File): Promise<{ logo_url: string }>
  * Create a new brand for the authenticated user.
  */
 export async function createBrand(input: CreateBrandInput): Promise<Brand> {
-    const res = await fetch(`${BRAND_API}/createBrand`, {
+    const res = await fetchWithTimeout(`${BRAND_API}/createBrand`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify(input),
@@ -93,7 +94,7 @@ export async function createBrand(input: CreateBrandInput): Promise<Brand> {
  * Get all brands for the authenticated user (paginated).
  */
 export async function getBrands(page: number = 1, limit: number = 10): Promise<{ list: Brand[]; total: number }> {
-    const res = await fetch(`${BRAND_API}/getBrands?page=${page}&limit=${limit}`, {
+    const res = await fetchWithTimeout(`${BRAND_API}/getBrands?page=${page}&limit=${limit}`, {
         method: "GET",
         headers: authHeaders(),
     });
@@ -111,7 +112,7 @@ export async function getBrands(page: number = 1, limit: number = 10): Promise<{
  * Get a single brand by ID.
  */
 export async function getBrandById(id: string): Promise<Brand> {
-    const res = await fetch(`${BRAND_API}/getBrandById/${id}`, {
+    const res = await fetchWithTimeout(`${BRAND_API}/getBrandById/${id}`, {
         method: "GET",
         headers: authHeaders(),
     });
@@ -131,7 +132,7 @@ export async function getBrandById(id: string): Promise<Brand> {
  * Update a brand by ID.
  */
 export async function updateBrand(id: string, input: UpdateBrandInput): Promise<Brand> {
-    const res = await fetch(`${BRAND_API}/updateBrandById/${id}`, {
+    const res = await fetchWithTimeout(`${BRAND_API}/updateBrandById/${id}`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify(input),
@@ -152,7 +153,7 @@ export async function updateBrand(id: string, input: UpdateBrandInput): Promise<
  * Delete a brand by ID.
  */
 export async function deleteBrand(id: string): Promise<{ message: string }> {
-    const res = await fetch(`${BRAND_API}/deleteBrandById/${id}`, {
+    const res = await fetchWithTimeout(`${BRAND_API}/deleteBrandById/${id}`, {
         method: "POST",
         headers: authHeaders(),
     });
@@ -188,7 +189,7 @@ export async function importBrandFromUrl(url: string): Promise<{
     confidence_score: number;
     warnings: string[];
 }> {
-    const res = await fetch(`${BRAND_API}/importFromUrl`, {
+    const res = await fetchWithTimeout(`${BRAND_API}/importFromUrl`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ url }),

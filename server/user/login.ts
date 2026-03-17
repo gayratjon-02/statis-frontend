@@ -3,6 +3,7 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
+import { fetchWithTimeout } from "../../libs/config/fetchWithTimeout";
 import type { AuthResponse, GoogleLoginInput, LoginInput, SignupInput } from "../../libs/types/member.type";
 
 const MEMBER_API = `${API_BASE_URL}/member`;
@@ -12,7 +13,7 @@ const MEMBER_API = `${API_BASE_URL}/member`;
  * Authenticate an existing user with email + password.
  */
 export async function loginRequest(input: LoginInput): Promise<AuthResponse> {
-    const res = await fetch(`${MEMBER_API}/login`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
@@ -31,7 +32,7 @@ export async function loginRequest(input: LoginInput): Promise<AuthResponse> {
  * Register a new user account.
  */
 export async function signupRequest(input: SignupInput): Promise<AuthResponse> {
-    const res = await fetch(`${MEMBER_API}/signup`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
@@ -53,7 +54,7 @@ export async function signupRequest(input: SignupInput): Promise<AuthResponse> {
 export async function acceptTosRequest(input: { tos_accepted: boolean; tos_version: string }): Promise<any> {
     const token = localStorage.getItem("se_access_token");
 
-    const res = await fetch(`${MEMBER_API}/accept-tos`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/accept-tos`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -75,7 +76,7 @@ export async function acceptTosRequest(input: { tos_accepted: boolean; tos_versi
  * Authenticate with Google ID token.
  */
 export async function googleLoginRequest(input: GoogleLoginInput): Promise<AuthResponse> {
-    const res = await fetch(`${MEMBER_API}/google-auth`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/google-auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
@@ -97,7 +98,7 @@ export async function refreshTokenRequest(): Promise<{ accessToken: string }> {
     const token = localStorage.getItem("se_access_token");
     if (!token) throw new Error("No token");
 
-    const res = await fetch(`${MEMBER_API}/refresh`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/refresh`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -116,7 +117,7 @@ export async function refreshTokenRequest(): Promise<{ accessToken: string }> {
 export async function getMemberRequest(): Promise<AuthResponse["member"]> {
     const token = localStorage.getItem("se_access_token");
 
-    const res = await fetch(`${MEMBER_API}/getMember`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/getMember`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -138,7 +139,7 @@ export async function getMemberRequest(): Promise<AuthResponse["member"]> {
 export async function getUsageRequest() {
     const token = localStorage.getItem("se_access_token");
 
-    const res = await fetch(`${MEMBER_API}/getUsage`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/getUsage`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -162,7 +163,7 @@ const BRAND_API = `${API_BASE_URL}/brand`;
 export async function getBrandsRequest(page = 1, limit = 50) {
     const token = localStorage.getItem("se_access_token");
 
-    const res = await fetch(`${BRAND_API}/getBrands?page=${page}&limit=${limit}`, {
+    const res = await fetchWithTimeout(`${BRAND_API}/getBrands?page=${page}&limit=${limit}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -184,7 +185,7 @@ export async function getBrandsRequest(page = 1, limit = 50) {
 export async function getActivityRequest(limit = 5): Promise<any[]> {
     const token = localStorage.getItem("se_access_token");
 
-    const res = await fetch(`${MEMBER_API}/getActivity?limit=${limit}`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/getActivity?limit=${limit}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -205,7 +206,7 @@ export async function getActivityRequest(limit = 5): Promise<any[]> {
  */
 export async function updateMemberRequest(input: { full_name?: string }): Promise<any> {
     const token = localStorage.getItem("se_access_token");
-    const res = await fetch(`${MEMBER_API}/updateMember`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/updateMember`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(input),
@@ -223,7 +224,7 @@ export async function updateMemberRequest(input: { full_name?: string }): Promis
  */
 export async function changePasswordRequest(input: { old_password: string; new_password: string }): Promise<any> {
     const token = localStorage.getItem("se_access_token");
-    const res = await fetch(`${MEMBER_API}/forgetPassword`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/forgetPassword`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(input),
@@ -240,7 +241,7 @@ export async function changePasswordRequest(input: { old_password: string; new_p
  * Request a password reset link to be sent to the user's email.
  */
 export async function requestPasswordReset(email: string): Promise<{ success: boolean; message: string }> {
-    const res = await fetch(`${MEMBER_API}/forgot-password-flow`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/forgot-password-flow`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -259,7 +260,7 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
  * Execute the password reset using the token sent to the user's email.
  */
 export async function executePasswordReset(token: string, password: string): Promise<{ success: boolean; message: string }> {
-    const res = await fetch(`${MEMBER_API}/reset-password-flow`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/reset-password-flow`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password }),

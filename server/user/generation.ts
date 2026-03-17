@@ -3,6 +3,7 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
+import { fetchWithTimeout } from "../../libs/config/fetchWithTimeout";
 import type {
     CreateGenerationInput,
     GenerationResponse,
@@ -29,7 +30,7 @@ function authHeaders(): Record<string, string> {
  * Returns { job_id, status, message }
  */
 export async function createGeneration(input: CreateGenerationInput): Promise<GenerationResponse> {
-    const res = await fetch(`${GENERATION_API}/createGeneration`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/createGeneration`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify(input),
@@ -57,7 +58,7 @@ export async function getGenerationStatus(jobId: string): Promise<{
     ad_name: string | null;
     created_at: string;
 }> {
-    const res = await fetch(`${GENERATION_API}/getStatus/${jobId}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/getStatus/${jobId}`, {
         method: "GET",
         headers: authHeaders(),
     });
@@ -75,7 +76,7 @@ export async function getGenerationStatus(jobId: string): Promise<{
  * Fetch the authenticated user's recent generations.
  */
 export async function getRecentGenerationsRequest(limit = 6): Promise<any[]> {
-    const res = await fetch(`${GENERATION_API}/getRecent?limit=${limit}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/getRecent?limit=${limit}`, {
         method: "GET",
         headers: authHeaders(),
     });
@@ -101,7 +102,7 @@ export async function getLibraryAdsRequest(query: GetGenerationsQuery): Promise<
     if (query.concept_id) params.append("concept_id", query.concept_id);
     if (query.sort_by) params.append("sort_by", query.sort_by);
 
-    const res = await fetch(`${GENERATION_API}/list?${params.toString()}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/list?${params.toString()}`, {
         headers: authHeaders(),
     });
 
@@ -114,7 +115,7 @@ export async function getLibraryAdsRequest(query: GetGenerationsQuery): Promise<
  * Fetch counts for sidebar (brands, products).
  */
 export async function getLibraryCountsRequest(): Promise<LibraryCounts> {
-    const res = await fetch(`${GENERATION_API}/counts`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/counts`, {
         headers: authHeaders(),
     });
 
@@ -150,7 +151,7 @@ export async function exportRatiosRequest(adId: string): Promise<{
     image_url_9x16: string | null;
     image_url_16x9: string | null;
 }> {
-    const res = await fetch(`${GENERATION_API}/exportRatios/${adId}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/exportRatios/${adId}`, {
         method: "POST",
         headers: authHeaders(),
     });
@@ -180,7 +181,7 @@ export async function exportRatiosRequest(adId: string): Promise<{
  * Generate a missing ratio for an existing ad.
  */
 export async function generateMissingRatio(adId: string, ratio: string): Promise<{ status: string }> {
-    const res = await fetch(`${GENERATION_API}/generateRatio/${adId}/${ratio}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/generateRatio/${adId}/${ratio}`, {
         method: "POST",
         headers: authHeaders(),
     });
@@ -198,7 +199,7 @@ export async function generateMissingRatio(adId: string, ratio: string): Promise
  * Poll for batch generation status + image URLs.
  */
 export async function getGenerationBatchStatus(batchId: string): Promise<GenerationBatchResponse> {
-    const res = await fetch(`${GENERATION_API}/getBatchStatus/${batchId}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/getBatchStatus/${batchId}`, {
         method: "GET",
         headers: authHeaders(),
     });
@@ -217,7 +218,7 @@ export async function getGenerationBatchStatus(batchId: string): Promise<Generat
  * The backend streams the S3 image with Content-Disposition: attachment.
  */
 export async function downloadAdImage(adId: string, filename?: string): Promise<void> {
-    const res = await fetch(`${GENERATION_API}/download/${adId}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/download/${adId}`, {
         method: "GET",
         headers: {
             Authorization: `Bearer ${localStorage.getItem("se_access_token")}`,
@@ -241,7 +242,7 @@ export async function downloadAdImage(adId: string, filename?: string): Promise<
 
 /** POST /generation/toggleFavorite/:adId */
 export async function toggleFavoriteRequest(adId: string): Promise<{ is_favorite: boolean }> {
-    const res = await fetch(`${GENERATION_API}/toggleFavorite/${adId}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/toggleFavorite/${adId}`, {
         method: "POST",
         headers: authHeaders(),
     });
@@ -251,7 +252,7 @@ export async function toggleFavoriteRequest(adId: string): Promise<{ is_favorite
 
 /** POST /generation/rename/:adId */
 export async function renameAdRequest(adId: string, name: string): Promise<{ ad_name: string }> {
-    const res = await fetch(`${GENERATION_API}/rename/${adId}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/rename/${adId}`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ name }),
@@ -262,7 +263,7 @@ export async function renameAdRequest(adId: string, name: string): Promise<{ ad_
 
 /** POST /generation/deleteMany */
 export async function deleteAdsRequest(ids: string[]): Promise<{ deleted: number }> {
-    const res = await fetch(`${GENERATION_API}/deleteMany`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/deleteMany`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ ids }),
@@ -274,7 +275,7 @@ export async function deleteAdsRequest(ids: string[]): Promise<{ deleted: number
 /** GET /generation/download/:adId/:ratio — proxy download for a specific ratio */
 export async function downloadAdImageByRatio(adId: string, ratio: string, filename?: string): Promise<void> {
     const safeRatio = ratio.replace(":", "x");
-    const res = await fetch(`${GENERATION_API}/download/${adId}/${safeRatio}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/download/${adId}/${safeRatio}`, {
         method: "GET",
         headers: { Authorization: `Bearer ${localStorage.getItem("se_access_token")}` },
     });
@@ -295,7 +296,7 @@ export async function downloadAdImageByRatio(adId: string, ratio: string, filena
  * Starts a fix job to fix an existing ad based on a description.
  */
 export async function fixErrorRequest(adId: string, errorDescription: string): Promise<{ job_id: string; batch_id: string; status: string }> {
-    const res = await fetch(`${GENERATION_API}/fixErrors/${adId}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/fixErrors/${adId}`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ error_description: errorDescription }),
@@ -314,7 +315,7 @@ export async function fixErrorRequest(adId: string, errorDescription: string): P
  * Regenerates a single ad variation (2 credits).
  */
 export async function regenerateSingleRequest(adId: string): Promise<{ job_id: string; batch_id: string; status: string }> {
-    const res = await fetch(`${GENERATION_API}/regenerateSingle/${adId}`, {
+    const res = await fetchWithTimeout(`${GENERATION_API}/regenerateSingle/${adId}`, {
         method: "POST",
         headers: authHeaders(),
     });

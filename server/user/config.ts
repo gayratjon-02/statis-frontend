@@ -3,6 +3,7 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
+import { fetchWithTimeout } from "../../libs/config/fetchWithTimeout";
 
 export interface IndustryItem {
     id: string;
@@ -25,7 +26,7 @@ export interface BrandConfig {
  * No auth required.
  */
 export async function getBrandConfig(): Promise<BrandConfig> {
-    const res = await fetch(`${API_BASE_URL}/brand/config`);
+    const res = await fetchWithTimeout(`${API_BASE_URL}/brand/config`);
 
     if (!res.ok) {
         throw new Error("Failed to fetch brand config");
@@ -52,7 +53,7 @@ const DEFAULT_CREDIT_COSTS: CreditCosts = {
  */
 export async function getCreditCosts(): Promise<CreditCosts> {
     try {
-        const res = await fetch(`${API_BASE_URL}/system-config`);
+        const res = await fetchWithTimeout(`${API_BASE_URL}/system-config`);
         if (!res.ok) return DEFAULT_CREDIT_COSTS;
         const data = await res.json();
         return {

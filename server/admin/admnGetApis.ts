@@ -3,6 +3,7 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
+import { fetchWithTimeout } from "../../libs/config/fetchWithTimeout";
 import type { AdConcept, ConceptCategoryItem } from "../../libs/types/concept.type";
 import type { ConceptsResponse, GetConceptsParams } from "../../libs/types/admin.type";
 import type { TokenUsageSummary, CostByUser, Profitability } from "../../libs/types/admin.type";
@@ -22,7 +23,7 @@ function adminHeaders(): Record<string, string> {
 
 /** Generic GET request with error handling */
 async function getRequest<T>(url: string): Promise<T> {
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
         method: "GET",
         headers: adminHeaders(),
     });

@@ -2,6 +2,7 @@
 // SERVER — Admin POST APIs (admin-only endpoints)
 // =============================================
 import API_BASE_URL from "../../libs/config/api.config";
+import { fetchWithTimeout } from "../../libs/config/fetchWithTimeout";
 import { AdminRole } from "../../libs/enums/admin.enum";
 import type { AdConcept, ConceptCategoryItem } from "../../libs/types/concept.type";
 import type {
@@ -38,7 +39,7 @@ function adminHeaders(): Record<string, string> {
 
 /** Generic POST request (JSON body) with error handling */
 async function postRequest<T>(url: string, body: unknown): Promise<T> {
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
         method: "POST",
         headers: adminHeaders(),
         body: JSON.stringify(body),
@@ -71,7 +72,7 @@ export async function adminGoogleAuth(input: {
     role?: AdminRole;
     inviteToken?: string;
 }): Promise<any> {
-    const res = await fetch(`${MEMBER_API}/adminGoogleAuth`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/adminGoogleAuth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
@@ -136,7 +137,7 @@ export async function uploadConceptImage(file: File): Promise<{ image_url: strin
     const formData = new FormData();
     formData.append("image", file);
 
-    const res = await fetch(`${CONCEPT_API}/uploadImage`, {
+    const res = await fetchWithTimeout(`${CONCEPT_API}/uploadImage`, {
         method: "POST",
         headers: {
             Authorization: `Bearer ${token}`,
@@ -209,7 +210,7 @@ export async function unblockUser(id: string): Promise<{ _id: string; email: str
  * Permanently delete a user (admin only).
  */
 export async function deleteUser(id: string): Promise<{ success: boolean; message: string }> {
-    const res = await fetch(`${MEMBER_API}/adminDelete/${id}`, {
+    const res = await fetchWithTimeout(`${MEMBER_API}/adminDelete/${id}`, {
         method: "DELETE",
         headers: adminHeaders(),
     });
@@ -229,7 +230,7 @@ export async function deleteUser(id: string): Promise<{ success: boolean; messag
 const CANVA_API = `${API_BASE_URL}/canva`;
 
 async function patchRequest<T>(url: string, body: unknown): Promise<T> {
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
         method: "PATCH",
         headers: adminHeaders(),
         body: JSON.stringify(body),

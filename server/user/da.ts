@@ -3,6 +3,7 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
+import { fetchWithTimeout } from "../../libs/config/fetchWithTimeout";
 
 const DA_API = `${API_BASE_URL}/da`;
 
@@ -55,7 +56,7 @@ export async function uploadDAImage(
     formData.append("image", file);
     if (name) formData.append("name", name);
 
-    const res = await fetch(`${DA_API}/upload`, {
+    const res = await fetchWithTimeout(`${DA_API}/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -76,7 +77,7 @@ export async function uploadDAImage(
  * Get all DA presets (system + user-created).
  */
 export async function getDAPresets(): Promise<DAPresetsResponse> {
-    const res = await fetch(`${DA_API}/presets`, {
+    const res = await fetchWithTimeout(`${DA_API}/presets`, {
         method: "GET",
         headers: authHeaders(),
     });
@@ -96,7 +97,7 @@ export async function getDAPresets(): Promise<DAPresetsResponse> {
  * Delete a user-created DA preset.
  */
 export async function deleteDAPreset(id: string): Promise<{ message: string }> {
-    const res = await fetch(`${DA_API}/presets/delete/${id}`, {
+    const res = await fetchWithTimeout(`${DA_API}/presets/delete/${id}`, {
         method: "POST",
         headers: authHeaders(),
     });

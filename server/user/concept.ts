@@ -3,6 +3,7 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
+import { fetchWithTimeout } from "../../libs/config/fetchWithTimeout";
 import type { AdConcept, ConceptCategoryItem, ConceptConfig } from "../../libs/types/concept.type";
 
 const CONCEPT_API = `${API_BASE_URL}/concept`;
@@ -23,7 +24,7 @@ function authHeaders(): Record<string, string> {
  * Get public concept config (popular threshold, recommended limit, etc.)
  */
 export async function getConceptConfig(): Promise<ConceptConfig> {
-    const res = await fetch(`${CONCEPT_API}/config`, {
+    const res = await fetchWithTimeout(`${CONCEPT_API}/config`, {
         method: "GET",
         headers: authHeaders(),
     });
@@ -43,7 +44,7 @@ export async function getConceptConfig(): Promise<ConceptConfig> {
  * Get all concept categories ordered by display_order.
  */
 export async function getCategories(): Promise<{ list: ConceptCategoryItem[] }> {
-    const res = await fetch(`${CONCEPT_API}/getCategories`, {
+    const res = await fetchWithTimeout(`${CONCEPT_API}/getCategories`, {
         method: "GET",
         headers: authHeaders(),
     });
@@ -76,7 +77,7 @@ export async function getConcepts(
     params.set("page", String(page));
     params.set("limit", String(limit));
 
-    const res = await fetch(`${CONCEPT_API}/getConcepts?${params.toString()}`, {
+    const res = await fetchWithTimeout(`${CONCEPT_API}/getConcepts?${params.toString()}`, {
         method: "GET",
         headers: authHeaders(),
     });
@@ -94,7 +95,7 @@ export async function getConcepts(
  * Get top 10 most used concepts.
  */
 export async function getRecommendedConcepts(): Promise<{ list: AdConcept[] }> {
-    const res = await fetch(`${CONCEPT_API}/getRecommended`, {
+    const res = await fetchWithTimeout(`${CONCEPT_API}/getRecommended`, {
         method: "GET",
         headers: authHeaders(),
     });
@@ -112,7 +113,7 @@ export async function getRecommendedConcepts(): Promise<{ list: AdConcept[] }> {
  * Increment usage_count for a concept (called when user selects a concept for generation).
  */
 export async function incrementUsage(id: string): Promise<{ usage_count: number }> {
-    const res = await fetch(`${CONCEPT_API}/incrementUsage/${id}`, {
+    const res = await fetchWithTimeout(`${CONCEPT_API}/incrementUsage/${id}`, {
         method: "PATCH",
         headers: authHeaders(),
     });

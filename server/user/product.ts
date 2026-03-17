@@ -3,6 +3,7 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
+import { fetchWithTimeout } from "../../libs/config/fetchWithTimeout";
 import type { Product, CreateProductInput, UpdateProductInput } from "../../libs/types/product.type";
 
 const PRODUCT_API = `${API_BASE_URL}/product`;
@@ -28,7 +29,7 @@ export async function uploadProductPhoto(file: File): Promise<{ photo_url: strin
     const formData = new FormData();
     formData.append("photo", file);
 
-    const res = await fetch(`${PRODUCT_API}/uploadPhoto`, {
+    const res = await fetchWithTimeout(`${PRODUCT_API}/uploadPhoto`, {
         method: "POST",
         headers: {
             Authorization: `Bearer ${token}`,
@@ -51,7 +52,7 @@ export async function uploadProductPhoto(file: File): Promise<{ photo_url: strin
  * Create a new product under a brand.
  */
 export async function createProduct(input: CreateProductInput): Promise<Product> {
-    const res = await fetch(`${PRODUCT_API}/createProduct`, {
+    const res = await fetchWithTimeout(`${PRODUCT_API}/createProduct`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify(input),
@@ -76,7 +77,7 @@ export async function getProducts(
     page: number = 1,
     limit: number = 10
 ): Promise<{ list: Product[]; total: number }> {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
         `${PRODUCT_API}/getProducts/${brandId}?page=${page}&limit=${limit}`,
         {
             method: "GET",
@@ -97,7 +98,7 @@ export async function getProducts(
  * Get a single product by ID.
  */
 export async function getProductById(id: string): Promise<Product> {
-    const res = await fetch(`${PRODUCT_API}/getProductById/${id}`, {
+    const res = await fetchWithTimeout(`${PRODUCT_API}/getProductById/${id}`, {
         method: "GET",
         headers: authHeaders(),
     });
@@ -117,7 +118,7 @@ export async function getProductById(id: string): Promise<Product> {
  * Update a product by ID.
  */
 export async function updateProduct(id: string, input: UpdateProductInput): Promise<Product> {
-    const res = await fetch(`${PRODUCT_API}/updateProductById/${id}`, {
+    const res = await fetchWithTimeout(`${PRODUCT_API}/updateProductById/${id}`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify(input),
@@ -138,7 +139,7 @@ export async function updateProduct(id: string, input: UpdateProductInput): Prom
  * Delete a product by ID.
  */
 export async function deleteProduct(id: string): Promise<{ message: string }> {
-    const res = await fetch(`${PRODUCT_API}/deleteProductById/${id}`, {
+    const res = await fetchWithTimeout(`${PRODUCT_API}/deleteProductById/${id}`, {
         method: "POST",
         headers: authHeaders(),
     });
@@ -167,7 +168,7 @@ export async function importProductFromUrl(url: string): Promise<{
     offer_text: string;
     ingredients_features: string;
 }> {
-    const res = await fetch(`${PRODUCT_API}/importFromUrl`, {
+    const res = await fetchWithTimeout(`${PRODUCT_API}/importFromUrl`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ url }),
@@ -186,7 +187,7 @@ export async function importProductFromUrl(url: string): Promise<{
  * Removes background from product photo via API.
  */
 export async function removeProductBackground(id: string): Promise<{ photo_url: string }> {
-    const res = await fetch(`${PRODUCT_API}/removeBackground/${id}`, {
+    const res = await fetchWithTimeout(`${PRODUCT_API}/removeBackground/${id}`, {
         method: "POST",
         headers: authHeaders(),
     });

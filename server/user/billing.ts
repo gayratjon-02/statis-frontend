@@ -3,6 +3,7 @@
 // =============================================
 
 import API_BASE_URL from "../../libs/config/api.config";
+import { fetchWithTimeout } from "../../libs/config/fetchWithTimeout";
 
 const BILLING_API = `${API_BASE_URL}/billing`;
 
@@ -22,7 +23,7 @@ export async function createCheckoutRequest(
     tier: string,
     billing_interval: "monthly" | "annual"
 ): Promise<{ checkout_url: string }> {
-    const res = await fetch(`${BILLING_API}/create-checkout`, {
+    const res = await fetchWithTimeout(`${BILLING_API}/create-checkout`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({ tier, billing_interval }),
@@ -41,7 +42,7 @@ export async function createCheckoutRequest(
  * Create a Stripe Customer Portal session and return the portal URL.
  */
 export async function createPortalRequest(): Promise<{ portal_url: string }> {
-    const res = await fetch(`${BILLING_API}/portal`, {
+    const res = await fetchWithTimeout(`${BILLING_API}/portal`, {
         method: "POST",
         headers: getAuthHeaders(),
     });
@@ -61,7 +62,7 @@ export async function createPortalRequest(): Promise<{ portal_url: string }> {
 export async function purchaseAddonRequest(
     addon_key: string
 ): Promise<{ checkout_url: string }> {
-    const res = await fetch(`${BILLING_API}/purchase-addon`, {
+    const res = await fetchWithTimeout(`${BILLING_API}/purchase-addon`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({ addon_key }),
@@ -80,7 +81,7 @@ export async function purchaseAddonRequest(
  * Fetch all available subscription plans.
  */
 export async function getPlansRequest(): Promise<any[]> {
-    const res = await fetch(`${BILLING_API}/plans`, {
+    const res = await fetchWithTimeout(`${BILLING_API}/plans`, {
         headers: { "Content-Type": "application/json" },
     });
 
@@ -100,7 +101,7 @@ export async function verifyCheckoutRequest(): Promise<{
     subscription_status?: string;
     credits_limit?: number;
 }> {
-    const res = await fetch(`${BILLING_API}/verify-checkout`, {
+    const res = await fetchWithTimeout(`${BILLING_API}/verify-checkout`, {
         method: "POST",
         headers: getAuthHeaders(),
     });
@@ -120,7 +121,7 @@ export async function verifyCheckoutRequest(): Promise<{
 export async function createCanvaCheckoutRequest(
     adId: string
 ): Promise<{ checkout_url: string }> {
-    const res = await fetch(`${BILLING_API}/create-canva-checkout/${adId}`, {
+    const res = await fetchWithTimeout(`${BILLING_API}/create-canva-checkout/${adId}`, {
         method: "POST",
         headers: getAuthHeaders(),
     });
@@ -147,7 +148,7 @@ export interface CanvaOrder {
 }
 
 export async function getMyCanvaOrders(): Promise<CanvaOrder[]> {
-    const res = await fetch(`${CANVA_API}/orders`, {
+    const res = await fetchWithTimeout(`${CANVA_API}/orders`, {
         method: "GET",
         headers: getAuthHeaders(),
     });

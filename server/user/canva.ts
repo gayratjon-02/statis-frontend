@@ -1,4 +1,5 @@
 import API_BASE_URL from "../../libs/config/api.config";
+import { fetchWithTimeout } from "../../libs/config/fetchWithTimeout";
 
 const CANVA_API = `${API_BASE_URL}/canva`;
 
@@ -22,7 +23,7 @@ export interface NeedsAuthResponse {
 }
 
 export async function getCanvaAuthUrl(): Promise<{ authUrl: string }> {
-    const res = await fetch(`${CANVA_API}/auth`, {
+    const res = await fetchWithTimeout(`${CANVA_API}/auth`, {
         headers: getAuthHeaders(),
     });
 
@@ -35,7 +36,7 @@ export async function getCanvaAuthUrl(): Promise<{ authUrl: string }> {
 }
 
 export async function getCanvaConnectionStatus(): Promise<{ connected: boolean }> {
-    const res = await fetch(`${CANVA_API}/connection-status`, {
+    const res = await fetchWithTimeout(`${CANVA_API}/connection-status`, {
         headers: getAuthHeaders(),
     });
 
@@ -45,7 +46,7 @@ export async function getCanvaConnectionStatus(): Promise<{ connected: boolean }
 }
 
 export async function disconnectCanva(): Promise<{ success: boolean }> {
-    const res = await fetch(`${CANVA_API}/disconnect`, {
+    const res = await fetchWithTimeout(`${CANVA_API}/disconnect`, {
         method: "POST",
         headers: getAuthHeaders(),
     });
@@ -61,7 +62,7 @@ export async function disconnectCanva(): Promise<{ success: boolean }> {
 export async function editInCanva(
     generatedAdId: string
 ): Promise<EditInCanvaResponse | NeedsAuthResponse> {
-    const res = await fetch(`${CANVA_API}/edit/${generatedAdId}`, {
+    const res = await fetchWithTimeout(`${CANVA_API}/edit/${generatedAdId}`, {
         method: "POST",
         headers: getAuthHeaders(),
     });
