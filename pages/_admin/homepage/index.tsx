@@ -12,6 +12,9 @@ import {
   getCanvaOrdersAdmin,
   getPromptTemplatesAdmin,
   getAdminInvites,
+  getAdminTokenUsage,
+  getAdminCostByUser,
+  getAdminProfitability,
 } from "../../../server/admin/admnGetApis";
 import type {
   AdminUser,
@@ -51,10 +54,12 @@ import CategoriesTab from "../../../libs/components/_admin/Categories";
 import CanvaOrdersTab from "../../../libs/components/_admin/Canva_Orders";
 import PromptManageTab from "../../../libs/components/_admin/Prompt_manage";
 import InviteTokensTab from "../../../libs/components/_admin/Token_Invite";
+import CostTrackerTab from "../../../libs/components/_admin/CostTracker";
 import ConceptModal from "../../../libs/components/_admin/ConceptModal";
 import AdminSidebar from "../../../libs/components/_admin/Sidebar";
 import CategoryModal from "../../../libs/components/_admin/CategoryModal";
 import { ADMIN_NAV_ITEMS } from "../../../libs/types/admin.type";
+import type { TokenUsageSummary, CostByUser, Profitability } from "../../../libs/types/admin.type";
 
 /** Prepend API base URL to relative image paths */
 function resolveImageUrl(url?: string): string {
@@ -165,6 +170,13 @@ function AdminDashboard() {
   const [invites, setInvites] = useState<AdminInvite[]>([]);
   const [invitesLoading, setInvitesLoading] = useState(false);
   const [invitesError, setInvitesError] = useState("");
+
+  // ── Cost Tracker tab state ──
+  const [tokenUsage, setTokenUsage] = useState<TokenUsageSummary | null>(null);
+  const [costByUser, setCostByUser] = useState<CostByUser[]>([]);
+  const [profitability, setProfitability] = useState<Profitability | null>(null);
+  const [costDays, setCostDays] = useState(30);
+  const [costsLoading, setCostsLoading] = useState(false);
 
   // ── Fetch categories ──
   const fetchCategories = useCallback(async () => {
@@ -603,6 +615,25 @@ function AdminDashboard() {
     }
   };
 
+  // ── Fetch cost tracker data ──
+  const fetchCostData = useCallback(async () => {
+    setCostsLoading(true);
+    try {
+      const [usage, users, profit] = await Promise.all([
+        getAdminTokenUsage(costDays),
+        getAdminCostByUser(costDays),
+        getAdminProfitability(costDays),
+      ]);
+      setTokenUsage(usage);
+      setCostByUser(users);
+      setProfitability(profit);
+    } catch (err) {
+      console.error('Failed to fetch cost data:', err);
+    } finally {
+      setCostsLoading(false);
+    }
+  }, [costDays]);
+
   useEffect(() => {
     const tab = router.query.tab;
     if (typeof tab === "string" && tab !== activeNav) setActiveNav(tab);
@@ -624,11 +655,16 @@ function AdminDashboard() {
     if (activeNav === "canva") fetchCanvaOrders();
     if (activeNav === "prompts") fetchPromptTemplates();
     if (activeNav === "invites") fetchAdminInvites();
-  }, [activeNav, fetchUsers, fetchCanvaOrders, fetchPromptTemplates]);
+    if (activeNav === "costs") fetchCostData();
+  }, [activeNav, fetchUsers, fetchCanvaOrders, fetchPromptTemplates, fetchCostData]);
 
   useEffect(() => {
     if (activeNav === "dashboard") fetchPlatformStats();
   }, [activeNav, fetchPlatformStats]);
+
+  useEffect(() => {
+    if (activeNav === "costs") fetchCostData();
+  }, [costDays, fetchCostData]);
 
   // ── Block / Unblock user ──
   const handleBlockUser = async (user: AdminUser) => {
@@ -912,6 +948,18 @@ function AdminDashboard() {
               handleDeleteInvite={handleDeleteInvite}
             />
           )}
+
+        {/* ── Cost Tracker View ── */}
+        {activeNav === "costs" && (
+          <CostTrackerTab
+            tokenUsage={tokenUsage}
+            costByUser={costByUser}
+            profitability={profitability}
+            costDays={costDays}
+            setCostDays={setCostDays}
+            costsLoading={costsLoading}
+          />
+        )}
       </main>
 
       {/* ── Create Concept Modal ── */}

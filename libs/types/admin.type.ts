@@ -24,6 +24,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { icon: "📦", label: "Canva Orders", id: "canva", title: "Canva Orders", subtitle: "View and fulfill Canva template orders — set link and send email" },
   { icon: "📝", label: "Prompt Management", id: "prompts", title: "Prompt Management", subtitle: "Edit AI system prompts used for ad generation" },
   { icon: "🎟️", label: "Invite Tokens", id: "invites", title: "Invite Tokens", subtitle: "Generate and manage admin invite tokens" },
+  { icon: "💰", label: "Cost Tracker", id: "costs", title: "API Cost Tracker", subtitle: "Monitor Claude and Gemini API costs and profitability" },
 ];
 
 // ── Admin User ──────────────────────────────────────────────
@@ -311,4 +312,43 @@ export interface CategoryModalProps {
   setCatDisplayOrder: (v: number | "") => void;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
+}
+
+// ── Cost Tracker Types ──────────────────────────────────
+
+export interface TokenUsageSummary {
+  total_cost: number;
+  claude: { calls: number; input_tokens: number; output_tokens: number; cost: number };
+  gemini: { calls: number; cost: number };
+  daily: { date: string; claude_cost: number; gemini_cost: number; total_cost: number }[];
+}
+
+export interface CostByUser {
+  user_id: string;
+  email: string;
+  full_name: string;
+  subscription_tier: string;
+  claude_cost: number;
+  gemini_cost: number;
+  total_cost: number;
+  generations: number;
+}
+
+export interface Profitability {
+  period_days: number;
+  total_api_cost: number;
+  estimated_monthly_revenue: number;
+  estimated_monthly_profit: number;
+  profit_margin_percent: number;
+  paid_subscribers: number;
+  avg_cost_per_subscriber: number;
+}
+
+export interface CostTrackerTabProps {
+  tokenUsage: TokenUsageSummary | null;
+  costByUser: CostByUser[];
+  profitability: Profitability | null;
+  costDays: number;
+  setCostDays: (days: number) => void;
+  costsLoading: boolean;
 }

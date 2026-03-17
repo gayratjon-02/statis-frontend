@@ -5,6 +5,7 @@
 import API_BASE_URL from "../../libs/config/api.config";
 import type { AdConcept, ConceptCategoryItem } from "../../libs/types/concept.type";
 import type { ConceptsResponse, GetConceptsParams } from "../../libs/types/admin.type";
+import type { TokenUsageSummary, CostByUser, Profitability } from "../../libs/types/admin.type";
 
 export type { ConceptsResponse, GetConceptsParams };
 
@@ -209,4 +210,32 @@ export interface PromptTemplateAdmin {
  */
 export async function getPromptTemplatesAdmin(): Promise<PromptTemplateAdmin[]> {
     return getRequest<PromptTemplateAdmin[]>(`${PROMPT_TEMPLATES_API}`);
+}
+
+// =============================================
+// ADMIN — COST TRACKER
+// =============================================
+
+/**
+ * GET /member/adminTokenUsage?days=30
+ * Returns aggregated token usage and costs.
+ */
+export async function getAdminTokenUsage(days: number = 30): Promise<TokenUsageSummary> {
+    return getRequest<TokenUsageSummary>(`${MEMBER_API}/adminTokenUsage?days=${days}`);
+}
+
+/**
+ * GET /member/adminCostByUser?days=30
+ * Returns cost breakdown per user.
+ */
+export async function getAdminCostByUser(days: number = 30): Promise<CostByUser[]> {
+    return getRequest<CostByUser[]>(`${MEMBER_API}/adminCostByUser?days=${days}`);
+}
+
+/**
+ * GET /member/adminProfitability?days=30
+ * Returns profitability analysis.
+ */
+export async function getAdminProfitability(days: number = 30): Promise<Profitability> {
+    return getRequest<Profitability>(`${MEMBER_API}/adminProfitability?days=${days}`);
 }
