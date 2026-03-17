@@ -2,6 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production"
+      ? { exclude: ["error"] }
+      : false,
+  },
+
   // ── Security Headers ──────────────────────────────────────────────────────
   async headers() {
     return [
