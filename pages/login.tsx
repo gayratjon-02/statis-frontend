@@ -108,8 +108,18 @@ export default function UserAuth() {
             return;
         }
 
+        if (signupPassword.length < 8) {
+            setError("Password must be at least 8 characters.");
+            return;
+        }
+
+        if (!/(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])/.test(signupPassword)) {
+            setError("Password must contain at least one uppercase letter, one number, and one special character (!@#$%^&*).");
+            return;
+        }
+
         if (signupPassword !== signupConfirm) {
-            setError("Passwords do not match");
+            setError("Passwords do not match.");
             return;
         }
         setError("");

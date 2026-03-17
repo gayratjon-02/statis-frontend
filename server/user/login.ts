@@ -39,7 +39,8 @@ export async function signupRequest(input: SignupInput): Promise<AuthResponse> {
 
     if (!res.ok) {
         const error = await res.json().catch(() => ({ message: "Signup failed" }));
-        throw new Error(error.message || `Signup failed (${res.status})`);
+        const fieldMsg = error.fieldErrors ? Object.values(error.fieldErrors).join('. ') : '';
+        throw new Error(fieldMsg || error.message || `Signup failed (${res.status})`);
     }
 
     return res.json();
@@ -246,7 +247,8 @@ export async function executePasswordReset(token: string, password: string): Pro
 
     if (!res.ok) {
         const error = await res.json().catch(() => ({ message: "Failed to reset password" }));
-        throw new Error(error.message || `Failed to reset password (${res.status})`);
+        const fieldMsg = error.fieldErrors ? Object.values(error.fieldErrors).join('. ') : '';
+        throw new Error(fieldMsg || error.message || `Failed to reset password (${res.status})`);
     }
 
     return res.json();
