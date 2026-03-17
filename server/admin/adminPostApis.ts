@@ -66,6 +66,25 @@ export async function adminLogin(input: AdminLoginInput): Promise<AdminAuthRespo
     return postRequest<AdminAuthResponse>(`${MEMBER_API}/adminLogin`, input);
 }
 
+export async function adminGoogleAuth(input: {
+    access_token: string;
+    role?: AdminRole;
+    inviteToken?: string;
+}): Promise<any> {
+    const res = await fetch(`${MEMBER_API}/adminGoogleAuth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Google auth failed" }));
+        throw new Error(error.message || `Google auth failed (${res.status})`);
+    }
+
+    return res.json();
+}
+
 /**
  * POST /member/generateAdminInvite
  * Super Admin only: Generate a new invite code for a specific role.
