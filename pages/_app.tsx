@@ -14,6 +14,7 @@ import { PostHogProvider } from "../libs/analytics/PostHogProvider";
 import { Toaster } from "react-hot-toast";
 import { TosGuard } from "../components/TosGuard";
 import { GlobalAuthInterceptor } from "../components/GlobalAuthInterceptor";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
@@ -30,7 +31,9 @@ export default function App({ Component, pageProps }: AppProps) {
     <PostHogProvider>
       <GlobalAuthInterceptor>
         <TosGuard>
-          <Component {...pageProps} />
+          <ErrorBoundary>
+            <Component {...pageProps} />
+          </ErrorBoundary>
         </TosGuard>
         <Toaster
           position="top-right"
