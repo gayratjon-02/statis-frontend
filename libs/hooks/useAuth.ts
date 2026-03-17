@@ -30,6 +30,30 @@ export function useAuth() {
         }
     }, [router.pathname]);
 
+    useEffect(() => {
+        const onStorageChange = (e: StorageEvent) => {
+            if (e.key === TOKEN_KEY) {
+                if (!e.newValue) {
+                    setIsAuthenticated(false);
+                    setMember(null);
+                    router.replace("/login");
+                } else {
+                    setIsAuthenticated(true);
+                }
+            }
+            if (e.key === MEMBER_KEY) {
+                if (e.newValue) {
+                    try { setMember(JSON.parse(e.newValue)); } catch {}
+                } else {
+                    setMember(null);
+                }
+            }
+        };
+
+        window.addEventListener("storage", onStorageChange);
+        return () => window.removeEventListener("storage", onStorageChange);
+    }, [router]);
+
     /** Save auth data after login/signup */
     const login = (accessToken: string, memberData: Member) => {
         localStorage.setItem(TOKEN_KEY, accessToken);
