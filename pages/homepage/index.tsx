@@ -52,14 +52,14 @@ export default function LandingPage() {
             name: "Pro", price: annual ? 82 : 99,
             period: annual ? "/mo (billed yearly)" : "/mo",
             credits: "750", ads: "~30-37 finished ads/mo",
-            features: ["5 brands", "10 products per brand", "All ad concepts", "Multi-ratio export (1:1, 9:16, 16:9)", "Fix Errors feature", "750 credits/month", "Priority generation queue", "10% off Canva templates"],
+            features: ["5 brands", "10 products per brand", "All ad concepts", "Multi-ratio export (1:1, 9:16, 16:9)", "Fix Errors feature", "750 credits/month", "Priority generation queue"],
             cta: "Get Started", popular: true,
         },
         {
             name: "Growth Engine", price: annual ? 165 : 199,
             period: annual ? "/mo (billed yearly)" : "/mo",
             credits: "2,000", ads: "~80-100 finished ads/mo",
-            features: ["Unlimited brands", "Unlimited products", "All ad concepts", "Multi-ratio export (1:1, 9:16, 16:9)", "Fix Errors feature", "2,000 credits/month", "Priority generation queue", "20% off Canva templates", "Up to 5 team members"],
+            features: ["Unlimited brands", "Unlimited products", "All ad concepts", "Multi-ratio export (1:1, 9:16, 16:9)", "Fix Errors feature", "2,000 credits/month", "Priority generation queue", "Up to 5 team members"],
             cta: "Get Started", popular: false,
         },
     ];
@@ -76,16 +76,16 @@ export default function LandingPage() {
         { title: "6 Variations Per Click", desc: "Every generation gives you 6 different angles. More creative volume, less time.", letter: "6x" },
         { title: "Multi-Ratio Export", desc: "One click to get 1:1 (feed), 9:16 (stories), and 16:9 (landscape). No resizing needed.", letter: "R" },
         { title: "Fix Errors", desc: `AI output not perfect? Describe the issue and the AI fixes it. ${cc.credits_per_fix_errors} credits instead of ${cc.credits_per_generation}.`, letter: "Fx" },
-        { title: "Canva Templates", desc: "Buy editable Canva versions of any ad. Tweak fonts, swap images, make it yours.", letter: "Cv" },
+        // { title: "Canva Templates", desc: "Buy editable Canva versions of any ad. Tweak fonts, swap images, make it yours.", letter: "Cv" },
         { title: "Concept Library", desc: "Feature pointers, testimonials, stat callouts, before/after. Proven frameworks that perform.", letter: "Lb" },
     ];
 
     const faqs = [
         { q: "How does the credit system work?", a: `Each ad generation costs ${cc.credits_per_generation} credits and produces 6 image variations. Fix Errors costs ${cc.credits_per_fix_errors} credits. Multi-ratio exports are free. Credits reset monthly on your billing date. You can buy add-on packs of 100 credits for $15 anytime.` },
-        { q: "What is a Canva template?", a: "For any saved ad, you can purchase a fully editable Canva template version. This gives you complete control to customize fonts, colors, images, and text. Templates are delivered within 48 hours and include all ratio versions." },
+        // { q: "What is a Canva template?", a: "For any saved ad, you can purchase a fully editable Canva template version. This gives you complete control to customize fonts, colors, images, and text. Templates are delivered within 48 hours and include all ratio versions." },
         { q: "Can I use these ads on Facebook and Instagram?", a: "Yes. Every ad is generated at high resolution specifically for Meta advertising. The multi-ratio export gives you feed (1:1), stories (9:16), and landscape (16:9) versions ready to upload directly to Ads Manager." },
         { q: "What if the AI output doesn't look good?", a: `You get 6 variations per generation, so there's usually at least one strong option. If not, use Fix Errors (${cc.credits_per_fix_errors} credits) to describe what's wrong and the AI will regenerate with tighter constraints. You can also regenerate individual slots for ${cc.credits_per_regenerate_single} credits.` },
-        { q: "Do I need design skills?", a: "Not at all. You provide your brand info, product details, and pick a concept. The AI handles all the design work. If you want to fine-tune results, you can purchase Canva templates for full editing control." },
+        { q: "Do I need design skills?", a: "Not at all. You provide your brand info, product details, and pick a concept. The AI handles all the design work." },
         { q: "Can I cancel anytime?", a: "Yes. No contracts, no cancellation fees. Your account stays active until the end of your current billing period. Annual plans can be cancelled anytime and you'll keep access for the remainder of your paid year." },
     ];
 

@@ -3257,7 +3257,7 @@ function GeneratePageContent() {
                         </button>
                       </div>
 
-                      <div style={{ display: "flex", gap: 6 }}>
+                      {false && (<div style={{ display: "flex", gap: 6 }}>
                           <button
                             className="gen-ad-btn--canva"
                             onClick={async () => {
@@ -3298,7 +3298,7 @@ function GeneratePageContent() {
                           >
                             Requires Canva Enterprise
                           </span>
-                        </div>
+                        </div>)}
                     </div>
                   </div>
                   );

@@ -40,7 +40,7 @@ const NAV_ITEMS = [
     { id: "library", label: "Ad Library", letter: "L" },
     { id: "brands", label: "Brands", letter: "B" },
     { id: "products", label: "Products", letter: "P" },
-    { id: "canva", label: "Canva Templates", letter: "C" },
+    // { id: "canva", label: "Canva Templates", letter: "C" },
     { id: "daTemplates", label: "Concept Gallery", letter: "T" },
 ];
 
@@ -187,7 +187,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
         industryList.find((i) => i.id === id)?.label || id;
 
     // Wrap setPage to also update URL query param
-    const validTabs = ["dashboard", "canva"];
+    const validTabs = ["dashboard"];
     const setPage = (id: string) => {
         setPageState(id);
         if (id === "dashboard") {
@@ -769,7 +769,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                         </div>
                         <div className="dash-header__title">
-                            {page === "brands" ? "My Brands" : page === "products" ? "My Products" : page === "billing" ? "Billing & Subscription" : page === "account" ? "Account Settings" : page === "daTemplates" ? "Concept Gallery" : page === "canva" ? "Canva Templates" : `Welcome back, ${userName.split(" ")[0]}`}
+                            {page === "brands" ? "My Brands" : page === "products" ? "My Products" : page === "billing" ? "Billing & Subscription" : page === "account" ? "Account Settings" : page === "daTemplates" ? "Concept Gallery" : `Welcome back, ${userName.split(" ")[0]}`}
                         </div>
                     </div>
                     {page === "brands" ? (
@@ -780,11 +780,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                         <button className="btn-generate" onClick={() => router.push("/generateAds")}>
                             + Add New Product
                         </button>
-                    ) : page === "daTemplates" ? null : page === "canva" ? (
-                        <button className="btn-generate" onClick={() => router.push("/generateAds")}>
-                            + Generate New Ad
-                        </button>
-                    ) : page === "billing" || page === "account" ? null : (
+                    ) : page === "daTemplates" ? null : page === "billing" || page === "account" ? null : (
                         <button className="btn-generate" onClick={() => router.push("/generateAds")}>+ Generate New Ad</button>
                     )}
                 </div>
@@ -1080,8 +1076,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                             </div>
                         </div>
 
-                        {/* Canva Integration */}
-                        <div style={{
+                        {false && (<div style={{
                             background: "var(--card)", border: "1px solid var(--border)",
                             borderRadius: 16, padding: 24, marginBottom: 20,
                         }}>
@@ -1130,7 +1125,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                     }}
                                 >Connect Canva</button>
                             )}
-                        </div>
+                        </div>)}
 
                         {/* Danger Zone */}
                         <div style={{
@@ -1463,8 +1458,8 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                     </div>
                 )}
 
-                {/* ===== CANVA TEMPLATES PAGE ===== */}
-                {page === "canva" && (
+                {/* ===== CANVA TEMPLATES PAGE (hidden) ===== */}
+                {false && (page === "canva" && (
                     <div style={{ padding: "0 24px 40px" }}>
                         {canvaLoading ? (
                             <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--dim)" }}>Loading your Canva orders...</div>
@@ -1549,7 +1544,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                             </div>
                         )}
                     </div>
-                )}
+                ))}
 
                 {/* ===== DASHBOARD PAGE ===== */}
                 {page === "dashboard" && (
@@ -1560,7 +1555,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                 { label: "CREDITS LEFT", val: String(remaining), sub: `of ${limit}`, color: "var(--accent)", bar: pct },
                                 { label: "ADS GENERATED", val: String(usage?.stats?.ads_generated || 0), sub: "lifetime", color: "var(--g1)", trend: null },
                                 { label: "ADS SAVED", val: String(usage?.stats?.ads_saved || 0), sub: "across brands", color: "var(--green)", trend: null },
-                                { label: "CANVA TEMPLATES", val: String(usage?.stats?.canva_templates || 0), sub: "ready to use", color: "var(--yellow)", trend: null },
+                                // { label: "CANVA TEMPLATES", val: String(usage?.stats?.canva_templates || 0), sub: "ready to use", color: "var(--yellow)", trend: null },
                             ].map((s: any, i) => (
                                 <div key={i} className="stat-card">
                                     <div className="stat-card__label">{s.label}</div>

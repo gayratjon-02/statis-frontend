@@ -702,7 +702,8 @@ function LibraryPage() {
                                     }}
                                     title="Download"
                                 ><DownloadIcon size={15} /></button>
-                                {lightboxAd.canva_status === 'fulfilled' && lightboxAd.canva_link ? (
+                                {/* Canva buttons hidden until Enterprise resolved */}
+                                {/* {lightboxAd.canva_status === 'fulfilled' && lightboxAd.canva_link ? (
                                     <button
                                         className="lightbox-bar__btn"
                                         style={{ borderColor: "rgba(16,185,129,0.4)", color: "#10B981" }}
@@ -717,7 +718,7 @@ function LibraryPage() {
                                         disabled={canvaLoading}
                                         title="Edit in Canva"
                                     >{canvaLoading ? "Loading..." : "Edit in Canva"}</button>
-                                )}
+                                )} */}
                                 <button
                                     className="lightbox-bar__btn lightbox-bar__btn--primary"
                                     onClick={() => {
@@ -822,13 +823,14 @@ function LibraryPage() {
                                         <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(239,68,68,0.3)", color: "#EF4444" }} onClick={async () => { if (!confirm("Delete this ad?")) return; try { await deleteAdsRequest([detailAd._id]); setAds((prev) => prev.filter((a) => a._id !== detailAd._id)); setDetailId(null); } catch { toast.error("Delete failed"); } }}>🗑 Delete</button>
                                     </div>
 
-                                    <div className="detail-actions__row">
+                                    {/* Canva detail buttons hidden until Enterprise resolved */}
+                                    {/* <div className="detail-actions__row">
                                         {detailAd.canva_status === 'fulfilled' && detailAd.canva_link ? (
                                             <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(16,185,129,0.3)", color: "#10B981" }} onClick={() => window.open(detailAd.canva_link!, "_blank")}>Open in Canva</button>
                                         ) : (
                                             <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(245,158,11,0.27)", color: "var(--yellow)" }} onClick={() => handleEditInCanva()} disabled={canvaLoading}>{canvaLoading ? "Loading..." : "Edit in Canva"}</button>
                                         )}
-                                    </div>
+                                    </div> */}
                                 </div>
                             </div>
                         </div>
