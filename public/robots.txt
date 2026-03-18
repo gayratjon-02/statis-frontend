@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /homepage
+Allow: /terms
+Allow: /privacy
+Allow: /forgot-password
+
+Disallow: /dashboard
+Disallow: /generateAds
+Disallow: /adLibrary
+Disallow: /brands
+Disallow: /products
+Disallow: /billing
+Disallow: /account
+Disallow: /da-templates
+Disallow: /subscribe
+Disallow: /reset-password
+Disallow: /_admin
+
+Sitemap: https://staticengine.com/sitemap.xml

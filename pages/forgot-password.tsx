@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
+import SEO from "../components/SEO";
 
 import { requestPasswordReset } from "../server/user/login";
 
@@ -31,6 +32,8 @@ export default function ForgotPassword() {
     };
 
     return (
+        <>
+        <SEO title="Forgot Password" description="Reset your Static Engine account password. Enter your email and we'll send you a reset link." canonicalUrl="https://staticengine.com/forgot-password" />
         <div className="admin-auth">
             <div className="admin-auth__bg">
                 <div className="admin-auth__orb admin-auth__orb--1" />
@@ -96,5 +99,6 @@ export default function ForgotPassword() {
                 </div>
             </div>
         </div>
+        </>
     );
 }

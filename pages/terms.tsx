@@ -1,10 +1,13 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
+import SEO from "../components/SEO";
 
 export default function TermsOfService() {
     const router = useRouter();
 
     return (
+        <>
+        <SEO title="Terms of Service" description="Read the Static Engine Terms of Service. By using our platform, you agree to these terms." canonicalUrl="https://staticengine.com/terms" />
         <div style={{ backgroundColor: "#0f172a", minHeight: "100vh", color: "#f8fafc", padding: "40px 20px" }}>
             <Head>
                 <title>Terms of Service | Static Engine</title>
@@ -212,5 +215,6 @@ export default function TermsOfService() {
                 </div>
             </div>
         </div>
+        </>
     );
 }

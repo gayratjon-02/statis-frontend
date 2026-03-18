@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import SEO from "../components/SEO";
 import AuthGuard from "../libs/auth/AuthGuard";
 import { createCheckoutRequest } from "../server/user/billing";
 
@@ -51,6 +52,13 @@ function SubscribePage() {
     };
 
     return (
+        <>
+            <SEO
+                title="Choose Your Plan"
+                description="Pick the perfect Static Engine plan for your business. Start with 250 credits/month or scale to 2,000+ credits. Cancel anytime."
+                canonicalUrl="https://staticengine.com/subscribe"
+                noIndex
+            />
         <div
             style={{
                 minHeight: "100vh",
@@ -238,6 +246,7 @@ function SubscribePage() {
                 </div>
             </div>
         </div>
+        </>
     );
 }
 

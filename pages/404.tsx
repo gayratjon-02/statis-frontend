@@ -1,10 +1,12 @@
 import React from "react";
 import Head from "next/head";
 import Link from "next/link";
+import SEO from "../components/SEO";
 
 export default function NotFoundPage() {
     return (
         <>
+            <SEO title="Page Not Found" noIndex />
             <Head>
                 <title>404 — Page not found | Static Engine</title>
                 <meta name="robots" content="noindex" />

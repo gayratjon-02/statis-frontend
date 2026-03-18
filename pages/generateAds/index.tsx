@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
+import SEO from "../../components/SEO";
 import AuthGuard from "../../libs/auth/AuthGuard";
 import {
   getBrands,
@@ -3471,8 +3472,11 @@ function GeneratePageContent() {
 
 export default function GeneratePage() {
   return (
-    <AuthGuard>
-      <GeneratePageContent />
-    </AuthGuard>
+    <>
+      <SEO title="Generate Ads" noIndex />
+      <AuthGuard>
+        <GeneratePageContent />
+      </AuthGuard>
+    </>
   );
 }

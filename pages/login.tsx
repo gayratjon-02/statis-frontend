@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useGoogleLogin } from "@react-oauth/google";
+import SEO from "../components/SEO";
 import { googleLoginRequest, loginRequest, signupRequest } from "../server/user/login";
 import { createCheckoutRequest } from "../server/user/billing";
 import { useAuth } from "../libs/hooks/useAuth";
@@ -225,6 +226,11 @@ export default function UserAuth() {
 
     return (
         <div className="admin-auth">
+            <SEO
+                title="Sign In"
+                description="Log in or create your Static Engine account. Start generating AI-powered Facebook & Instagram ad images in seconds."
+                canonicalUrl="https://staticengine.com/login"
+            />
             {/* Background decoration */}
             <div className="admin-auth__bg">
                 <div className="admin-auth__orb admin-auth__orb--1" />

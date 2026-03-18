@@ -1,10 +1,13 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
+import SEO from "../components/SEO";
 
 export default function PrivacyPolicy() {
     const router = useRouter();
 
     return (
+        <>
+        <SEO title="Privacy Policy" description="Learn how Static Engine collects, uses, and protects your personal data. Read our full privacy policy." canonicalUrl="https://staticengine.com/privacy" />
         <div style={{ backgroundColor: "#0f172a", minHeight: "100vh", color: "#f8fafc", padding: "40px 20px" }}>
             <Head>
                 <title>Privacy Policy | Static Engine</title>
@@ -186,5 +189,6 @@ export default function PrivacyPolicy() {
                 </div>
             </div>
         </div>
+        </>
     );
 }

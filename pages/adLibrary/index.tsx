@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
+import SEO from "../../components/SEO";
 import AuthGuard from "../../libs/auth/AuthGuard";
 import {
     getLibraryAdsRequest,
@@ -929,8 +930,11 @@ function LibraryPage() {
 
 export default function Library() {
     return (
-        <AuthGuard>
-            <LibraryPage />
-        </AuthGuard>
+        <>
+            <SEO title="Ad Library" noIndex />
+            <AuthGuard>
+                <LibraryPage />
+            </AuthGuard>
+        </>
     );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import SEO from "../../components/SEO";
 import { getCreditCosts, type CreditCosts } from "../../server/user/config";
 
 export default function LandingPage() {
@@ -100,6 +101,11 @@ export default function LandingPage() {
 
     return (
         <div className="landing-page">
+            <SEO
+                title="AI Ad Image Generator for Facebook & Instagram"
+                description="Generate professional Facebook & Instagram ad images in seconds with AI. 6 scroll-stopping variations per click. No design skills needed. Try Static Engine free."
+                canonicalUrl="https://staticengine.com"
+            />
             {/* ===== NAV ===== */}
             <nav className={`landing-nav ${scrollY > 50 ? "landing-nav--scrolled" : ""}`}>
                 <span className="landing-nav__logo grad-text">Static Engine</span>

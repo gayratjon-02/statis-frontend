@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
+import SEO from "../../components/SEO";
 import SubscriptionGuard from "../../libs/auth/SubscriptionGuard";
 import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest, updateMemberRequest, changePasswordRequest } from "../../server/user/login";
 import { createCheckoutRequest, createPortalRequest, purchaseAddonRequest, getMyCanvaOrders, type CanvaOrder } from "../../server/user/billing";
@@ -1757,8 +1758,11 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
 
 export default function Dashboard() {
     return (
-        <SubscriptionGuard>
-            <DashboardPage />
-        </SubscriptionGuard>
+        <>
+            <SEO title="Dashboard" noIndex />
+            <SubscriptionGuard>
+                <DashboardPage />
+            </SubscriptionGuard>
+        </>
     );
 }
