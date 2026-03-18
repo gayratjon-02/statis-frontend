@@ -3054,7 +3054,7 @@ function GeneratePageContent() {
                         }}>
                           <div className="gen-fix-card-spinner" />
                           <div style={{ fontSize: 13, color: "#fff", fontWeight: 600 }}>
-                            {redoingAdIds.has(result._id) ? "Regenerating..." : "Fixing errors..."}
+                            {redoingAdIds.has(result._id) ? "Regenerating..." : "Editing design..."}
                           </div>
                         </div>
                       )}
