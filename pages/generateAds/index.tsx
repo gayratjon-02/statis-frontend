@@ -3278,6 +3278,29 @@ function GeneratePageContent() {
                         >
                           ⤓ Download
                         </button>
+                        <button
+                          className="gen-ad-btn"
+                          onClick={async () => {
+                            if (!result._id) return;
+                            try {
+                              toast.loading("Generating all ratios...", { id: `ratio-${result._id}` });
+                              const data = await exportRatiosRequest(result._id);
+                              setGeneratedResults((prev) =>
+                                prev.map((r) =>
+                                  r._id === result._id
+                                    ? { ...r, image_url_1x1: data.image_url_1x1, image_url_9x16: data.image_url_9x16, image_url_16x9: data.image_url_16x9 }
+                                    : r,
+                                ),
+                              );
+                              toast.success("All ratios ready!", { id: `ratio-${result._id}` });
+                            } catch (e: unknown) {
+                              const msg = e instanceof Error ? e.message : "Failed to generate ratios";
+                              toast.error(msg, { id: `ratio-${result._id}` });
+                            }
+                          }}
+                        >
+                          Get All Ratios
+                        </button>
                       </div>
 
                       {false && (<div style={{ display: "flex", gap: 6 }}>
