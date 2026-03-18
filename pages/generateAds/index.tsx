@@ -3261,7 +3261,7 @@ function GeneratePageContent() {
                           onClick={async () => {
                             if (!result._id) return;
                             try {
-                              toast.loading("Generating all ratios & preparing download...", { id: `ratio-${result._id}` });
+                              toast.loading("Generating all ratios & preparing download...", { id: `ratio-${result._id}`, duration: Infinity });
                               const data = await exportRatiosRequest(result._id);
 
                               setGeneratedResults((prev) =>
