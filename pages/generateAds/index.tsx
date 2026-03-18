@@ -3261,8 +3261,9 @@ function GeneratePageContent() {
                           onClick={async () => {
                             if (!result._id) return;
                             try {
-                              toast.loading("Generating all ratios...", { id: `ratio-${result._id}` });
+                              toast.loading("Generating all ratios & preparing download...", { id: `ratio-${result._id}` });
                               const data = await exportRatiosRequest(result._id);
+
                               setGeneratedResults((prev) =>
                                 prev.map((r) =>
                                   r._id === result._id
@@ -3270,7 +3271,30 @@ function GeneratePageContent() {
                                     : r,
                                 ),
                               );
-                              toast.success("All ratios ready!", { id: `ratio-${result._id}` });
+
+                              const JSZip = (await import("jszip")).default;
+                              const zip = new JSZip();
+                              const adName = (data.ad_name || "ad").replace(/[^a-zA-Z0-9_-]/g, "_");
+
+                              for (const { ratio, url } of [
+                                { ratio: "1x1", url: data.image_url_1x1 },
+                                { ratio: "9x16", url: data.image_url_9x16 },
+                                { ratio: "16x9", url: data.image_url_16x9 },
+                              ]) {
+                                if (!url) continue;
+                                const blob = await fetchRatioBlob(result._id, ratio);
+                                if (blob) zip.file(`${adName}_${ratio}.png`, blob);
+                              }
+
+                              const zipBlob = await zip.generateAsync({ type: "blob" });
+                              const a = document.createElement("a");
+                              a.href = URL.createObjectURL(zipBlob);
+                              a.download = `${adName}_all_ratios.zip`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+
+                              toast.success("All 3 ratios downloaded!", { id: `ratio-${result._id}` });
                             } catch (e: unknown) {
                               const msg = e instanceof Error ? e.message : "Failed to generate ratios";
                               toast.error(msg, { id: `ratio-${result._id}` });
