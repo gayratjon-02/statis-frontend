@@ -2587,7 +2587,7 @@ function GeneratePageContent() {
                       ? "gen-concept-card--selected"
                       : ""
                   }`}
-                  onClick={() => setSelectedConcept(concept._id)}
+                  onClick={() => { setSelectedConcept(concept._id); setStep(3); }}
                 >
                   <div
                     className="gen-concept-card__preview"
