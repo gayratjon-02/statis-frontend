@@ -31,6 +31,7 @@ import {
   downloadAdImage,
   regenerateSingleRequest,
   fixErrorRequest,
+  exportRatiosRequest,
 } from "../../server/user/generation";
 import { createCanvaCheckoutRequest } from "../../server/user/billing";
 import { editInCanva } from "../../server/user/canva";
@@ -3243,13 +3244,35 @@ function GeneratePageContent() {
                           onClick={async () => {
                             if (!result._id) return;
                             try {
-                              await downloadAdImage(
-                                result._id,
-                                `${result.ad_name || "ad"}_${selectedRatio.replace(':', 'x')}.png`,
-                              );
-                            } catch {
-                              if (resultImageUrl)
-                                window.open(resultImageUrl, "_blank");
+                              toast.loading("Generating all ratios & preparing download...", { id: `dl-${result._id}` });
+                              const data = await exportRatiosRequest(result._id);
+
+                              const JSZip = (await import("jszip")).default;
+                              const zip = new JSZip();
+                              const adName = (data.ad_name || "ad").replace(/[^a-zA-Z0-9_-]/g, "_");
+
+                              for (const { ratio, url } of [
+                                { ratio: "1x1", url: data.image_url_1x1 },
+                                { ratio: "9x16", url: data.image_url_9x16 },
+                                { ratio: "16x9", url: data.image_url_16x9 },
+                              ]) {
+                                if (!url) continue;
+                                const blob = await fetchRatioBlob(result._id, ratio);
+                                if (blob) zip.file(`${adName}_${ratio}.png`, blob);
+                              }
+
+                              const zipBlob = await zip.generateAsync({ type: "blob" });
+                              const a = document.createElement("a");
+                              a.href = URL.createObjectURL(zipBlob);
+                              a.download = `${adName}_all_ratios.zip`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+
+                              toast.success("Download ready!", { id: `dl-${result._id}` });
+                            } catch (e: unknown) {
+                              const msg = e instanceof Error ? e.message : "Download failed";
+                              toast.error(msg, { id: `dl-${result._id}` });
                             }
                           }}
                         >

@@ -154,6 +154,7 @@ export async function exportRatiosRequest(adId: string): Promise<{
     const res = await fetchWithTimeout(`${GENERATION_API}/exportRatios/${adId}`, {
         method: "POST",
         headers: authHeaders(),
+        timeout: 90000,
     });
 
     if (!res.ok) {
