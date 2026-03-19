@@ -667,8 +667,20 @@ function GeneratePageContent() {
           { key: "16x9", url: data.image_url_16x9 },
         ]) {
           if (!url) continue;
-          const blob = await fetchRatioBlob(result._id, key);
-          if (blob) zip.file(`${name}_${key}.png`, blob);
+          try {
+            const blob = await fetchRatioBlob(result._id, key);
+            if (blob && blob.size > 0) {
+              zip.file(`${name}_${key}.png`, blob);
+            } else {
+              const directRes = await fetch(url);
+              if (directRes.ok) zip.file(`${name}_${key}.png`, await directRes.blob());
+            }
+          } catch {
+            try {
+              const directRes = await fetch(url);
+              if (directRes.ok) zip.file(`${name}_${key}.png`, await directRes.blob());
+            } catch {}
+          }
         }
       }
 
@@ -3319,8 +3331,20 @@ function GeneratePageContent() {
                                 { ratio: "16x9", url: data.image_url_16x9 },
                               ]) {
                                 if (!url) continue;
-                                const blob = await fetchRatioBlob(result._id, ratio);
-                                if (blob) zip.file(`${adName}_${ratio}.png`, blob);
+                                try {
+                                  const blob = await fetchRatioBlob(result._id, ratio);
+                                  if (blob && blob.size > 0) {
+                                    zip.file(`${adName}_${ratio}.png`, blob);
+                                  } else {
+                                    const directRes = await fetch(url);
+                                    if (directRes.ok) zip.file(`${adName}_${ratio}.png`, await directRes.blob());
+                                  }
+                                } catch {
+                                  try {
+                                    const directRes = await fetch(url);
+                                    if (directRes.ok) zip.file(`${adName}_${ratio}.png`, await directRes.blob());
+                                  } catch {}
+                                }
                               }
 
                               const zipBlob = await zip.generateAsync({ type: "blob" });
