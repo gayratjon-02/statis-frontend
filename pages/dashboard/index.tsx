@@ -965,28 +965,80 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                 }}
                             />
                             <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 28 }}>
-                                <div
-                                    onClick={() => avatarFileRef.current?.click()}
-                                    style={{
-                                        width: 64, height: 64, borderRadius: "50%",
+                                <div style={{ position: "relative", flexShrink: 0 }}>
+                                    <div style={{
+                                        width: 72, height: 72, borderRadius: "50%",
                                         background: avatarUrl ? "transparent" : "linear-gradient(135deg, var(--accent), var(--g1))",
                                         display: "flex", alignItems: "center", justifyContent: "center",
-                                        fontSize: 26, fontWeight: 800, color: "#0a0a0f", flexShrink: 0,
-                                        cursor: "pointer", position: "relative", overflow: "hidden",
+                                        fontSize: 28, fontWeight: 800, color: "#0a0a0f",
+                                        overflow: "hidden",
                                         border: avatarUrl ? "2px solid var(--border)" : "none",
                                         opacity: avatarUploading ? 0.5 : 1,
-                                    }}
-                                    title="Click to change profile photo"
-                                >
-                                    {avatarUrl ? (
-                                        <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                    ) : (
-                                        userName.charAt(0).toUpperCase()
-                                    )}
+                                    }}>
+                                        {avatarUrl ? (
+                                            <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                        ) : (
+                                            userName.charAt(0).toUpperCase()
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => avatarFileRef.current?.click()}
+                                        disabled={avatarUploading}
+                                        style={{
+                                            position: "absolute", bottom: -2, right: -2,
+                                            width: 26, height: 26, borderRadius: "50%",
+                                            background: "var(--accent)", border: "2px solid var(--card)",
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            cursor: "pointer", padding: 0, fontSize: 12, color: "#0a0a0f",
+                                        }}
+                                        title="Change photo"
+                                    >
+                                        {avatarUploading ? "..." : "✎"}
+                                    </button>
                                 </div>
                                 <div>
                                     <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>{userName}</div>
                                     <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{member?.email}</div>
+                                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                                        <button
+                                            onClick={() => avatarFileRef.current?.click()}
+                                            disabled={avatarUploading}
+                                            style={{
+                                                fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 6,
+                                                background: "rgba(62,207,207,0.1)", color: "var(--accent)",
+                                                border: "1px solid rgba(62,207,207,0.2)", cursor: "pointer",
+                                            }}
+                                        >
+                                            {avatarUploading ? "Uploading..." : avatarUrl ? "Change Photo" : "Upload Photo"}
+                                        </button>
+                                        {avatarUrl && (
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await updateMemberRequest({ avatar_url: "" } as any);
+                                                        setAvatarUrl("");
+                                                        setMember((prev) => prev ? { ...prev, avatar_url: "" } : prev);
+                                                        const stored = localStorage.getItem("se_member");
+                                                        if (stored) {
+                                                            const m = JSON.parse(stored);
+                                                            m.avatar_url = "";
+                                                            localStorage.setItem("se_member", JSON.stringify(m));
+                                                        }
+                                                        toast.success("Photo removed");
+                                                    } catch {
+                                                        toast.error("Failed to remove photo");
+                                                    }
+                                                }}
+                                                style={{
+                                                    fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 6,
+                                                    background: "rgba(239,68,68,0.1)", color: "#EF4444",
+                                                    border: "1px solid rgba(239,68,68,0.2)", cursor: "pointer",
+                                                }}
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
                                     <div style={{
                                         display: "inline-block", marginTop: 6,
                                         fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,

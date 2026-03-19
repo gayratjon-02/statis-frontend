@@ -204,7 +204,7 @@ export async function getActivityRequest(limit = 5): Promise<any[]> {
  * POST /member/updateMember
  * Update the authenticated user's profile.
  */
-export async function updateMemberRequest(input: { full_name?: string }): Promise<any> {
+export async function updateMemberRequest(input: { full_name?: string; avatar_url?: string }): Promise<any> {
     const token = localStorage.getItem("se_access_token");
     const res = await fetchWithTimeout(`${MEMBER_API}/updateMember`, {
         method: "POST",
