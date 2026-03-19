@@ -627,22 +627,31 @@ function GeneratePageContent() {
   const downloadAllVariationsAsZip = async () => {
     if (allZipDownloading || generatedResults.length === 0) return;
     setAllZipDownloading(true);
+    toast.loading("Generating all ratios for every variation...", { id: "dl-all-zip", duration: Infinity });
     try {
+      const allData = await Promise.all(
+        generatedResults.map((r) => exportRatiosRequest(r._id)),
+      );
+
       const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
-      for (const result of generatedResults) {
-        const name = (result.ad_name || "ad").replace(/[^a-zA-Z0-9_-]/g, "_");
-        const ratios = [
-          { key: "1x1", url: result.image_url_1x1 },
-          { key: "9x16", url: result.image_url_9x16 },
-          { key: "16x9", url: result.image_url_16x9 },
-        ];
-        for (const { key, url } of ratios) {
+
+      for (let i = 0; i < generatedResults.length; i++) {
+        const result = generatedResults[i];
+        const data = allData[i];
+        const name = (data.ad_name || result.ad_name || `ad_${i + 1}`).replace(/[^a-zA-Z0-9_-]/g, "_");
+
+        for (const { key, url } of [
+          { key: "1x1", url: data.image_url_1x1 },
+          { key: "9x16", url: data.image_url_9x16 },
+          { key: "16x9", url: data.image_url_16x9 },
+        ]) {
           if (!url) continue;
           const blob = await fetchRatioBlob(result._id, key);
           if (blob) zip.file(`${name}_${key}.png`, blob);
         }
       }
+
       const zipBlob = await zip.generateAsync({ type: "blob" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(zipBlob);
@@ -650,9 +659,11 @@ function GeneratePageContent() {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
+      toast.success("All variations downloaded!", { id: "dl-all-zip" });
     } catch (e) {
-      console.error("ZIP download failed", e);
-      toast.error("Failed to create ZIP");
+      const msg = e instanceof Error ? e.message : "Failed to create ZIP";
+      toast.error(msg, { id: "dl-all-zip" });
     } finally {
       setAllZipDownloading(false);
     }
