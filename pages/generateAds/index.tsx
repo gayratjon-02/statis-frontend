@@ -458,6 +458,15 @@ function GeneratePageContent() {
   };
 
   const [credits, setCredits] = useState({ used: 0, limit: 0 });
+
+  const refreshCredits = () => {
+    getUsageRequest()
+      .then((usage: any) => {
+        setCredits({ used: usage.credits_used || 0, limit: usage.credits_limit || 0 });
+      })
+      .catch(() => {});
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const productFileRef = useRef<HTMLInputElement>(null);
   const backFileRef = useRef<HTMLInputElement>(null);
@@ -710,7 +719,7 @@ function GeneratePageContent() {
 
       setGeneratingAds([true, true, true, true, true, true]);
 
-      setCredits((prev) => ({ ...prev, used: prev.used + creditCosts.credits_per_generation }));
+      refreshCredits();
 
       const jobId = result.job_id;
       const batchId = result.batch_id || jobId; // Fallback to jobId if batch_id is missing (backward compat)
@@ -3123,6 +3132,7 @@ function GeneratePageContent() {
                                   id: "retry",
                                 });
                                 await regenerateSingleRequest(result._id);
+                                refreshCredits();
                                 toast.success(
                                   `Retry started! (${creditCosts.credits_per_regenerate_single} credits used)`,
                                   { id: "retry" },
@@ -3197,6 +3207,7 @@ function GeneratePageContent() {
                               );
                               toast.loading("Regenerating...", { id: `redo-${result._id}` });
                               await regenerateSingleRequest(result._id);
+                              refreshCredits();
 
                               const pollInterval = setInterval(async () => {
                                 try {
@@ -3454,6 +3465,7 @@ function GeneratePageContent() {
                   const targetAdId = fixModalAdId;
                   try {
                     const fixRes = await fixErrorRequest(targetAdId, fixDescription.trim());
+                    refreshCredits();
                     toast.success(`Edit started! (${creditCosts.credits_per_fix_errors} credits used)`);
                     setFixModalAdId(null);
                     setFixDescription("");
