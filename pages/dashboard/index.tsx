@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import SEO from "../../components/SEO";
 import SubscriptionGuard from "../../libs/auth/SubscriptionGuard";
-import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest, updateMemberRequest, changePasswordRequest } from "../../server/user/login";
+import { getMemberRequest, getUsageRequest, getBrandsRequest, getActivityRequest, updateMemberRequest, changePasswordRequest, uploadAvatarRequest } from "../../server/user/login";
 import { createCheckoutRequest, createPortalRequest, purchaseAddonRequest, getMyCanvaOrders, type CanvaOrder } from "../../server/user/billing";
 import { getRecentGenerationsRequest, downloadAdImage } from "../../server/user/generation";
 import { getBrands, deleteBrand } from "../../server/user/brand";
@@ -143,6 +143,9 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
 
     // API state
     const [member, setMember] = useState<Member | null>(null);
+    const [avatarUrl, setAvatarUrl] = useState<string>("");
+    const [avatarUploading, setAvatarUploading] = useState(false);
+    const avatarFileRef = useRef<HTMLInputElement>(null);
     const [usage, setUsage] = useState<UsageData | null>(null);
     const [brands, setBrands] = useState<BrandItem[]>([]);
     const [recentAds, setRecentAds] = useState<RecentAd[]>([]);
@@ -246,6 +249,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                 if (memberData.status === "fulfilled") {
                     const freshMember = memberData.value as Member;
                     setMember(freshMember);
+                    setAvatarUrl(freshMember.avatar_url || "");
                     localStorage.setItem("se_member", JSON.stringify(freshMember));
 
                     // Identify for analytics
@@ -932,14 +936,53 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                             background: "var(--card)", border: "1px solid var(--border)",
                             borderRadius: 16, padding: 28, marginBottom: 20,
                         }}>
+                            <input
+                                type="file"
+                                ref={avatarFileRef}
+                                accept="image/png,image/jpeg,image/webp"
+                                style={{ display: "none" }}
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    setAvatarUploading(true);
+                                    try {
+                                        const { avatar_url } = await uploadAvatarRequest(file);
+                                        setAvatarUrl(avatar_url);
+                                        setMember((prev) => prev ? { ...prev, avatar_url } : prev);
+                                        const stored = localStorage.getItem("se_member");
+                                        if (stored) {
+                                            const m = JSON.parse(stored);
+                                            m.avatar_url = avatar_url;
+                                            localStorage.setItem("se_member", JSON.stringify(m));
+                                        }
+                                        toast.success("Profile photo updated!");
+                                    } catch (err: any) {
+                                        toast.error(err.message || "Upload failed");
+                                    } finally {
+                                        setAvatarUploading(false);
+                                        e.target.value = "";
+                                    }
+                                }}
+                            />
                             <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 28 }}>
-                                <div style={{
-                                    width: 64, height: 64, borderRadius: "50%",
-                                    background: "linear-gradient(135deg, var(--accent), var(--g1))",
-                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                    fontSize: 26, fontWeight: 800, color: "#0a0a0f", flexShrink: 0,
-                                }}>
-                                    {userName.charAt(0).toUpperCase()}
+                                <div
+                                    onClick={() => avatarFileRef.current?.click()}
+                                    style={{
+                                        width: 64, height: 64, borderRadius: "50%",
+                                        background: avatarUrl ? "transparent" : "linear-gradient(135deg, var(--accent), var(--g1))",
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        fontSize: 26, fontWeight: 800, color: "#0a0a0f", flexShrink: 0,
+                                        cursor: "pointer", position: "relative", overflow: "hidden",
+                                        border: avatarUrl ? "2px solid var(--border)" : "none",
+                                        opacity: avatarUploading ? 0.5 : 1,
+                                    }}
+                                    title="Click to change profile photo"
+                                >
+                                    {avatarUrl ? (
+                                        <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                    ) : (
+                                        userName.charAt(0).toUpperCase()
+                                    )}
                                 </div>
                                 <div>
                                     <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>{userName}</div>

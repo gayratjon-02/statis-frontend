@@ -219,6 +219,28 @@ export async function updateMemberRequest(input: { full_name?: string }): Promis
 }
 
 /**
+ * POST /member/uploadAvatar
+ * Upload a profile photo.
+ */
+export async function uploadAvatarRequest(file: File): Promise<{ avatar_url: string }> {
+    const token = localStorage.getItem("se_access_token");
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    const res = await fetchWithTimeout(`${MEMBER_API}/uploadAvatar`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Upload failed" }));
+        throw new Error(error.message || "Upload failed");
+    }
+    return res.json();
+}
+
+/**
  * POST /member/forgetPassword
  * Change the authenticated user's password.
  */
