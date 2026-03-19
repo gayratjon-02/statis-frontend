@@ -939,7 +939,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                             <input
                                 type="file"
                                 ref={avatarFileRef}
-                                accept="image/png,image/jpeg,image/webp"
+                                accept="image/*"
                                 style={{ display: "none" }}
                                 onChange={async (e) => {
                                     const file = e.target.files?.[0];
