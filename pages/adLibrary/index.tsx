@@ -13,6 +13,7 @@ import {
     deleteAdsRequest,
     fixErrorRequest,
     getGenerationStatus,
+    exportRatiosRequest,
 } from "../../server/user/generation";
 import type { AdLibraryItem, LibraryCounts } from "../../libs/types/generation.type";
 
@@ -241,16 +242,24 @@ function LibraryPage() {
     const downloadAllAsZip = async () => {
         if (!detailAd || zipDownloading) return;
         setZipDownloading(true);
+        toast.loading("Generating all ratios & preparing download...", { id: "dl-all-ratios", duration: Infinity });
         try {
+            const data = await exportRatiosRequest(detailAd._id);
+
             const JSZip = (await import("jszip")).default;
             const zip = new JSZip();
-            const adName = (detailAd.name || "ad").replace(/[^a-zA-Z0-9_-]/g, "_");
-            const ratios = ["1:1", "9:16", "16:9"];
+            const adName = (data.ad_name || detailAd.name || "ad").replace(/[^a-zA-Z0-9_-]/g, "_");
 
-            for (const ratio of ratios) {
+            for (const { ratio, url } of [
+                { ratio: "1x1", url: data.image_url_1x1 },
+                { ratio: "9x16", url: data.image_url_9x16 },
+                { ratio: "16x9", url: data.image_url_16x9 },
+            ]) {
+                if (!url) continue;
                 const blob = await fetchRatioBlob(detailAd._id, ratio);
-                if (blob) zip.file(`${adName}_${ratio.replace(":", "x")}.png`, blob);
+                if (blob) zip.file(`${adName}_${ratio}.png`, blob);
             }
+
             const zipBlob = await zip.generateAsync({ type: "blob" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(zipBlob);
@@ -258,9 +267,11 @@ function LibraryPage() {
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+
+            toast.success("All 3 ratios downloaded!", { id: "dl-all-ratios" });
         } catch (e) {
-            console.error("ZIP download failed", e);
-            toast.error("Failed to create ZIP");
+            const msg = e instanceof Error ? e.message : "Failed to create ZIP";
+            toast.error(msg, { id: "dl-all-ratios" });
         } finally {
             setZipDownloading(false);
         }
