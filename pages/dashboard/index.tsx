@@ -234,7 +234,11 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
             try {
                 // Try localStorage first for instant display
                 const stored = localStorage.getItem("se_member");
-                if (stored) setMember(JSON.parse(stored));
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    setMember(parsed);
+                    setAvatarUrl(parsed.avatar_url || "");
+                }
 
                 // Fetch fresh data in parallel
                 // Fetch fresh data in parallel
@@ -645,7 +649,11 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                         padding: collapsed ? "16px 0" : "16px",
                     }}
                 >
-                    <div className="sidebar-user__avatar">{userInitial}</div>
+                    {avatarUrl ? (
+                        <img src={avatarUrl} alt="" className="sidebar-user__avatar" style={{ borderRadius: "50%", objectFit: "cover", width: 36, height: 36 }} />
+                    ) : (
+                        <div className="sidebar-user__avatar">{userInitial}</div>
+                    )}
                     {!collapsed && (
                         <>
                             <div style={{ flex: 1, minWidth: 0 }}>
