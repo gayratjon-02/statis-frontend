@@ -944,6 +944,11 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                 onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
+                                    if (file.size > 10 * 1024 * 1024) {
+                                        toast.error("File too large. Maximum size is 10 MB.");
+                                        e.target.value = "";
+                                        return;
+                                    }
                                     setAvatarUploading(true);
                                     try {
                                         const { avatar_url } = await uploadAvatarRequest(file);
