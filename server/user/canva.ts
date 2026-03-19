@@ -13,7 +13,6 @@ function getAuthHeaders() {
 
 export interface EditInCanvaResponse {
     canva_edit_url: string;
-    canva_view_url: string;
     canva_design_id: string;
 }
 

@@ -238,6 +238,8 @@ function GeneratePageContent() {
 
   const [allZipDownloading, setAllZipDownloading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showMagicLayersPopup, setShowMagicLayersPopup] = useState(false);
+  const [pendingCanvaUrl, setPendingCanvaUrl] = useState("");
   const [isMerging, setIsMerging] = useState(false);
   const [mergePercent, setMergePercent] = useState(0);
   const [isGenerationActive, setIsGenerationActive] = useState(false);
@@ -3366,48 +3368,35 @@ function GeneratePageContent() {
                         </button>
                       </div>
 
-                      {false && (<div style={{ display: "flex", gap: 6 }}>
+                      <div style={{ display: "flex", gap: 6 }}>
                           <button
                             className="gen-ad-btn--canva"
                             onClick={async () => {
                               if (!result._id) return;
                               try {
-                                toast.loading("Opening in Canva...", {
-                                  id: "canva",
+                                toast.loading("Preparing your editable design...", {
+                                  id: `canva-${result._id}`,
                                 });
                                 const data = await editInCanva(result._id);
+                                toast.dismiss(`canva-${result._id}`);
                                 if ("needs_auth" in data) {
-                                  toast.dismiss("canva");
                                   window.location.href = data.auth_url;
                                 } else {
-                                  toast.success("Canva design ready!", {
-                                    id: "canva",
-                                  });
-                                  window.open(data.canva_edit_url, "_blank");
+                                  setPendingCanvaUrl(data.canva_edit_url);
+                                  setShowMagicLayersPopup(true);
                                 }
                               } catch (e: unknown) {
                                 const message =
                                   e instanceof Error
                                     ? e.message
                                     : "Failed to open in Canva";
-                                toast.error(message, { id: "canva" });
+                                toast.error(message, { id: `canva-${result._id}` });
                               }
                             }}
                           >
                             Edit in Canva
                           </button>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: "var(--dim)",
-                              marginTop: 4,
-                              display: "block",
-                              textAlign: "center",
-                            }}
-                          >
-                            Requires Canva Enterprise
-                          </span>
-                        </div>)}
+                        </div>
                     </div>
                   </div>
                   );
@@ -3571,6 +3560,40 @@ function GeneratePageContent() {
                 ) : (
                   "Start Fix"
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMagicLayersPopup && (
+        <div className="gen-modal-overlay" onClick={() => setShowMagicLayersPopup(false)}>
+          <div className="gen-fix-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480, textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>✨</div>
+            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "var(--text)" }}>
+              Open in Canva
+            </h3>
+            <p style={{ fontSize: 14, color: "var(--dim)", marginBottom: 20, lineHeight: 1.6 }}>
+              Your ad will open in Canva. To make it fully editable, click <strong>&quot;Magic Layers&quot;</strong> in the bottom toolbar. This will separate all text, images, and elements into individual editable layers.
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button
+                onClick={() => {
+                  setShowMagicLayersPopup(false);
+                  window.open(pendingCanvaUrl, "_blank");
+                }}
+                style={{
+                  padding: "10px 24px",
+                  borderRadius: 8,
+                  background: "var(--accent)",
+                  color: "#000",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Got it, open Canva →
               </button>
             </div>
           </div>

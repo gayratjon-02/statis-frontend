@@ -1184,13 +1184,13 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                             </div>
                         </div>
 
-                        {false && (<div style={{
+                        <div style={{
                             background: "var(--card)", border: "1px solid var(--border)",
                             borderRadius: 16, padding: 24, marginBottom: 20,
                         }}>
                             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>Canva Integration</div>
                             <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
-                                Connect your Canva account to edit generated ads directly in Canva. Requires Canva Enterprise subscription.
+                                Connect your Canva account to edit generated ads directly in Canva with Magic Layers.
                             </div>
                             {canvaConnected ? (
                                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1233,7 +1233,7 @@ export function DashboardPage({ initialTab = "dashboard" }: { initialTab?: strin
                                     }}
                                 >Connect Canva</button>
                             )}
-                        </div>)}
+                        </div>
 
                         {/* Danger Zone */}
                         <div style={{

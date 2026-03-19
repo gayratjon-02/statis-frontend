@@ -69,6 +69,8 @@ function LibraryPage() {
     const [loading, setLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
     const [canvaLoading, setCanvaLoading] = useState(false);
+    const [showMagicLayersPopup, setShowMagicLayersPopup] = useState(false);
+    const [pendingCanvaUrl, setPendingCanvaUrl] = useState("");
     const [zipDownloading, setZipDownloading] = useState(false);
 
     // Fix Errors States
@@ -89,7 +91,8 @@ function LibraryPage() {
             if ("needs_auth" in result) {
                 window.location.href = result.auth_url;
             } else {
-                window.open(result.canva_edit_url, "_blank");
+                setPendingCanvaUrl(result.canva_edit_url);
+                setShowMagicLayersPopup(true);
                 setAds((prev) =>
                     prev.map((a) =>
                         a._id === targetId
@@ -728,23 +731,13 @@ function LibraryPage() {
                                     }}
                                     title="Download"
                                 ><DownloadIcon size={15} /></button>
-                                {/* Canva buttons hidden until Enterprise resolved */}
-                                {/* {lightboxAd.canva_status === 'fulfilled' && lightboxAd.canva_link ? (
-                                    <button
-                                        className="lightbox-bar__btn"
-                                        style={{ borderColor: "rgba(16,185,129,0.4)", color: "#10B981" }}
-                                        onClick={() => window.open(lightboxAd.canva_link!, "_blank")}
-                                        title="Open in Canva"
-                                    >Open in Canva</button>
-                                ) : (
-                                    <button
-                                        className="lightbox-bar__btn"
-                                        style={{ borderColor: "rgba(245,158,11,0.3)", color: "#F59E0B" }}
-                                        onClick={() => handleEditInCanva(lightboxAd._id)}
-                                        disabled={canvaLoading}
-                                        title="Edit in Canva"
-                                    >{canvaLoading ? "Loading..." : "Edit in Canva"}</button>
-                                )} */}
+                                <button
+                                    className="lightbox-bar__btn"
+                                    style={{ borderColor: "rgba(245,158,11,0.3)", color: "#F59E0B" }}
+                                    onClick={() => handleEditInCanva(lightboxAd._id)}
+                                    disabled={canvaLoading}
+                                    title="Edit in Canva"
+                                >{canvaLoading ? "Loading..." : "Edit in Canva"}</button>
                                 <button
                                     className="lightbox-bar__btn lightbox-bar__btn--primary"
                                     onClick={() => {
@@ -849,14 +842,9 @@ function LibraryPage() {
                                         <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(239,68,68,0.3)", color: "#EF4444" }} onClick={async () => { if (!confirm("Delete this ad?")) return; try { await deleteAdsRequest([detailAd._id]); setAds((prev) => prev.filter((a) => a._id !== detailAd._id)); setDetailId(null); } catch { toast.error("Delete failed"); } }}>🗑 Delete</button>
                                     </div>
 
-                                    {/* Canva detail buttons hidden until Enterprise resolved */}
-                                    {/* <div className="detail-actions__row">
-                                        {detailAd.canva_status === 'fulfilled' && detailAd.canva_link ? (
-                                            <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(16,185,129,0.3)", color: "#10B981" }} onClick={() => window.open(detailAd.canva_link!, "_blank")}>Open in Canva</button>
-                                        ) : (
-                                            <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(245,158,11,0.27)", color: "var(--yellow)" }} onClick={() => handleEditInCanva()} disabled={canvaLoading}>{canvaLoading ? "Loading..." : "Edit in Canva"}</button>
-                                        )}
-                                    </div> */}
+                                    <div className="detail-actions__row">
+                                        <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(245,158,11,0.27)", color: "var(--yellow)" }} onClick={() => handleEditInCanva()} disabled={canvaLoading}>{canvaLoading ? "Loading..." : "Edit in Canva"}</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -947,6 +935,40 @@ function LibraryPage() {
                                 onClick={handleAcceptFix}
                                 style={{ padding: "12px 24px", background: "#10B981", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 15 }}
                             >✓ Accept Fix</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showMagicLayersPopup && (
+                <div className="modal-backdrop" onClick={() => setShowMagicLayersPopup(false)} style={{ zIndex: 1100 }}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480, textAlign: "center", padding: 32 }}>
+                        <div style={{ fontSize: 48, marginBottom: 16 }}>✨</div>
+                        <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "var(--text)" }}>
+                            Open in Canva
+                        </h3>
+                        <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 20, lineHeight: 1.6 }}>
+                            Your ad will open in Canva. To make it fully editable, click <strong>&quot;Magic Layers&quot;</strong> in the bottom toolbar. This will separate all text, images, and elements into individual editable layers.
+                        </p>
+                        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                            <button
+                                onClick={() => {
+                                    setShowMagicLayersPopup(false);
+                                    window.open(pendingCanvaUrl, "_blank");
+                                }}
+                                style={{
+                                    padding: "10px 24px",
+                                    borderRadius: 8,
+                                    background: "var(--accent)",
+                                    color: "#000",
+                                    fontWeight: 600,
+                                    fontSize: 14,
+                                    border: "none",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                Got it, open Canva →
+                            </button>
                         </div>
                     </div>
                 </div>
