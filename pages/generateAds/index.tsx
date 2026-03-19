@@ -458,6 +458,17 @@ function GeneratePageContent() {
   };
 
   const [credits, setCredits] = useState({ used: 0, limit: 0 });
+  const [memberInfo, setMemberInfo] = useState<{ full_name: string; avatar_url: string }>({ full_name: '', avatar_url: '' });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('se_member');
+      if (stored) {
+        const m = JSON.parse(stored);
+        setMemberInfo({ full_name: m.full_name || '', avatar_url: m.avatar_url || '' });
+      }
+    } catch {}
+  }, []);
 
   const refreshCredits = () => {
     getUsageRequest()
@@ -1102,7 +1113,11 @@ function GeneratePageContent() {
               <span className="gen-credits__max">/ {credits.limit}</span>
             </div>
           </div>
-          <div className="gen-avatar">B</div>
+          {memberInfo.avatar_url ? (
+            <img src={memberInfo.avatar_url} alt="" className="gen-avatar" style={{ borderRadius: '50%', objectFit: 'cover' }} />
+          ) : (
+            <div className="gen-avatar">{memberInfo.full_name?.charAt(0)?.toUpperCase() || 'U'}</div>
+          )}
         </div>
       </div>
 
