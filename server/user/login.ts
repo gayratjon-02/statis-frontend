@@ -231,6 +231,7 @@ export async function uploadAvatarRequest(file: File): Promise<{ avatar_url: str
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
+        timeout: 60000,
     });
 
     if (!res.ok) {
