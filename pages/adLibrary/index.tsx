@@ -837,12 +837,7 @@ function LibraryPage() {
                                     <button className="detail-actions__btn detail-actions__btn--primary" onClick={downloadAllAsZip} disabled={zipDownloading} style={{ width: "100%", padding: "12px 0", marginBottom: 20, background: "linear-gradient(135deg, rgba(34,211,238,0.1), rgba(59,130,246,0.1))", border: "1px solid rgba(34,211,238,0.3)", color: "#38bdf8", fontWeight: 600, fontSize: 13, opacity: zipDownloading ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>{zipDownloading ? "Packing ZIP..." : <><DownloadIcon size={14} /> Download All Ratios (ZIP)</>}</button>
 
                                     <div className="detail-actions__row">
-                                        <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(16,185,129,0.3)", color: "#10B981" }} onClick={() => setFixModalOpen(true)}>✏️ Edit Design</button>
-                                        <button className="detail-actions__btn detail-actions__btn--secondary">↻ Regenerate</button>
                                         <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(239,68,68,0.3)", color: "#EF4444" }} onClick={async () => { if (!confirm("Delete this ad?")) return; try { await deleteAdsRequest([detailAd._id]); setAds((prev) => prev.filter((a) => a._id !== detailAd._id)); setDetailId(null); } catch { toast.error("Delete failed"); } }}>🗑 Delete</button>
-                                    </div>
-
-                                    <div className="detail-actions__row">
                                         <button className="detail-actions__btn detail-actions__btn--secondary" style={{ borderColor: "rgba(245,158,11,0.27)", color: "var(--yellow)" }} onClick={() => handleEditInCanva()} disabled={canvaLoading}>{canvaLoading ? "Loading..." : "Edit in Canva"}</button>
                                     </div>
                                 </div>
