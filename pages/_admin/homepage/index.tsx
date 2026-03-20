@@ -59,6 +59,7 @@ import ConceptModal from "../../../libs/components/_admin/ConceptModal";
 import AdminSidebar from "../../../libs/components/_admin/Sidebar";
 import CategoryModal from "../../../libs/components/_admin/CategoryModal";
 import { ADMIN_NAV_ITEMS } from "../../../libs/types/admin.type";
+import { adminPath } from "../../../libs/utils/adminPath";
 import type { TokenUsageSummary, CostByUser, Profitability } from "../../../libs/types/admin.type";
 
 /** Prepend API base URL to relative image paths */
@@ -740,7 +741,7 @@ function AdminDashboard() {
   // ── Logout ──
   const handleLogout = () => {
     logout();
-    router.replace("/_admin/login");
+    router.replace(adminPath("/_admin/login"));
   };
 
   // ── Stats ──

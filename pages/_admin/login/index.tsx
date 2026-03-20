@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useAdminAuth } from "../../../libs/hooks/useAdminAuth";
+import { adminPath } from "../../../libs/utils/adminPath";
 import { adminLogin, adminSignup, adminGoogleAuth } from "../../../server/admin/adminPostApis";
 import { AdminRole } from "../../../libs/enums/admin.enum";
 import { useGoogleLogin } from "@react-oauth/google";
@@ -13,7 +14,7 @@ export default function AdminAuth() {
     // If already logged in, redirect to admin homepage
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
-            router.replace("/_admin/homepage");
+            router.replace(adminPath("/_admin/homepage"));
         }
     }, [isLoading, isAuthenticated, router]);
 
@@ -47,7 +48,7 @@ export default function AdminAuth() {
             const res = await adminLogin({ email: loginEmail, password: loginPassword });
             localStorage.setItem("se_admin_token", res.accessToken);
             localStorage.setItem("se_admin_user", JSON.stringify(res.admin));
-            router.push("/_admin/homepage");
+            router.push(adminPath("/_admin/homepage"));
         } catch (err: any) {
             setError(err.message || "Login failed");
         } finally {
@@ -73,7 +74,7 @@ export default function AdminAuth() {
             });
             localStorage.setItem("se_admin_token", res.accessToken);
             localStorage.setItem("se_admin_user", JSON.stringify(res.admin));
-            router.push("/_admin/homepage");
+            router.push(adminPath("/_admin/homepage"));
         } catch (err: any) {
             setError(err.message || "Signup failed");
         } finally {
@@ -99,7 +100,7 @@ export default function AdminAuth() {
             // Existing admin → auto-login
             localStorage.setItem("se_admin_token", res.accessToken);
             localStorage.setItem("se_admin_user", JSON.stringify(res.admin));
-            router.push("/_admin/homepage");
+            router.push(adminPath("/_admin/homepage"));
         } catch (err: any) {
             setError(err.message || "Google authentication failed");
         } finally {
@@ -123,7 +124,7 @@ export default function AdminAuth() {
             });
             localStorage.setItem("se_admin_token", res.accessToken);
             localStorage.setItem("se_admin_user", JSON.stringify(res.admin));
-            router.push("/_admin/homepage");
+            router.push(adminPath("/_admin/homepage"));
         } catch (err: any) {
             setError(err.message || "Registration failed");
         } finally {

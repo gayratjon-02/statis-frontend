@@ -8,6 +8,7 @@
 import React from "react";
 import { useRouter } from "next/router";
 import { useAdminAuth } from "../hooks/useAdminAuth";
+import { adminPath } from "../utils/adminPath";
 
 interface AdminGuardProps {
     children: React.ReactNode;
@@ -53,7 +54,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
     // Not authenticated → redirect to login
     if (!isAuthenticated) {
         if (typeof window !== "undefined") {
-            router.replace("/_admin/login");
+            router.replace(adminPath("/_admin/login"));
         }
         return null;
     }

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { useAdminAuth } from "../../libs/hooks/useAdminAuth";
+import { adminPath } from "../../libs/utils/adminPath";
 
 /**
  * /_admin/ entry point
@@ -14,9 +15,9 @@ export default function AdminIndex() {
     useEffect(() => {
         if (isLoading) return;
         if (isAuthenticated) {
-            router.replace("/_admin/homepage");
+            router.replace(adminPath("/_admin/homepage"));
         } else {
-            router.replace("/_admin/login");
+            router.replace(adminPath("/_admin/login"));
         }
     }, [isLoading, isAuthenticated, router]);
 
