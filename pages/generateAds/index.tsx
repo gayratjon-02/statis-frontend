@@ -360,11 +360,9 @@ function GeneratePageContent() {
         description: data.description || prev.description,
         productUrl: data.product_url || prev.productUrl,
         price: data.price_text || prev.price,
-        photoPreview: frontUrl ? resolveImageUrl(frontUrl) : prev.photoPreview,
-        backImagePreview: backUrl ? resolveImageUrl(backUrl) : prev.backImagePreview,
-        referenceImagePreviews: refUrls.length > 0
-          ? refUrls.map((u) => resolveImageUrl(u))
-          : prev.referenceImagePreviews,
+        photoPreview: frontUrl || prev.photoPreview,
+        backImagePreview: backUrl || prev.backImagePreview,
+        referenceImagePreviews: refUrls.length > 0 ? refUrls : prev.referenceImagePreviews,
         noPhysicalProduct: frontUrl ? false : prev.noPhysicalProduct,
         starRating: data.star_rating ? String(data.star_rating) : prev.starRating,
         reviewCount: data.review_count ? String(data.review_count) : prev.reviewCount,
@@ -374,66 +372,6 @@ function GeneratePageContent() {
         offer: data.offer_text || prev.offer,
         ingredientsFeatures: data.ingredients_features || prev.ingredientsFeatures,
       }));
-
-      // Convert front image URL to File for form validation
-      if (frontUrl) {
-        try {
-          const response = await fetch(resolveImageUrl(frontUrl));
-          if (response.ok) {
-            const blob = await response.blob();
-            if (blob.type.startsWith("image/")) {
-              const ext = blob.type.split("/")[1] || "png";
-              setProduct((prev) => ({
-                ...prev,
-                photo: new File([blob], `product-front.${ext}`, { type: blob.type }),
-              }));
-            }
-          }
-        } catch {
-          console.warn("Could not convert front image to File");
-        }
-      }
-
-      // Convert back image URL to File
-      if (backUrl) {
-        try {
-          const response = await fetch(resolveImageUrl(backUrl));
-          if (response.ok) {
-            const blob = await response.blob();
-            if (blob.type.startsWith("image/")) {
-              const ext = blob.type.split("/")[1] || "png";
-              setProduct((prev) => ({
-                ...prev,
-                backImage: new File([blob], `product-back.${ext}`, { type: blob.type }),
-              }));
-            }
-          }
-        } catch {
-          console.warn("Could not convert back image to File");
-        }
-      }
-
-      // Convert reference image URLs to Files
-      if (refUrls.length > 0) {
-        const refFiles: File[] = [];
-        for (let i = 0; i < refUrls.length; i++) {
-          try {
-            const response = await fetch(resolveImageUrl(refUrls[i]));
-            if (response.ok) {
-              const blob = await response.blob();
-              if (blob.type.startsWith("image/")) {
-                const ext = blob.type.split("/")[1] || "png";
-                refFiles.push(new File([blob], `product-ref-${i}.${ext}`, { type: blob.type }));
-              }
-            }
-          } catch {
-            console.warn(`Could not convert reference image ${i} to File`);
-          }
-        }
-        if (refFiles.length > 0) {
-          setProduct((prev) => ({ ...prev, referenceImages: refFiles }));
-        }
-      }
     } catch (err: any) {
       setProductImportError(err.message || "Import failed");
     } finally {
