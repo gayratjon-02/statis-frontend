@@ -3357,7 +3357,7 @@ function GeneratePageContent() {
                               a.click();
                               document.body.removeChild(a);
 
-                              toast.success("All 3 ratios downloaded!", { id: `ratio-${result._id}` });
+                              toast.success("All 3 ratios downloaded!", { id: `ratio-${result._id}`, duration: 5000 });
                             } catch (e: unknown) {
                               const msg = e instanceof Error ? e.message : "Failed to generate ratios";
                               toast.error(msg, { id: `ratio-${result._id}` });
