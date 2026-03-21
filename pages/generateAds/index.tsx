@@ -907,8 +907,6 @@ function GeneratePageContent() {
     if (!brand.url || brand.url === "https://")
       errors.url = "Website URL is required";
     if (!brand.industry) errors.industry = "Please select an industry";
-    if (!brand.logo && !brand.logoPreview)
-      errors.logo = "Brand logo is required. Please upload a PNG file.";
     if (brand.voiceTags.length === 0)
       errors.voiceTags = "Please select at least one voice/tone option";
     if (!brand.targetAudience)
