@@ -937,14 +937,14 @@ function GeneratePageContent() {
         description: brand.description,
         website_url: brand.url,
         industry: brand.industry as BrandIndustry,
-        logo_url: logoUrl,
+        logo_url: logoUrl || undefined,
         primary_color: brand.primaryColor,
         secondary_color: brand.secondaryColor,
-        accent_color: brand.accentColor,
-        background_color: brand.backgroundColor,
+        accent_color: brand.accentColor || undefined,
+        background_color: brand.backgroundColor || undefined,
         voice_tags: brand.voiceTags as BrandVoice[],
         target_audience: brand.targetAudience,
-        competitors: brand.competitors,
+        competitors: brand.competitors || undefined,
       });
       setBrand((prev) => ({ ...prev, _id: newBrand._id }));
       // Refresh brands list
