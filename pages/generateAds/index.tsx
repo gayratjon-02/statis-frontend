@@ -632,7 +632,7 @@ function GeneratePageContent() {
       a.click();
       document.body.removeChild(a);
 
-      toast.success("All variations downloaded!", { id: "dl-all-zip" });
+      toast.success("All variations downloaded!", { id: "dl-all-zip", duration: 3000 });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to create ZIP";
       toast.error(msg, { id: "dl-all-zip" });
@@ -3293,7 +3293,7 @@ function GeneratePageContent() {
                               a.click();
                               document.body.removeChild(a);
 
-                              toast.success("All 3 ratios downloaded!", { id: `ratio-${result._id}`, duration: 5000 });
+                              toast.success("All 3 ratios downloaded!", { id: `ratio-${result._id}`, duration: 3000 });
                             } catch (e: unknown) {
                               const msg = e instanceof Error ? e.message : "Failed to generate ratios";
                               toast.error(msg, { id: `ratio-${result._id}` });

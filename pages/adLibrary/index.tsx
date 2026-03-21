@@ -286,7 +286,7 @@ function LibraryPage() {
             a.click();
             document.body.removeChild(a);
 
-            toast.success("All 3 ratios downloaded!", { id: "dl-all-ratios" });
+            toast.success("All 3 ratios downloaded!", { id: "dl-all-ratios", duration: 3000 });
         } catch (e) {
             const msg = e instanceof Error ? e.message : "Failed to create ZIP";
             toast.error(msg, { id: "dl-all-ratios" });
