@@ -59,7 +59,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://*.amazonaws.com https://via.placeholder.com https://*.googleusercontent.com",
-              "connect-src 'self' https://*.amazonaws.com https://accounts.google.com https://oauth2.googleapis.com",
+              "connect-src 'self' https://api.staticengine.com https://*.amazonaws.com https://accounts.google.com https://oauth2.googleapis.com",
               "frame-src https://accounts.google.com https://checkout.stripe.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",

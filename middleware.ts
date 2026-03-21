@@ -7,12 +7,20 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (hostname === ADMIN_DOMAIN) {
-    if (!pathname.startsWith("/_admin") && !pathname.startsWith("/_next") && !pathname.startsWith("/api")) {
-      const url = request.nextUrl.clone();
-      url.pathname = `/_admin${pathname}`;
-      return NextResponse.rewrite(url);
+    if (
+      pathname.startsWith("/_admin") ||
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/api") ||
+      pathname.startsWith("/img") ||
+      pathname.startsWith("/public") ||
+      pathname.includes(".")
+    ) {
+      return NextResponse.next();
     }
-    return NextResponse.next();
+
+    const url = request.nextUrl.clone();
+    url.pathname = `/_admin${pathname}`;
+    return NextResponse.rewrite(url);
   }
 
   if (pathname.startsWith("/_admin")) {
